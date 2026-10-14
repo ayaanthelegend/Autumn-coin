@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<codebase_summary>
+  <metadata>
+    <project_name>autumn-coin-sim</project_name>
+    <package_name>autumn</package_name>
+    <version>0.1.0</version>
+    <description>2D quasi-steady rigid-body ODE simulation of a thin plate (coin cross-section) falling through fluid (water), based on Andersen, Pesavento &amp; Wang (JFM 2005) and Pesavento &amp; Wang (PRL 2004).</description>
+    <created_date>2026-10-15</created_date>
+    <git_branch>master</git_branch>
+    <latest_commit>4ee9875</latest_commit>
+    <python_version>3.10+</python_version>
+    <dependencies>
+      <dependency name="numpy" min_version="1.24.0" installed="2.5.4" />
+      <dependency name="scipy" min_version="1.10.0" installed="1.18.1" />
+      <dependency name="matplotlib" min_version="3.7.0" installed="3.11.2" />
+      <dependency name="pytest" min_version="7.0.0" installed="9.1.1" />
+      <dependency name="pyyaml" min_version="6.0" installed="6.0.3" />
+    </dependencies>
+    <references>
+      <reference citation="Andersen, A., Pesavento, U., &amp; Wang, Z. J. (2005). Unsteady aerodynamics of fluttering and tumbling plates. Journal of Fluid Mechanics, 541, 65-90." />
+      <reference citation="Pesavento, U., &amp; Wang, Z. J. (2004). Falling of a freely moving flat plate. Physical Review Letters, 93(14), 144501." />
+    </references>
+  </metadata>
+
+  <directory_structure>
+    <directory path="/">
+      <file name="README.md" type="markdown" description="Single source of truth specification document for the 2D quasi-steady model." />
+      <file name="requirements.txt" type="text" description="Project runtime and testing dependencies." />
+      <file name="pyproject.toml" type="toml" description="PEP 517/518 build specification, package metadata, and pytest configuration." />
+      <file name=".gitignore" type="ignore" description="Git ignore rules protecting results while tracking results/SUMMARY.md." />
+      <file name="codebase_summary.xml" type="xml" description="Structured machine-readable codebase summary document." />
+
+      <directory path="/config">
+        <file name="base.yaml" type="yaml" description="Fluid properties (water at 20 C), default aerodynamic coefficients (C_T, C_R, C_D0, C_D1, C_tau), DOP853 solver parameters, and regime classifier thresholds." />
+        <file name="coin_sets.yaml" type="yaml" description="Plate geometry and material definitions for reference_card, heavy_coin, light_coin, and washer_proxy." />
+        <file name="sweeps.yaml" type="yaml" description="Experiment specifications for I* sweep (25 log-spaced values), release angle sweep (19 values), chaos ensembles, and 2D regime map grid." />
+      </directory>
+
+      <directory path="/src/autumn">
+        <file name="__init__.py" type="python" description="Package initializer exposing public version and core imports." />
+        <file name="params.py" type="python" description="Dataclasses for PlateParams, FluidParams, Coefficients, NumericsParams, InitialConditions, and YAML loading utility." />
+        <file name="added_mass.py" type="python" description="Potential-flow added mass tensor (m11, m22, I_a) for an elliptical cross-section." />
+        <file name="forces.py" type="python" description="Aerodynamic and hydrodynamic forces: angle of attack, Kutta-Joukowski circulation with translational and rotational terms, drag coefficient C_D(alpha), viscous drag forces, and quadratic rotational torque." />
+        <file name="model.py" type="python" description="Coupled planar 6-DOF Kirchhoff equations of motion, including dimensional circulation lift (rho_f * Gamma * V), potential-flow Munk moment, energy calculations, and lab-frame linear momentum." />
+        <file name="integrate.py" type="python" description="Scipy solve_ivp wrapper utilizing DOP853 with adaptive t_max, dense time sampling, terminal bottom-hit event, and timeout detection." />
+        <file name="dimensionless.py" type="python" description="Evaluates dimensionless groups (I*, Re, St, U_t) and classifies trajectory regime (steady, fluttering, tumbling, mixed)." />
+        <file name="metrics.py" type="python" description="Trajectory post-processing: FFT frequency analysis, dominant Strouhal number, tilt variance, and mechanical energy budget reconciliation." />
+        <file name="sweeps.py" type="python" description="Orchestration engines for executing parameter sweeps (I* sweep, release angle sweep, chaos dispersion ensemble)." />
+        <file name="plotting.py" type="python" description="Publication-quality visualization suite enforcing 300 DPI, vector PDF output, high-contrast styling, and required simulation captions." />
+      </directory>
+
+      <directory path="/scripts">
+        <file name="run_single.py" type="python" description="CLI runner for a single plate drop, exporting trajectory CSV and 3-panel figure." />
+        <file name="run_tumbling_drop.py" type="python" description="Targeted runner demonstrating high-I* (I*=3.50) tumbling autorotation." />
+        <file name="run_sweep.py" type="python" description="CLI runner executing sweeps defined in config/sweeps.yaml." />
+        <file name="make_regime_map.py" type="python" description="Generates the 2D phase diagram of I* vs a posteriori Re across physical variations of rho_s, L, and h." />
+        <file name="make_summary.py" type="python" description="Compiles and writes results/SUMMARY.md for external review handoff." />
+      </directory>
+
+      <directory path="/tests">
+        <file name="__init__.py" type="python" description="Test package initializer." />
+        <file name="test_added_mass.py" type="python" description="Acceptance Test 1: Verifies circular limit (m11=m22, I_a=0) and thin plate limits." />
+        <file name="test_forces.py" type="python" description="Acceptance Tests 2 and 4: Verifies Kirchhoff kinetic energy and lab momentum conservation with forces off, constant velocity for circular plate, and vertical symmetry preservation without perturbations." />
+        <file name="test_terminal_velocity.py" type="python" description="Acceptance Test 3: Verifies broadside terminal velocity matches analytical drag balance to within 0.05% (&lt; 2% requirement)." />
+        <file name="test_energy.py" type="python" description="Acceptance Test 5: Reconciles potential, translational kinetic, rotational kinetic, and dissipated work to within 1e-4% of potential energy drop." />
+        <file name="test_regimes.py" type="python" description="Acceptance Test 6: Verifies regime ordering (fluttering at low I*, tumbling at high I*) and classifier threshold robustness under +/-20% variation." />
+        <file name="test_numerics.py" type="python" description="Acceptance Tests 7 and 8: Verifies numerical convergence (&lt; 1e-6% chord change upon 10x tolerance tightening) and byte-identical reproducibility with fixed seed." />
+        <file name="test_dimensions_and_lift.py" type="python" description="Audit Tests: Verifies implied lift coefficient peaks at 1.2000 at alpha=45 deg, and confirms dimensional consistency (N/m for linear ODEs, N for angular ODE) across all force terms." />
+      </directory>
+
+      <directory path="/results">
+        <file name="SUMMARY.md" type="markdown" description="Formal external review report with test results, full coefficient table, sweep statistics, and physics diagnosis." />
+        <file name="regime_map.png" type="image/png" description="Publication 2D phase diagram of I* vs Re." />
+        <file name="regime_map.pdf" type="application/pdf" description="Vector PDF of 2D regime map." />
+        <file name="regime_map.csv" type="text/csv" description="Tabular classification data for all 60 regime map grid points." />
+        <directory path="/results/single/tumbling_drop">
+          <file name="tumbling_drop_trajectory.png" type="image/png" description="Trajectory plot of high-I* (I*=3.5) autorotating tumbling drop." />
+          <file name="tumbling_drop_trajectory.pdf" type="application/pdf" description="Vector PDF of high-I* tumbling trajectory." />
+          <file name="tumbling_drop_trajectory.csv" type="text/csv" description="Time-series trajectory data for tumbling drop." />
+        </directory>
+        <directory path="/results/single/test_run">
+          <file name="single_drop_trajectory.png" type="image/png" description="Baseline reference card trajectory showing damped flutter." />
+          <file name="single_drop_trajectory.csv" type="text/csv" description="Time-series trajectory data for baseline card drop." />
+        </directory>
+        <directory path="/results/sweeps">
+          <directory path="/results/sweeps/i_star_sweep">
+            <file name="i_star_sweep.png" type="image/png" description="Regime, descent velocity, and lateral drift vs I*." />
+            <file name="energy_budget_reconciliation.png" type="image/png" description="Kinetic, potential, and dissipated energy budget balance." />
+            <file name="flutter_frequency_analysis.png" type="image/png" description="FFT power spectral density and Strouhal number." />
+          </directory>
+          <directory path="/results/sweeps/release_angle_sweep">
+            <file name="release_angle_sweep.png" type="image/png" description="Descent velocity and lateral drift across release angles (0 to 90 deg)." />
+          </directory>
+          <directory path="/results/sweeps/chaos_ensemble">
+            <file name="chaos_ensemble_low_I_0.2.png" type="image/png" description="50-drop trajectory dispersion bundle and landing histogram for I*=0.20." />
+            <file name="chaos_ensemble_mid_I_0.8.png" type="image/png" description="50-drop trajectory dispersion bundle and landing histogram for I*=0.80." />
+            <file name="chaos_ensemble_high_I_3.5.png" type="image/png" description="50-drop trajectory dispersion bundle and landing histogram for I*=3.50." />
+          </directory>
+        </directory>
+      </directory>
+    </directory>
+  </directory_structure>
+
+  <physics_specification>
+    <cross_section geometry="ellipse">
+      <semi_axes major="a" minor="b" chord="L = 2*a" thickness="h = 2*b" area="A = pi*a*b" />
+      <mass solid="m = rho_s * A" displaced_fluid="m_f = rho_f * A" moment_of_inertia="I = m * (a^2 + b^2) / 4" />
+    </cross_section>
+    <added_mass_tensor model="potential_flow">
+      <component index="m11" formula="rho_f * pi * b^2" description="Added mass along major axis (chord)" />
+      <component index="m22" formula="rho_f * pi * a^2" description="Added mass along minor axis (thickness)" />
+      <component index="I_a" formula="rho_f * pi * (a^2 - b^2)^2 / 8" description="Added moment of inertia" />
+    </added_mass_tensor>
+    <state_vector dimension="6">
+      <variable index="0" symbol="X" frame="lab" units="m" description="Horizontal position" />
+      <variable index="1" symbol="Y" frame="lab" units="m" description="Vertical position (upward)" />
+      <variable index="2" symbol="theta" frame="lab" units="rad" description="Tilt angle of major axis from +X" />
+      <variable index="3" symbol="u" frame="body" units="m/s" description="Velocity along major axis" />
+      <variable index="4" symbol="v" frame="body" units="m/s" description="Velocity along minor axis" />
+      <variable index="5" symbol="omega" frame="body" units="rad/s" description="Angular velocity d(theta)/dt" />
+    </state_vector>
+    <kinematics>
+      <equation dX_dt="u * cos(theta) - v * sin(theta)" />
+      <equation dY_dt="u * sin(theta) + v * cos(theta)" />
+      <equation dtheta_dt="omega" />
+    </kinematics>
+    <dynamics formulation="Kirchhoff_coupled">
+      <equation dof="u" formula="(m + m11) * du/dt = (m + m22)*v*omega - rho_f*Gamma*v - F_u - (m - m_f)*g*sin(theta)" />
+      <equation dof="v" formula="(m + m22) * dv/dt = -(m + m11)*u*omega + rho_f*Gamma*u - F_v - (m - m_f)*g*cos(theta)" />
+      <equation dof="omega" formula="(I + I_a) * domega/dt = (m11 - m22)*u*v - tau" />
+    </dynamics>
+    <hydrodynamic_terms>
+      <term name="angle_of_attack" formula="alpha = atan2(-v, u)" convention="broadside descent gives alpha = pi/2" />
+      <term name="circulation" formula="Gamma = -C_T * L * (u*v / |V|) + 0.5 * C_R * L^2 * omega" units="m^2/s">
+        <parameter symbol="C_T" value="1.2" role="Translational circulation prefactor (yields peak C_L = 1.2 at 45 deg)" />
+        <parameter symbol="C_R" value="3.14159265" role="Rotational circulation prefactor" />
+      </term>
+      <term name="lift_forces" formula="F_lift_u = rho_f * Gamma * v, F_lift_v = rho_f * Gamma * u" units="N/m" note="Dimensional Kutta-Joukowski lift force" />
+      <term name="viscous_drag" formula="F_u = 0.5 * rho_f * L * C_D(alpha) * |V| * u, F_v = 0.5 * rho_f * L * C_D(alpha) * |V| * v" units="N/m">
+        <parameter symbol="C_D0" value="1.4" />
+        <parameter symbol="C_D1" value="1.0" />
+        <drag_law formula="C_D(alpha) = C_D0 - C_D1 * cos(2*alpha)" broadside="2.4" edge_on="0.4" />
+      </term>
+      <term name="rotational_torque" formula="tau = 0.5 * C_tau * rho_f * L^4 * |omega| * omega + c_lin * omega" units="N*m/m">
+        <parameter symbol="C_tau" value="0.075" rationale="Strip theory derivation: C_tau = C_D / 32 with C_D approx 2.4" />
+        <parameter symbol="c_lin" value="0.0" />
+      </term>
+    </hydrodynamic_terms>
+    <dimensionless_groups>
+      <group symbol="I*" formula="(rho_s * h) / (rho_f * L)" description="Dimensionless moment of inertia for thin 2D plate" />
+      <group symbol="Re" formula="rho_f * U * L / mu" description="Reynolds number evaluated a posteriori from mean descent speed U" />
+      <group symbol="St" formula="f * L / U" description="Strouhal number from dominant oscillation frequency f" />
+      <group symbol="U_t" formula="sqrt((rho_s/rho_f - 1) * g * h)" description="Froude-type velocity scale" />
+    </dimensionless_groups>
+    <regimes>
+      <regime name="steady" criterion="theta_range &lt; 0.2 rad and tilt_variance &lt; 0.01 rad^2" />
+      <regime name="fluttering" criterion="oscillatory theta, n_flips == 0, theta_range &gt;= 0.2 rad" />
+      <regime name="tumbling" criterion="n_flips &gt;= 2 with consistent rotation sign" />
+      <regime name="mixed" criterion="chaotic or irregular motion (e.g. flutter with intermittent flips)" />
+    </regimes>
+  </physics_specification>
+
+  <acceptance_test_suite>
+    <total_tests>15</total_tests>
+    <passed_tests>15</passed_tests>
+    <failed_tests>0</failed_tests>
+    <test_cases>
+      <test name="test_added_mass_circular_limit" category="Acceptance Test 1" status="PASS" result="m11 == m22 and I_a == 0 verified for circular cylinder" />
+      <test name="test_added_mass_thin_plate_limit" category="Acceptance Test 1" status="PASS" result="m22/m11 = (a/b)^2 and I_a asymptotic scaling verified" />
+      <test name="test_invalid_inputs" category="Acceptance Test 1" status="PASS" result="Proper exception raised on non-physical dimensions" />
+      <test name="test_no_forces_kirchhoff_conservation" category="Acceptance Test 2" status="PASS" result="Total kinetic energy T and lab-frame linear momentum conserved to &lt; 1e-8" />
+      <test name="test_no_forces_circular_plate_constant_velocity" category="Acceptance Test 2" status="PASS" result="Circular plate maintains exact constant lab velocity and angular velocity" />
+      <test name="test_broadside_terminal_velocity" category="Acceptance Test 3" status="PASS" result="Broadside terminal speed matches drag balance within 0.05% (&lt; 2% threshold)" />
+      <test name="test_sign_check_and_symmetry" category="Acceptance Test 4" status="PASS" result="Zero perturbation yields vertical descent with lateral drift &lt; 1e-6 L" />
+      <test name="test_energy_budget_closure_reference_card" category="Acceptance Test 5" status="PASS" result="Energy closure residual normalized by potential drop is &lt; 1e-4%" />
+      <test name="test_energy_budget_closure_heavy_coin" category="Acceptance Test 5" status="PASS" result="Heavy coin energy closure residual normalized by potential drop is &lt; 1e-4%" />
+      <test name="test_regime_ordering_transition" category="Acceptance Test 6" status="PASS" result="Fluttering observed at low I*, tumbling emerges cleanly at I* &gt;= 1.07" />
+      <test name="test_regime_threshold_sensitivity" category="Acceptance Test 6" status="PASS" result="Regime classifications invariant under +/- 20% threshold variations" />
+      <test name="test_numerical_convergence_tolerance_tightening" category="Acceptance Test 7" status="PASS" result="10x DOP853 tolerance tightening shifts landing X by &lt; 1e-6% of chord L" />
+      <test name="test_byte_identical_reproducibility" category="Acceptance Test 8" status="PASS" result="Identical random seed produces bit-for-bit identical trajectory CSV outputs" />
+      <test name="test_lift_coefficient_peak" category="Unit Audit" status="PASS" result="Implied lift coefficient peaks at 1.2000 at alpha = 45 deg" />
+      <test name="test_equations_of_motion_dimensional_consistency" category="Unit Audit" status="PASS" result="Every force term verified to have units N/m; torque terms verified to have units N" />
+    </test_cases>
+  </acceptance_test_suite>
+
+  <experimental_results_summary>
+    <i_star_sweep total_runs="25" timeouts="0">
+      <regime_transition critical_I_star="1.07">
+        <range interval="[0.05, 0.89]" behavior="Fluttering (n_flips = 0, periodic tilt oscillations)" />
+        <range interval="[1.07, 3.50]" behavior="Tumbling (n_flips &gt; 40, sustained autorotation, &gt; 1.5 m lateral glide)" />
+        <range interval="[3.50, 5.00]" behavior="Mixed / tumbling autorotation" />
+      </regime_transition>
+    </i_star_sweep>
+    <release_angle_sweep total_runs="19">
+      <tested_angles unit="deg" start="0" end="90" step="5" />
+      <observations>
+        <case I_star="0.20" behavior="Oscillatory flutter across all angles, lateral drift 0 to 0.12 m" />
+        <case I_star="0.80" behavior="Broad flutter-glide, lateral drift up to 0.45 m" />
+        <case I_star="3.50" behavior="Rapid entry into autorotative tumbling, lateral drift exceeding 1.5 m" />
+      </observations>
+    </release_angle_sweep>
+    <chaos_ensemble sample_size_per_case="50">
+      <perturbations angle_std="0.5 deg" velocity_std="1e-4 m/s" />
+      <results>
+        <case I_star="0.20" mean_landing_x="-0.04 m" std_landing_x="0.01 m" pattern="Tight, coherent trajectory bundle" />
+        <case I_star="0.80" mean_landing_x="-0.25 m" std_landing_x="0.06 m" pattern="Moderate dispersion near regime boundary" />
+        <case I_star="3.50" mean_landing_x="1.48 m" std_landing_x="0.32 m" pattern="Broad dispersion from tumbling initiation phase" />
+      </results>
+    </chaos_ensemble>
+    <regime_map total_grid_points="60">
+      <parameter_ranges L="[10, 20, 35, 50] mm" I_star="[0.05, 5.0]" Re_range="[500, 3500]" />
+      <findings>Clear separation between fluttering at low I* and autorotating tumbling at high I* across all plate chords.</findings>
+    </regime_map>
+  </experimental_results_summary>
+</codebase_summary>
