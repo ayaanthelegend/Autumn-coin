@@ -70,14 +70,14 @@ def plot_single_drop(
     Includes orientation directors every N points.
     """
     fig, axs = plt.subplots(1, 3, figsize=(15, 5))
-    fig.suptitle(f"Single Drop Dynamics: {res.plate.name} (2D quasi-steady model simulation)", fontsize=13, y=1.02)
+    fig.suptitle(f"Single Drop Dynamics: {res.plate.name} (2D quasi-steady model simulation)", fontsize=13)
 
     # 1. Trajectory in X-Y plane
     ax0 = axs[0]
     ax0.plot(res.X * 1000, res.Y * 1000, color="#1f77b4", label="Center trajectory")
     ax0.set_xlabel("Lateral position X [mm]")
     ax0.set_ylabel("Vertical position Y [mm]")
-    ax0.set_title("Trajectory in X-Y Plane\n(2D quasi-steady model simulation)")
+    ax0.set_title("(a) Trajectory in X-Y Plane")
     ax0.grid(True)
     ax0.axis("equal")
 
@@ -101,7 +101,7 @@ def plot_single_drop(
     ax1.plot(res.t, np.degrees(res.theta), color="#2ca02c")
     ax1.set_xlabel("Time t [s]")
     ax1.set_ylabel(r"Orientation $\theta$ [deg]")
-    ax1.set_title(r"Tilt Angle $\theta(t)$" + "\n(2D quasi-steady model simulation)")
+    ax1.set_title(r"(b) Tilt Angle $\theta(t)$")
     ax1.grid(True)
 
     # 3. Speed vs time
@@ -110,7 +110,7 @@ def plot_single_drop(
     ax2.plot(res.t, np.abs(res.v_Y), color="#ff7f0e", ls="--", label="|v_Y| vertical")
     ax2.set_xlabel("Time t [s]")
     ax2.set_ylabel("Speed [m/s]")
-    ax2.set_title("Descent Speed vs Time\n(2D quasi-steady model simulation)")
+    ax2.set_title("(c) Descent Speed vs Time")
     ax2.grid(True)
     ax2.legend(loc="lower right")
 
@@ -143,7 +143,7 @@ def plot_energy_budget(
     ax0.plot(t, E_total - E_total[0], label=r"Total $\Delta E + W_{\mathrm{diss}}$", color="black", ls="--", lw=1.8)
     ax0.set_xlabel("Time t [s]")
     ax0.set_ylabel("Energy [J/m]")
-    ax0.set_title("Energy Evolution\n(2D quasi-steady model simulation)")
+    ax0.set_title("(a) Energy Evolution")
     ax0.grid(True)
     ax0.legend(loc="center left")
 
@@ -153,7 +153,7 @@ def plot_energy_budget(
     ax1.axhline(1.0, color="gray", ls=":", label="1% acceptance limit")
     ax1.set_xlabel("Time t [s]")
     ax1.set_ylabel(r"Relative Error $|\Delta E| / \Delta V_{\mathrm{pot}}$ [%]")
-    ax1.set_title("Energy Closure Error\n(2D quasi-steady model simulation)")
+    ax1.set_title("(b) Energy Closure Residual")
     ax1.grid(True)
     ax1.legend(loc="upper left")
 
@@ -178,7 +178,7 @@ def plot_fft_frequency(
     ax.axvline(f_dom, color="#d62728", ls="--", label=f"Dominant freq: {f_dom:.2f} Hz (St = {St:.3f})")
     ax.set_xlabel("Frequency f [Hz]")
     ax.set_ylabel(r"Power Spectral Density of $\theta(t)$ [$\mathrm{rad}^2/\mathrm{Hz}$]")
-    ax.set_title(f"Fluttering Frequency Analysis\n(2D quasi-steady model simulation: St={St:.3f})")
+    ax.set_title(f"Fluttering Frequency Analysis (2D quasi-steady model simulation: St={St:.3f})")
     ax.grid(True)
     ax.legend(loc="upper right")
     plt.tight_layout()
@@ -217,7 +217,7 @@ def plot_i_star_sweep(
     ax0.set_yticklabels(unique_regimes)
     ax0.set_xlabel(r"Dimensionless Moment of Inertia $I^*$")
     ax0.set_ylabel("Falling Regime")
-    ax0.set_title(r"Regime vs $I^*$" + "\n(2D quasi-steady model simulation)")
+    ax0.set_title(r"(a) Regime vs $I^*$")
     ax0.grid(True, which="both")
     ax0.legend(loc="upper left")
 
@@ -227,7 +227,7 @@ def plot_i_star_sweep(
     ax1.set_xscale("log")
     ax1.set_xlabel(r"Dimensionless Moment of Inertia $I^*$")
     ax1.set_ylabel("Mean Descent Speed [m/s]")
-    ax1.set_title(r"Mean Descent Speed vs $I^*$" + "\n(2D quasi-steady model simulation)")
+    ax1.set_title(r"(b) Mean Descent Speed vs $I^*$")
     ax1.grid(True, which="both")
 
     # 3. Lateral drift vs I*
@@ -236,7 +236,7 @@ def plot_i_star_sweep(
     ax2.set_xscale("log")
     ax2.set_xlabel(r"Dimensionless Moment of Inertia $I^*$")
     ax2.set_ylabel("Net Lateral Drift |X_final| [mm]")
-    ax2.set_title(r"Lateral Drift vs $I^*$" + "\n(2D quasi-steady model simulation)")
+    ax2.set_title(r"(c) Lateral Drift vs $I^*$")
     ax2.grid(True, which="both")
 
     plt.tight_layout()
@@ -267,13 +267,13 @@ def plot_release_angle_sweep(
 
     ax0.set_xlabel(r"Release Angle $\theta_0$ [deg]")
     ax0.set_ylabel("Net Lateral Drift [mm]")
-    ax0.set_title("Lateral Drift vs Release Angle\n(2D quasi-steady model simulation)")
+    ax0.set_title(r"(a) Lateral Drift vs Release Angle $\theta_0$")
     ax0.grid(True)
     ax0.legend()
 
     ax1.set_xlabel(r"Release Angle $\theta_0$ [deg]")
     ax1.set_ylabel("Mean Descent Speed [m/s]")
-    ax1.set_title("Descent Speed vs Release Angle\n(2D quasi-steady model simulation)")
+    ax1.set_title(r"(b) Mean Descent Speed vs $\theta_0$")
     ax1.grid(True)
     ax1.legend()
 
@@ -321,7 +321,7 @@ def plot_chaos_ensemble(
     )
     ax0.set_xlabel("Lateral Position X [mm]")
     ax0.set_ylabel("Vertical Position Y [mm]")
-    ax0.set_title("Mean Trajectory and Dispersion\n(2D quasi-steady model simulation)")
+    ax0.set_title(r"(a) Trajectory Ensemble & $\pm 1\sigma$ Dispersion")
     ax0.grid(True)
     ax0.axis("equal")
     ax0.legend(loc="upper right")
@@ -335,7 +335,7 @@ def plot_chaos_ensemble(
     ax1.axvline(mean_lx + std_lx, color="gray", lw=1.2, ls=":")
     ax1.set_xlabel("Landing Position X [mm]")
     ax1.set_ylabel("Drop Count")
-    ax1.set_title("Landing Scatter Histogram\n(2D quasi-steady model simulation)")
+    ax1.set_title("(b) Landing Scatter Histogram")
     ax1.grid(True)
     ax1.legend(loc="upper right")
 
@@ -355,7 +355,7 @@ def plot_regime_map(
 ) -> None:
     r"""Plot phase diagram of I* vs Re with regime colors and single clean legend."""
     fig, ax = plt.subplots(figsize=(8, 6))
-    fig.suptitle(r"Falling Regimes: $I^*$ vs $\mathrm{Re}$ (2D quasi-steady model simulation)", fontsize=13)
+    fig.suptitle(r"Phase Diagram: Falling Regime Map ($I^*$ vs $\mathrm{Re}$) (2D quasi-steady model simulation)", fontsize=13)
 
     color_map = {
         "steady": "#1f77b4",
@@ -391,7 +391,6 @@ def plot_regime_map(
     ax.set_yscale("log")
     ax.set_xlabel(r"Reynolds Number $\mathrm{Re} = \rho_f U L / \mu$ (a posteriori from descent speed)")
     ax.set_ylabel(r"Dimensionless Moment of Inertia $I^* = (\rho_s h) / (\rho_f L)$")
-    ax.set_title(r"Phase Diagram: Falling Regime Map" + "\n(2D quasi-steady model simulation)")
     ax.grid(True, which="both")
     ax.legend(title="Regime", loc="lower right", framealpha=0.95)
 

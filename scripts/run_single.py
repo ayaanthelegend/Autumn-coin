@@ -20,7 +20,7 @@ from autumn.plotting import plot_single_drop
 def main():
     parser = argparse.ArgumentParser(description="Simulate a single drop of a 2D plate/coin.")
     parser.add_argument("--coin-set", type=str, default="reference_card", help="Name of coin set from config/coin_sets.yaml")
-    parser.add_argument("--theta0-deg", type=float, default=5.0, help="Initial release angle in degrees")
+    parser.add_argument("--theta0-deg", type=float, default=15.0, help="Initial release angle in degrees")
     parser.add_argument("--u0", type=float, default=0.0, help="Initial u velocity [m/s]")
     parser.add_argument("--v0", type=float, default=0.0, help="Initial v velocity [m/s]")
     parser.add_argument("--omega0", type=float, default=0.0, help="Initial angular velocity [rad/s]")

@@ -1,9 +1,13 @@
 """Dynamical model of 2D falling plate / coin cross-section.
 
-Reference:
-    Andersen, A., Pesavento, U., & Wang, Z. J. (2005).
+References:
+    Andersen, A., Pesavento, U., & Wang, Z. J. (2005a).
     Unsteady aerodynamics of fluttering and tumbling plates.
-    Journal of Fluid Mechanics, 541, 65-90. Section 2.
+    Journal of Fluid Mechanics, 541, 65-90. DOI: 10.1017/S002211200500594X.
+
+    Andersen, A., Pesavento, U., & Wang, Z. J. (2005b).
+    Analysis of transitions between fluttering, tumbling and steady descent of falling cards.
+    Journal of Fluid Mechanics, 541, 91-104. DOI: 10.1017/S0022112005005847. Section 3.
 """
 
 from __future__ import annotations

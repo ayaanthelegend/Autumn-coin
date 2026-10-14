@@ -17,16 +17,19 @@ numerics:
 
 
 coefficients:
-  C_T: 1.2             # Translational circulation coefficient (VERIFY)
-  C_R: 3.141592653589793 # Rotational circulation coefficient pi (VERIFY)
-  C_D0: 1.4            # Viscous drag constant term (VERIFY)
-  C_D1: 1.0            # Viscous drag angle dependence term (VERIFY)
-  C_tau: 0.075         # Rotational damping torque coefficient (strip-theory estimate: C_D/32 with C_D~2.4)
+  C_T: 1.2             # Translational circulation coefficient (Verified: Andersen et al. 2005b Eq. 3.7)
+  C_R: 3.141592653589793 # Rotational circulation coefficient pi (Verified: Andersen et al. 2005b Eq. 3.7)
+  C_D0: 1.4            # Viscous drag constant term (Verified: Andersen et al. 2005b Eq. 3.8)
+  C_D1: 1.0            # Viscous drag angle dependence term (Verified: Andersen et al. 2005b Eq. 3.8)
+  C_tau: 0.075         # Rotational damping torque coefficient (Andersen 2005b Eq. 3.9: pi*mu_2/8 = 0.0785 for mu_2=0.2)
   c_lin: 0.0           # Optional linear rotational damping [N*m*s/rad]
   eps_V: 1.0e-7        # Velocity regularization threshold [m/s]
 
 regime_classifier:
-  transient_fraction: 0.1 # Discard initial 10% of fall depth
-  theta_range_steady: 0.2 # Maximum theta range for steady descent [rad]
-  var_theta_steady: 0.005 # Maximum theta variance for steady descent [rad^2]
-  min_flips_tumble: 2    # Minimum full 2*pi rotations for tumbling regime
+  transient_fraction: 0.20 # Discard initial 20% of fall duration and fall depth
+  transient_t_min: 1.0     # Minimum time to discard for transient [s]
+  theta_std_steady_deg: 1.0 # Post-transient std(theta) threshold for steady descent [deg]
+  theta_ptp_steady_deg: 2.0 # Post-transient peak-to-peak threshold for steady descent [deg]
+  min_flips_tumble: 2      # Minimum net 2*pi rotations in post-transient window
+  max_reversal_tumble_deg: 180.0 # Maximum allowed backward excursion for unidirectional tumbling [deg]
+  min_reversal_mixed_deg: 90.0   # Minimum excursion reversal defining chaotic mixed tumbling [deg]

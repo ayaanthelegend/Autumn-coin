@@ -24,16 +24,13 @@ def generate_regime_map(
     config: SimulationConfig,
     n_i_star: int = 15,
     i_star_min: float = 0.05,
-    i_star_max: float = 5.0,
+    i_star_max: float = 3.5,
     L_values: list[float] = None,
-    h_values: list[float] = None,
     theta0_deg: float = 15.0,
     out_dir: Path | str = "results"
 ) -> dict:
     if L_values is None:
-        L_values = [0.010, 0.020, 0.035, 0.050]
-    if h_values is None:
-        h_values = [0.0005, 0.001]
+        L_values = [0.012, 0.018, 0.024, 0.030]
 
     out_path = Path(out_dir)
     out_path.mkdir(parents=True, exist_ok=True)
@@ -45,14 +42,17 @@ def generate_regime_map(
     all_regimes = []
     all_speeds = []
     all_L = []
+    all_h = []
+    all_rho_s = []
 
-    print(f"Generating regime map across {len(i_star_grid)} I* values and {len(L_values)*len(h_values)} geometries...")
+    print(f"Generating regime map across {len(i_star_grid)} I* values and {len(L_values)} plate chords (realistic coins: L in 12-30 mm, I* in 0.05-3.5)...")
 
     for L in L_values:
         for i_s in i_star_grid:
-            aspect = max(0.04, min(0.25, i_s / 16.0))
+            # Physical aspect ratio scaling keeping h/L in [0.02, 0.15]
+            aspect = float(np.clip(0.025 + 0.08 * (i_s / i_star_max), 0.02, 0.15))
             h = L * aspect
-            rho_s = i_s * config.fluid.rho_f / aspect
+            rho_s = float(i_s * config.fluid.rho_f / aspect)
             if rho_s <= config.fluid.rho_f:
                 continue
 
@@ -65,15 +65,18 @@ def generate_regime_map(
                 theta0=np.radians(theta0_deg)
             )
 
-
             regime, metrics = classify_regime(
                 res.t, res.Y, res.theta, res.omega, res.H_fall, config.regime_classifier
             )
 
-            # Compute mean descent speed discarding initial transient
-            valid_mask = res.Y <= (res.Y[0] - 0.1 * res.H_fall)
-            if np.sum(valid_mask) < 5:
-                valid_mask = np.ones_like(res.Y, dtype=bool)
+            # Compute mean descent speed discarding initial transient window
+            t_transient = max(config.regime_classifier.transient_fraction * res.t[-1], config.regime_classifier.transient_t_min)
+            transient_depth = config.regime_classifier.transient_fraction * res.H_fall
+            valid_mask = (res.t >= t_transient) & (res.Y <= (res.Y[0] - transient_depth))
+            if np.sum(valid_mask) < 10:
+                valid_mask = res.t >= (0.5 * res.t[-1])
+                if np.sum(valid_mask) < 5:
+                    valid_mask = np.ones_like(res.Y, dtype=bool)
 
             u_mean = float(np.mean(res.speed[valid_mask]))
             re = compute_reynolds_number(config.fluid.rho_f, u_mean, plate.L, config.fluid.mu)
@@ -83,7 +86,8 @@ def generate_regime_map(
             all_regimes.append(regime)
             all_speeds.append(u_mean)
             all_L.append(L)
-
+            all_h.append(h)
+            all_rho_s.append(rho_s)
 
     all_i_stars_arr = np.array(all_i_stars)
     all_res_arr = np.array(all_res)
@@ -97,6 +101,7 @@ def generate_regime_map(
     print(f"Regime map generated ({len(all_i_stars)} points total):")
     for reg, cnt in tally.items():
         print(f"  {reg.capitalize():12s}: {cnt:3d} ({cnt/len(all_i_stars)*100:.1f}%)")
+    print(f"  Reynolds number range: [{min(all_res):.1f}, {max(all_res):.1f}]")
     print(f"Outputs written to: {out_path / 'regime_map.png'} and {out_path / 'regime_map.csv'}")
 
     return {

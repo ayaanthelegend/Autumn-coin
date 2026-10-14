@@ -2,11 +2,18 @@
 # Note: These values are illustrative inputs for simulation, not measurements.
 
 reference_card:
-  role: "baseline for flutter/tumble physics"
+  role: "baseline active fluttering showcase (I* ~ 0.68)"
+  rho_s: 9000.0   # Solid density [kg/m^3] (e.g. bronze/copper alloy coin)
+  L: 0.020        # Chord [m] (20 mm)
+  h: 0.0015       # Thickness [m] (1.5 mm)
+  notes: "Active periodic fluttering showcase plate (I* ~ 0.68) demonstrating sustained side-to-side flutter."
+
+steady_card:
+  role: "steady descent baseline"
   rho_s: 1200.0   # Solid density [kg/m^3]
   L: 0.020        # Chord (major diameter) [m] (20 mm)
   h: 0.002        # Thickness [m] (2 mm)
-  notes: "Illustrative simulation input for baseline flutter/tumble comparison (not experimental measurement)."
+  notes: "Damped steady descent baseline plate (I* = 0.12)."
 
 heavy_coin:
   role: "metal coin, high I*"

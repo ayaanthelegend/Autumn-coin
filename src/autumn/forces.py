@@ -1,9 +1,14 @@
 """Hydrodynamic forces and torques for 2D quasi-steady falling plate.
 
-Reference:
-    Andersen, A., Pesavento, U., & Wang, Z. J. (2005).
+References:
+    Andersen, A., Pesavento, U., & Wang, Z. J. (2005a).
     Unsteady aerodynamics of fluttering and tumbling plates.
-    Journal of Fluid Mechanics, 541, 65-90. Sections 2.2 - 2.4.
+    Journal of Fluid Mechanics, 541, 65-90. DOI: 10.1017/S002211200500594X.
+
+    Andersen, A., Pesavento, U., & Wang, Z. J. (2005b).
+    Analysis of transitions between fluttering, tumbling and steady descent of falling cards.
+    Journal of Fluid Mechanics, 541, 91-104. DOI: 10.1017/S0022112005005847.
+    Eqs. (3.1)-(3.9): circulation Eq. 3.7, drag Eq. 3.8, torque Eq. 3.9.
 """
 
 from __future__ import annotations
@@ -100,7 +105,9 @@ def compute_viscous_forces_and_torque(
         \tau = 0.5 C_\tau \rho_f L^4 |\omega| \omega + c_{\text{lin}} \omega
 
     Reference:
-        Andersen et al. (2005), eqs. (2.10) - (2.11).
+        Andersen, Pesavento & Wang (2005b), eqs. (3.8)-(3.9).
+        Note: In eq. (3.9), \tau = \pi \rho_f a^4 \mu_2 |\omega|\omega with a = L/2 and \mu_2 = 0.2,
+        giving C_\tau = \pi \mu_2 / 8 = 0.0785 (within 4% of strip theory C_\tau = 0.075).
 
     Args:
         u: Body velocity along chord [m/s].

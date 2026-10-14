@@ -36,10 +36,10 @@ chaos_ensemble:
   seed: 12345
 
 regime_map:
-  description: "2D grid across dimensionless parameters (I* and Re), varying rho_s, L, and h."
+  description: "2D grid across dimensionless parameters (I* and Re), varying rho_s, L, and h within realistic coin dimensions."
   n_i_star: 15
   i_star_min: 0.05
-  i_star_max: 5.0
-  L_values: [0.010, 0.020, 0.035, 0.050]
+  i_star_max: 3.5
+  L_values: [0.012, 0.018, 0.024, 0.030]
   theta0_deg: 15.0
   seed: 42

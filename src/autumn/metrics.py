@@ -1,9 +1,13 @@
 """Trajectory metrics, FFT frequency analysis, and energy accounting for falling plates.
 
-Reference:
-    Andersen, A., Pesavento, U., & Wang, Z. J. (2005).
+References:
+    Andersen, A., Pesavento, U., & Wang, Z. J. (2005a).
     Unsteady aerodynamics of fluttering and tumbling plates.
-    Journal of Fluid Mechanics, 541, 65-90.
+    Journal of Fluid Mechanics, 541, 65-90. DOI: 10.1017/S002211200500594X.
+
+    Andersen, A., Pesavento, U., & Wang, Z. J. (2005b).
+    Analysis of transitions between fluttering, tumbling and steady descent of falling cards.
+    Journal of Fluid Mechanics, 541, 91-104. DOI: 10.1017/S0022112005005847.
 """
 
 from __future__ import annotations
@@ -135,12 +139,16 @@ def compute_trajectory_summary(
         params=classifier_params
     )
 
-    # Discard transient for descent velocity calculation
-    y0 = res.Y[0]
+    # Discard transient for descent velocity and frequency calculations
+    t_end = float(res.t[-1])
+    t_transient = max(classifier_params.transient_fraction * t_end, classifier_params.transient_t_min)
+    y0 = float(res.Y[0])
     transient_depth = classifier_params.transient_fraction * res.H_fall
-    valid_mask = res.Y <= (y0 - transient_depth)
-    if np.sum(valid_mask) < 5:
-        valid_mask = np.ones_like(res.Y, dtype=bool)
+    valid_mask = (res.t >= t_transient) & (res.Y <= (y0 - transient_depth))
+    if np.sum(valid_mask) < 10:
+        valid_mask = res.t >= (0.5 * t_end)
+        if np.sum(valid_mask) < 5:
+            valid_mask = np.ones_like(res.Y, dtype=bool)
 
     mean_vy = float(np.mean(np.abs(res.v_Y[valid_mask])))
     mean_speed = float(np.mean(res.speed[valid_mask]))

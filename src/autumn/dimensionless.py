@@ -1,9 +1,13 @@
 """Nondimensional numbers and trajectory regime classification for falling plates.
 
-Reference:
-    Andersen, A., Pesavento, U., & Wang, Z. J. (2005).
+References:
+    Andersen, A., Pesavento, U., & Wang, Z. J. (2005a).
     Unsteady aerodynamics of fluttering and tumbling plates.
-    Journal of Fluid Mechanics, 541, 65-90.
+    Journal of Fluid Mechanics, 541, 65-90. DOI: 10.1017/S002211200500594X.
+
+    Andersen, A., Pesavento, U., & Wang, Z. J. (2005b).
+    Analysis of transitions between fluttering, tumbling and steady descent of falling cards.
+    Journal of Fluid Mechanics, 541, 91-104. DOI: 10.1017/S0022112005005847.
 """
 
 from __future__ import annotations
@@ -73,12 +77,13 @@ def classify_regime(
 ) -> Tuple[str, Dict[str, float]]:
     r"""Classify falling regime into 'steady', 'fluttering', 'tumbling', or 'mixed'.
 
-    Rules (Section 4.8 of README & user amendments):
-        After discarding the initial transient (first 10% of fall height):
-        1. steady: theta_range < theta_range_steady (0.2 rad) AND var(theta) < var_theta_steady
-        2. fluttering: n_flips == 0 AND oscillatory motion (theta_range >= 0.2 rad)
-        3. tumbling: n_flips >= min_flips_tumble (default 2) with consistent rotation direction
-        4. mixed / chaotic: any other trajectory (e.g. fluttering with sporadic flips or direction reversal)
+    Rules (discarding initial transient t < max(0.20*t_end, 1.0 s) or Y <= Y0 - 0.20*H_fall):
+        1. steady: std(theta_post) < 1.0 deg (or ptp < 2.0 deg) and zero full revolutions.
+        2. fluttering: bounded periodic oscillation (ptp < 360 deg, no full 2*pi flips) with std(theta_post) >= 1.0 deg.
+        3. tumbling: continuous unidirectional autorotation: total net rotation >= 2 * 360 deg
+           AND plate does not complete a full 180 deg rotation in the opposite direction after establishing spin.
+        4. mixed (or chaotic_tumble): trajectories that complete at least one full 360 deg flip
+           AND exhibit direction reversals (angular excursion exceeding 90 deg in the opposite direction).
 
     Args:
         t: Time array [s]
@@ -90,55 +95,62 @@ def classify_regime(
 
     Returns:
         regime: One of ('steady', 'fluttering', 'tumbling', 'mixed')
-        metrics: Dictionary of diagnostic properties (theta_range, var_theta, n_flips, sign_consistency)
+        metrics: Dictionary of diagnostic properties
     """
-    # Discard initial transient (first 10% of fall depth: Y > Y0 - 0.1 * H_fall)
-    y0 = Y[0]
+    t_end = float(t[-1])
+    t_transient = max(params.transient_fraction * t_end, params.transient_t_min)
+    y0 = float(Y[0])
     transient_depth = params.transient_fraction * H_fall
-    valid_mask = Y <= (y0 - transient_depth)
+    valid_mask = (t >= t_transient) & (Y <= (y0 - transient_depth))
 
     if np.sum(valid_mask) < 10:
-        # If fall didn't reach past transient, use available points
-        valid_mask = np.ones_like(Y, dtype=bool)
+        valid_mask = t >= (0.5 * t_end)
+        if np.sum(valid_mask) < 5:
+            valid_mask = np.ones_like(t, dtype=bool)
 
     th_crop = theta[valid_mask]
     om_crop = omega[valid_mask]
 
-    theta_range = float(np.ptp(th_crop))
-    var_theta = float(np.var(th_crop))
+    ptp_theta = float(np.ptp(th_crop))
+    std_theta = float(np.std(th_crop))
 
-    # Net rotations
-    delta_th_net = th_crop[-1] - th_crop[0]
-    n_flips = int(abs(delta_th_net) // (2.0 * math.pi))
+    # Net rotation across post-transient signal
+    delta_th_net = float(th_crop[-1] - th_crop[0])
+    net_rotation = abs(delta_th_net)
+    n_flips = int(net_rotation // (2.0 * math.pi))
 
-    # Rotation direction consistency: fraction of time spent in dominant omega direction
-    pos_omega = np.sum(om_crop > 0)
-    neg_omega = np.sum(om_crop < 0)
-    total_omega = max(pos_omega + neg_omega, 1)
-    dominant_fraction = max(pos_omega, neg_omega) / total_omega
+    # Calculate maximum directional reversal (backward excursion relative to dominant spin)
+    if delta_th_net >= 0:
+        running_max = np.maximum.accumulate(th_crop)
+        max_backward_excursion = float(np.max(running_max - th_crop))
+    else:
+        running_min = np.minimum.accumulate(th_crop)
+        max_backward_excursion = float(np.max(th_crop - running_min))
 
-    # Consistent direction means the plate spins mostly in one direction without sustained reversal
-    direction_consistent = (dominant_fraction >= 0.85)
+    std_deg = math.degrees(std_theta)
+    ptp_deg = math.degrees(ptp_theta)
+    back_deg = math.degrees(max_backward_excursion)
 
     metrics = {
-        "theta_range_rad": theta_range,
-        "var_theta_rad2": var_theta,
+        "theta_range_rad": ptp_theta,
+        "theta_range_deg": ptp_deg,
+        "std_theta_deg": std_deg,
         "n_flips": float(n_flips),
-        "dominant_fraction": float(dominant_fraction),
-        "delta_theta_net_rad": float(delta_th_net)
+        "delta_theta_net_rad": delta_th_net,
+        "max_backward_excursion_deg": back_deg
     }
 
-    # 1. Steady
-    if theta_range < params.theta_range_steady and var_theta < params.var_theta_steady:
+    # 1. Steady: post-transient standard deviation < 1 deg (or ptp < 2 deg) and no flips
+    if (std_deg < params.theta_std_steady_deg or ptp_deg < params.theta_ptp_steady_deg) and ptp_deg < 360.0:
         return "steady", metrics
 
-    # 2. Tumbling: at least 2 full flips and consistent rotation direction
-    if n_flips >= params.min_flips_tumble and direction_consistent:
+    # 2. Tumbling: at least 2 full rotations with no sustained reversal (> 180 deg) in opposite direction
+    if (net_rotation >= params.min_flips_tumble * 2.0 * math.pi) and (back_deg < params.max_reversal_tumble_deg):
         return "tumbling", metrics
 
-    # 3. Fluttering: no full flips (n_flips == 0) and theta oscillates
-    if n_flips == 0:
+    # 3. Fluttering: bounded periodic oscillations without completing any full 360 deg flip
+    if ptp_deg < 360.0:
         return "fluttering", metrics
 
-    # 4. Mixed / Chaotic
+    # 4. Mixed / Chaotic tumbling
     return "mixed", metrics
