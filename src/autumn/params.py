@@ -14,7 +14,7 @@ def warn_verify_coefficients_once() -> None:
     """Print a one-line warning on first use for coefficients marked VERIFY in README."""
     global _VERIFY_WARNED
     if not _VERIFY_WARNED:
-        print("[Autumn Warning] Using default empirical coefficients (C_T=1.2, C_R=pi, C_D0=1.4, C_D1=1.0, C_tau=0.2) marked VERIFY against Andersen et al. (2005).")
+        print("[Autumn Warning] Using hydrodynamic coefficients (C_T=1.2, C_R=pi, C_D0=1.4, C_D1=1.0, C_tau=0.075) with C_tau from strip-theory estimate.")
         _VERIFY_WARNED = True
 
 
@@ -42,9 +42,10 @@ class Coefficients:
     C_R: float = math.pi
     C_D0: float = 1.4
     C_D1: float = 1.0
-    C_tau: float = 0.2
+    C_tau: float = 0.075  # Strip-theory estimate: C_D / 32 with C_D ~ 2.4
     c_lin: float = 0.0
     eps_V: float = 1.0e-7
+
 
 
 @dataclass(frozen=True)

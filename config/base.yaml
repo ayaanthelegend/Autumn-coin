@@ -11,16 +11,17 @@ numerics:
   atol: 1.0e-11        # Absolute tolerance
   dt_out: 0.001        # Output sampling interval [s]
   H_fall_factor: 40.0  # Fall depth in units of chord L (H_fall = H_fall_factor * L)
-  t_max_factor: 3.0    # Adaptive t_max factor: t_max = max(t_max_min, t_max_factor * H_fall / U_t)
-  t_max_min: 30.0      # Minimum t_max [s]
+  t_max_factor: 5.0    # Adaptive t_max factor: t_max = max(t_max_min, t_max_factor * H_fall / U_t)
+  t_max_min: 80.0      # Minimum t_max [s]
   seed: 42             # Global default random seed
+
 
 coefficients:
   C_T: 1.2             # Translational circulation coefficient (VERIFY)
   C_R: 3.141592653589793 # Rotational circulation coefficient pi (VERIFY)
   C_D0: 1.4            # Viscous drag constant term (VERIFY)
   C_D1: 1.0            # Viscous drag angle dependence term (VERIFY)
-  C_tau: 0.2           # Rotational damping torque coefficient (VERIFY)
+  C_tau: 0.075         # Rotational damping torque coefficient (strip-theory estimate: C_D/32 with C_D~2.4)
   c_lin: 0.0           # Optional linear rotational damping [N*m*s/rad]
   eps_V: 1.0e-7        # Velocity regularization threshold [m/s]
 

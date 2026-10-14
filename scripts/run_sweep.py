@@ -48,8 +48,7 @@ def main():
             n_points=cfg_i.get("n_points", 25),
             i_star_min=cfg_i.get("i_star_min", 0.05),
             i_star_max=cfg_i.get("i_star_max", 5.0),
-            L=cfg_i.get("L", 0.020),
-            h=cfg_i.get("h", 0.0005),
+            L=cfg_i.get("L", 0.024),
             theta0_deg=cfg_i.get("theta0_deg", 5.0),
             perturbation_deg=cfg_i.get("perturbation_deg", 0.1),
             seed=cfg_i.get("seed", 42),
@@ -65,9 +64,8 @@ def main():
             n_points=cfg_ang.get("n_points", 19),
             theta_min_deg=cfg_ang.get("theta_min_deg", 0.0),
             theta_max_deg=cfg_ang.get("theta_max_deg", 90.0),
-            i_star_cases=cfg_ang.get("i_star_cases", {"flutter": 0.2, "transition": 1.0, "tumble": 4.0}),
-            L=cfg_ang.get("L", 0.020),
-            h=cfg_ang.get("h", 0.0005),
+            i_star_cases=cfg_ang.get("i_star_cases", None),
+            L=cfg_ang.get("L", 0.024),
             seed=cfg_ang.get("seed", 42),
             out_dir="results/sweeps/release_angle_sweep"
         )
@@ -79,9 +77,8 @@ def main():
         res_ens = run_chaos_ensemble(
             config=config,
             n_drops=cfg_ens.get("n_drops", 50),
-            i_star_cases=cfg_ens.get("i_star_cases", {"flutter": 0.2, "transition": 1.0, "tumble": 4.0}),
-            L=cfg_ens.get("L", 0.020),
-            h=cfg_ens.get("h", 0.0005),
+            i_star_cases=cfg_ens.get("i_star_cases", None),
+            L=cfg_ens.get("L", 0.024),
             theta0_mean_deg=cfg_ens.get("theta0_mean_deg", 5.0),
             theta0_std_deg=cfg_ens.get("theta0_std_deg", 0.5),
             v_pert_std=cfg_ens.get("v_pert_std", 1.0e-4),
@@ -89,6 +86,7 @@ def main():
             out_dir="results/sweeps/chaos_ensemble"
         )
         print(f"  Chaos ensemble complete. Written to: {res_ens['out_dir']}")
+
 
     elapsed = time.time() - t0
     print(f"\nAll requested sweeps executed successfully in {elapsed:.2f} s.")

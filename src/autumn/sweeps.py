@@ -53,8 +53,11 @@ def run_i_star_sweep(
     flutter_res_sample = None
 
     for i, i_s in enumerate(i_star_list):
-        rho_s = i_s * config.fluid.rho_f * L / h
-        plate = PlateParams(f"plate_i_{i_s:.3f}", rho_s, L, h)
+        # Vary h/L so that density ratio rho_s / rho_f stays below 20 (physical coins/plates)
+        aspect = max(0.04, min(0.25, i_s / 16.0))
+        h_current = L * aspect
+        rho_s = i_s * config.fluid.rho_f / aspect
+        plate = PlateParams(f"plate_i_{i_s:.3f}", rho_s, L, h_current)
 
         # Release angle with small perturbation
         theta_pert = rng.normal(0.0, np.radians(perturbation_deg))
@@ -75,7 +78,7 @@ def run_i_star_sweep(
         lateral_drifts.append(summary["lateral_drift"])
         re_list.append(summary["Re"])
 
-        if reg == "fluttering" and flutter_res_sample is None:
+        if reg in ("fluttering", "tumbling") and flutter_res_sample is None:
             flutter_res_sample = res
 
     i_stars_arr = np.array(i_star_list)
@@ -86,9 +89,9 @@ def run_i_star_sweep(
     # Plot I* sweep metrics
     plot_i_star_sweep(i_stars_arr, regimes, speeds_arr, drifts_arr, out_path, "i_star_sweep")
 
-    # If fluttering sample exists, generate FFT frequency analysis and energy budget
+    # If sample exists, generate FFT frequency analysis and energy budget
     if flutter_res_sample is None:
-        flutter_res_sample = res  # fallback to last run
+        flutter_res_sample = res
 
     summary_sample = compute_trajectory_summary(flutter_res_sample, config.regime_classifier)
     plot_fft_frequency(
@@ -128,14 +131,14 @@ def run_release_angle_sweep(
     theta_min_deg: float = 0.0,
     theta_max_deg: float = 90.0,
     i_star_cases: Dict[str, float] = None,
-    L: float = 0.020,
-    h: float = 0.0005,
+    L: float = 0.024,
+    h: float = 0.0018,
     seed: int = 42,
     out_dir: Path | str = "results/sweeps/release_angle_sweep"
 ) -> Dict[str, object]:
     r"""Execute release angle sweep (0 to 90 deg) across representative I* cases."""
     if i_star_cases is None:
-        i_star_cases = {"flutter": 0.2, "transition": 1.0, "tumble": 4.0}
+        i_star_cases = {"low_I_0.2": 0.2, "mid_I_0.8": 0.8, "high_I_3.5": 3.5}
 
     out_path = Path(out_dir)
     out_path.mkdir(parents=True, exist_ok=True)
@@ -144,8 +147,10 @@ def run_release_angle_sweep(
     results_by_case = {}
 
     for case_name, i_s in i_star_cases.items():
-        rho_s = i_s * config.fluid.rho_f * L / h
-        plate = PlateParams(f"{case_name}_I_{i_s}", rho_s, L, h)
+        aspect = max(0.04, min(0.25, i_s / 16.0))
+        h_case = L * aspect
+        rho_s = i_s * config.fluid.rho_f / aspect
+        plate = PlateParams(f"{case_name}_I_{i_s}", rho_s, L, h_case)
 
         drifts = []
         speeds = []
@@ -182,8 +187,8 @@ def run_chaos_ensemble(
     config: SimulationConfig,
     n_drops: int = 50,
     i_star_cases: Dict[str, float] = None,
-    L: float = 0.020,
-    h: float = 0.0005,
+    L: float = 0.024,
+    h: float = 0.0018,
     theta0_mean_deg: float = 5.0,
     theta0_std_deg: float = 0.5,
     v_pert_std: float = 1.0e-4,
@@ -192,7 +197,7 @@ def run_chaos_ensemble(
 ) -> Dict[str, object]:
     r"""Execute Monte Carlo ensemble of drops with Gaussian perturbations to assess dispersion."""
     if i_star_cases is None:
-        i_star_cases = {"flutter": 0.2, "transition": 1.0, "tumble": 4.0}
+        i_star_cases = {"low_I_0.2": 0.2, "mid_I_0.8": 0.8, "high_I_3.5": 3.5}
 
     out_path = Path(out_dir)
     out_path.mkdir(parents=True, exist_ok=True)
@@ -201,14 +206,15 @@ def run_chaos_ensemble(
     ensemble_results = {}
 
     for case_name, i_s in i_star_cases.items():
-        rho_s = i_s * config.fluid.rho_f * L / h
-        plate = PlateParams(f"ens_{case_name}", rho_s, L, h)
+        aspect = max(0.04, min(0.25, i_s / 16.0))
+        h_case = L * aspect
+        rho_s = i_s * config.fluid.rho_f / aspect
+        plate = PlateParams(f"ens_{case_name}", rho_s, L, h_case)
 
         trajectories_X = []
         trajectories_Y = []
         landing_Xs = []
 
-        # Common vertical depth grid for ensemble averaging
         h_fall = config.numerics.H_fall_factor * L
         y_grid = np.linspace(0.0, -h_fall, 200)
 
@@ -230,7 +236,6 @@ def run_chaos_ensemble(
             landing_Xs.append(res.X[-1])
 
             # Interpolate X as a function of Y
-            # Ensure Y is monotonically decreasing
             y_sort_idx = np.argsort(res.Y)
             y_sorted = res.Y[y_sort_idx]
             x_sorted = res.X[y_sort_idx]
@@ -254,6 +259,7 @@ def run_chaos_ensemble(
             base_name="chaos_ensemble"
         )
 
+
         ensemble_results[case_name] = {
             "I_star": i_s,
             "mean_X": mean_X,
@@ -262,6 +268,7 @@ def run_chaos_ensemble(
             "landing_mean_mm": float(np.mean(landing_X_arr) * 1000.0),
             "landing_std_mm": float(np.std(landing_X_arr) * 1000.0)
         }
+
 
     return {
         "ensemble_results": ensemble_results,

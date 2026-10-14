@@ -49,38 +49,41 @@ def generate_regime_map(
     print(f"Generating regime map across {len(i_star_grid)} I* values and {len(L_values)*len(h_values)} geometries...")
 
     for L in L_values:
-        for h in h_values:
-            for i_s in i_star_grid:
-                rho_s = i_s * config.fluid.rho_f * (L / h)
-                if rho_s <= config.fluid.rho_f:
-                    continue
+        for i_s in i_star_grid:
+            aspect = max(0.04, min(0.25, i_s / 16.0))
+            h = L * aspect
+            rho_s = i_s * config.fluid.rho_f / aspect
+            if rho_s <= config.fluid.rho_f:
+                continue
 
-                plate = PlateParams(f"map_L{int(L*1000)}_h{int(h*1000)}_I{i_s:.2f}", rho_s, L, h)
-                res = simulate_drop(
-                    plate=plate,
-                    fluid=config.fluid,
-                    coeffs=config.coefficients,
-                    numerics=config.numerics,
-                    theta0=np.radians(theta0_deg)
-                )
+            plate = PlateParams(f"map_L{int(L*1000)}_I{i_s:.2f}", rho_s, L, h)
+            res = simulate_drop(
+                plate=plate,
+                fluid=config.fluid,
+                coeffs=config.coefficients,
+                numerics=config.numerics,
+                theta0=np.radians(theta0_deg)
+            )
 
-                regime, metrics = classify_regime(
-                    res.t, res.Y, res.theta, res.omega, res.H_fall, config.regime_classifier
-                )
 
-                # Compute mean descent speed discarding initial transient
-                valid_mask = res.Y <= (res.Y[0] - 0.1 * res.H_fall)
-                if np.sum(valid_mask) < 5:
-                    valid_mask = np.ones_like(res.Y, dtype=bool)
+            regime, metrics = classify_regime(
+                res.t, res.Y, res.theta, res.omega, res.H_fall, config.regime_classifier
+            )
 
-                u_mean = float(np.mean(res.speed[valid_mask]))
-                re = compute_reynolds_number(config.fluid.rho_f, u_mean, plate.L, config.fluid.mu)
+            # Compute mean descent speed discarding initial transient
+            valid_mask = res.Y <= (res.Y[0] - 0.1 * res.H_fall)
+            if np.sum(valid_mask) < 5:
+                valid_mask = np.ones_like(res.Y, dtype=bool)
 
-                all_i_stars.append(i_s)
-                all_res.append(re)
-                all_regimes.append(regime)
-                all_speeds.append(u_mean)
-                all_L.append(L)
+            u_mean = float(np.mean(res.speed[valid_mask]))
+            re = compute_reynolds_number(config.fluid.rho_f, u_mean, plate.L, config.fluid.mu)
+
+            all_i_stars.append(i_s)
+            all_res.append(re)
+            all_regimes.append(regime)
+            all_speeds.append(u_mean)
+            all_L.append(L)
+
 
     all_i_stars_arr = np.array(all_i_stars)
     all_res_arr = np.array(all_res)

@@ -114,14 +114,19 @@ class AutumnModel:
             g_v = 0.0
 
         # Dynamics (Kirchhoff coupling + external forces)
-        # (m + m11) du/dt = (m + m22) v omega - Gamma v - F_u - (m - m_f) g sin(theta)
-        du_dt = (self.M_v * v * omega - gamma * v - f_u - g_u) / self.M_u
+        # Circulation force is rho_f * Gamma * V (units of N/m = kg/(m*s^2))
+        lift_u = self.fluid.rho_f * gamma * v
+        lift_v = self.fluid.rho_f * gamma * u
 
-        # (m + m22) dv/dt = -(m + m11) u omega + Gamma u - F_v - (m - m_f) g cos(theta)
-        dv_dt = (-self.M_u * u * omega + gamma * u - f_v - g_v) / self.M_v
+        # (m + m11) du/dt = (m + m22) v omega - rho_f Gamma v - F_u - (m - m_f) g sin(theta)
+        du_dt = (self.M_v * v * omega - lift_u - f_u - g_u) / self.M_u
+
+        # (m + m22) dv/dt = -(m + m11) u omega + rho_f Gamma u - F_v - (m - m_f) g cos(theta)
+        dv_dt = (-self.M_u * u * omega + lift_v - f_v - g_v) / self.M_v
 
         # (I + I_a) domega/dt = (m11 - m22) u v - tau
         domega_dt = ((self.m11 - self.m22) * u * v - tau) / self.I_tot
+
 
         return np.array([dX_dt, dY_dt, dtheta_dt, du_dt, dv_dt, domega_dt], dtype=np.float64)
 

@@ -42,11 +42,12 @@ def compute_circulation(
     r"""Compute fluid circulation Gamma from translational and rotational velocity.
 
     Equation:
-        \Gamma = -0.5 C_T L \frac{u v}{|V|} + 0.5 C_R L^2 \omega
-    with guard: if |V| < eps_V, the translational term is set to 0.
-
-    Reference:
-        Andersen et al. (2005), eq. (2.8).
+        \Gamma = -C_T L \frac{u v}{|V|} + 0.5 C_R L^2 \omega
+    Note on convention:
+        With Kutta-Joukowski lift F_L = rho_f * Gamma * |V| = 0.5 * rho_f * C_L * L * |V|^2,
+        we have C_L(alpha) = 2 Gamma / (|V| L) = -2 C_T (u v / |V|^2) = C_T sin(2 alpha).
+        This gives a peak lift coefficient of C_{L,max} = C_T = 1.2 at alpha = 45 deg,
+        matching standard thin-airfoil/plate aerodynamics at intermediate Re.
 
     Args:
         u: Body velocity along chord [m/s].
@@ -64,10 +65,11 @@ def compute_circulation(
     if speed < coeffs.eps_V:
         trans_term = 0.0
     else:
-        trans_term = -0.5 * coeffs.C_T * L * (u * v / speed)
+        trans_term = -coeffs.C_T * L * (u * v / speed)
 
     rot_term = 0.5 * coeffs.C_R * (L ** 2) * omega
     return trans_term + rot_term
+
 
 
 def compute_drag_coefficient(alpha: float, coeffs: Coefficients) -> float:
