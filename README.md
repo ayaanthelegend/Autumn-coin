@@ -1,4 +1,4 @@
-﻿# Autumn Coin: Step 1, Quasi-Steady ODE Model of a Falling Plate (2D)
+# Autumn Coin: Step 1, Quasi-Steady ODE Model of a Falling Plate (2D)
 
 > This file is the single source of truth for the agent. Read it once, then build.
 > Do NOT re-read the whole file every step: use the section index below.
@@ -112,11 +112,12 @@ dtheta/dt = omega
 
 ### 4.4 Dynamics (Kirchhoff + quasi-steady forces)
 ```
-(m + m11) du/dt = (m + m22) v*omega - Gamma*v - F_u - (m - m_f) g sin(theta)
-(m + m22) dv/dt = -(m + m11) u*omega + Gamma*u - F_v - (m - m_f) g cos(theta)
+(m + m11) du/dt = (m + m22) v*omega - rho_f*Gamma*v - F_u - (m - m_f) g sin(theta)
+(m + m22) dv/dt = -(m + m11) u*omega + rho_f*Gamma*u - F_v - (m - m_f) g cos(theta)
 (I + I_a) domega/dt = (m11 - m22) u*v - tau
 ```
 Sign convention check is mandatory (section 9, tests 3 and 4). If a sign test fails, fix the signs, not the test.
+*Note:* Circulation lift is dimensional: $\rho_f \Gamma V$ (in body components $\rho_f \Gamma v$ and $\rho_f \Gamma u$).
 
 ### 4.5 Circulation (Kutta-Joukowski, with rotational part)
 ```
@@ -131,7 +132,7 @@ Defaults: `C_T = 1.2`, `C_R = pi`  (VERIFY).
 C_D(alpha) = C_D0 - C_D1 * cos(2*alpha)        # defaults C_D0 = 1.4, C_D1 = 1.0 (VERIFY)
 F_u = 0.5 * rho_f * L * C_D(alpha) * |V| * u
 F_v = 0.5 * rho_f * L * C_D(alpha) * |V| * v
-tau = 0.5 * C_tau * rho_f * L^4 * |omega| * omega   # default C_tau = 0.2 (VERIFY, tunable)
+tau = 0.5 * C_tau * rho_f * L^4 * |omega| * omega   # default C_tau = 0.075 (strip theory C_D / 32; tunable)
 ```
 Optionally add a small linear rotational damping `tau_lin = c_lin * omega` for numerical stability. Default `c_lin = 0`.
 
@@ -147,7 +148,7 @@ Do NOT use `I/(m R^2)`: it is constant for a solid disk and carries no informati
 ### 4.8 Regime classifier
 From each trajectory, after discarding the initial transient (first 10 percent of fall height):
 - `theta_range = max(theta) - min(theta)`; `n_flips` = count of full 2*pi rotations of `theta`
-- **steady**: `theta_range < 0.2 rad` and tilt variance below a threshold
+- **steady**: `theta_range < 0.2 rad` and tilt variance below a threshold (`var_theta_steady`)
 - **fluttering**: `theta` oscillates, `n_flips == 0`
 - **tumbling**: `n_flips >= 2` with a consistent rotation direction
 - **mixed / chaotic**: anything else (e.g. flutter with occasional flips)
@@ -157,9 +158,9 @@ All thresholds are config values in `base.yaml`. Print the classification counts
 ## 5. Numerics
 - Integrator: `scipy.integrate.solve_ivp`, method `DOP853`, `rtol=1e-9`, `atol=1e-11`.
 - Dense output sampled at a fixed `dt_out` (default 1e-3 s) for post-processing.
-- Terminal event: fall depth reaches `H_fall` (default 40 L). Also stop at `t_max`.
+- Terminal event: fall depth reaches `H_fall` (default 40 L). Adaptive $t_{\max} \approx 3 \text{--} 5 \times H_{\text{fall}} / U_{\text{terminal}}$ with timeout flagging.
 - Use SI units everywhere. Fluid: water at 20 C, `rho_f = 998`, `mu = 1.0e-3`, `g = 9.81`.
-- Verify convergence: tightening tolerances by 10x must change landing x by < 0.1 percent for a non-chaotic case.
+- Verify convergence: tightening tolerances by 10x must change landing x by < 0.1 percent of chord $L$ for a non-chaotic fluttering case.
 
 ## 6. Parameter sets (`config/coin_sets.yaml`)
 Define each set by `rho_s`, `L`, `h`, `a/b = L/h`. Include at least:
@@ -174,11 +175,11 @@ Define each set by `rho_s`, `L`, `h`, `a/b = L/h`. Include at least:
 These values are illustrative inputs for simulation, **not measurements**. Include a `notes` field per set stating that.
 
 ## 7. Experiments / sweeps (`config/sweeps.yaml`)
-1. **I\* sweep** (main result): `I*` from 0.05 to 5 (log spaced, 25 values). Vary `rho_s` with `L`, `h` fixed. Release angle 5 deg off horizontal plus small noise.
-2. **Release angle sweep**: 0 to 90 deg, 19 values, at three `I*` values (one flutter-like, one transition-like, one tumble-like).
+1. **I\* sweep** (main result): `I*` from 0.05 to 5 (log spaced, 25 values). Scaled physically with aspect ratio $h/L \in [0.04, 0.25]$ such that $\rho_s/\rho_f \le 20$. Release angle 5 deg off horizontal plus small noise.
+2. **Release angle sweep**: 0 to 90 deg, 19 values, at three `I*` values (low $0.2$, transition $0.8$, tumble $3.5$).
 3. **Ensemble for chaos statistics**: for each of 3 selected `I*`, 50 drops with `theta0 ~ N(mu, 0.5 deg)` and `u0, v0 ~ N(0, 1e-4 m/s)`; seed fixed. Outputs: mean trajectory, 1-sigma band, landing scatter.
-4. **Viscosity sweep** (optional): `mu` from 0.5e-3 to 3e-3 Pa s (water to a water-glycerol-like range), to move `Re`.
-5. **Regime map**: grid over `I*` (rows) and `Re` (columns, set via `mu`), classify each cell.
+4. **Viscosity dependence & regime map**: The quasi-steady formulation carries no explicit viscosity dependence in its force terms (fixed coefficients). The Reynolds number Re is evaluated a posteriori from the measured mean descent speed U via Re = rho_f * U * L / mu. Viscosity is probed through physical scaling of rho_s, L, and h, while true viscous Re dependence is reserved for the 2D SPH step.
+5. **Regime map**: grid over I* and Re (evaluated a posteriori across physical variations of rho_s, L, h), classifying each cell.
 
 ## 8. Output and plot specs
 Matplotlib, white background, dark text and axes (no theme-dependent light text), 300 dpi PNG plus PDF.
@@ -193,25 +194,25 @@ CSV for every figure's underlying data in the same folder.
 
 ## 9. Acceptance tests (pytest, all must pass)
 1. **Added mass**: for `a == b` (circle), `m11 == m22` and `I_a == 0`.
-2. **No forces**: zero drag, zero circulation, zero torque, zero gravity: velocity and angular momentum constant (to 1e-8).
+2. **No forces (Kirchhoff conservation)**: zero drag, zero circulation, zero torque, zero gravity: total kinetic energy $T$ is constant (to 1e-8) and lab-frame linear momentum rotated from $((m+m_{11})u, (m+m_{22})v)$ is constant (to 1e-8). For a circular plate ($a = b$), lab velocity and angular momentum are strictly constant.
 3. **Broadside terminal velocity**: start with the plate horizontal (`theta = 0`) and tiny noise suppressed. Terminal speed must match the drag balance `0.5*rho_f*C_D*L*U^2 = (rho_s - rho_f)*g*A` within 2 percent (use the `C_D` at the correct `alpha`).
 4. **Sign check**: a plate released with `theta = 0` and zero velocity falls straight down in the absence of perturbations, never drifting sideways by more than `1e-6 L` when noise is off.
-5. **Energy**: with drag, torque, and circulation work all included, the energy budget closes to within 1 percent over a full drop.
+5. **Energy**: with drag, torque, and circulation work all included, the energy budget closes to within 1 percent over a full drop, normalized by the potential energy drop $(m - m_f) g H_{\text{fall}}$.
 6. **Regime ordering**: at fixed `Re`-range, the classifier gives fluttering or steady for the smallest `I*` in the sweep and tumbling for the largest. Do not hardcode the critical value: report where the transition occurs.
-7. **Convergence**: tolerance tightened 10x changes a steady-descent landing position by less than 0.1 percent.
+7. **Convergence**: tolerance tightened 10x changes a non-chaotic fluttering landing position by less than 0.1 percent of chord $L$.
 8. **Reproducibility**: same seed, same CSV (byte-identical).
 
 ## 10. Task order (tick off in order; commit after each)
-- [ ] 1. Scaffold repo, `requirements.txt`, configs, `params.py`
-- [ ] 2. `added_mass.py` + test 1
-- [ ] 3. `forces.py`, `model.py` + tests 2, 3, 4
-- [ ] 4. `integrate.py`, `run_single.py`, first single-drop plots
-- [ ] 5. `dimensionless.py`, `metrics.py`, regime classifier + test 6
-- [ ] 6. Energy budget + test 5
-- [ ] 7. Convergence and reproducibility tests (7, 8)
-- [ ] 8. Sweeps (section 7) and sweep plots
-- [ ] 9. Regime map
-- [ ] 10. `make_summary.py` (section 11)
+- [x] 1. Scaffold repo, `requirements.txt`, configs, `params.py`
+- [x] 2. `added_mass.py` + test 1
+- [x] 3. `forces.py`, `model.py` + tests 2, 3, 4
+- [x] 4. `integrate.py`, `run_single.py`, first single-drop plots
+- [x] 5. `dimensionless.py`, `metrics.py`, regime classifier + test 6
+- [x] 6. Energy budget + test 5
+- [x] 7. Convergence and reproducibility tests (7, 8)
+- [x] 8. Sweeps (section 7) and sweep plots
+- [x] 9. Regime map
+- [x] 10. `make_summary.py` (section 11)
 
 ## 11. Handoff for external review
 Generate `results/SUMMARY.md` containing:
