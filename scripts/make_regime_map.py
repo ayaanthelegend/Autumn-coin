@@ -1,0 +1,123 @@
+"""Construct 2D Regime Map (I* vs Re) computed a posteriori from mean descent speed.
+
+As established in review: The quasi-steady ODE model has no explicit viscosity dependence
+(coefficients C_D, C_T, C_R, C_tau are constant). Therefore, the regime map is constructed
+by varying physical plate properties (rho_s, L, h) and calculating the realized Reynolds number
+Re = rho_f * U_mean * L / mu a posteriori.
+"""
+
+from __future__ import annotations
+
+import argparse
+import time
+from pathlib import Path
+import numpy as np
+import yaml
+
+from autumn.dimensionless import classify_regime, compute_reynolds_number
+from autumn.integrate import simulate_drop
+from autumn.params import PlateParams, SimulationConfig, get_default_config_path
+from autumn.plotting import plot_regime_map
+
+
+def generate_regime_map(
+    config: SimulationConfig,
+    n_i_star: int = 15,
+    i_star_min: float = 0.05,
+    i_star_max: float = 5.0,
+    L_values: list[float] = None,
+    h_values: list[float] = None,
+    theta0_deg: float = 15.0,
+    out_dir: Path | str = "results"
+) -> dict:
+    if L_values is None:
+        L_values = [0.010, 0.020, 0.035, 0.050]
+    if h_values is None:
+        h_values = [0.0005, 0.001]
+
+    out_path = Path(out_dir)
+    out_path.mkdir(parents=True, exist_ok=True)
+
+    i_star_grid = np.geomspace(i_star_min, i_star_max, n_i_star)
+
+    all_i_stars = []
+    all_res = []
+    all_regimes = []
+    all_speeds = []
+    all_L = []
+
+    print(f"Generating regime map across {len(i_star_grid)} I* values and {len(L_values)*len(h_values)} geometries...")
+
+    for L in L_values:
+        for h in h_values:
+            for i_s in i_star_grid:
+                rho_s = i_s * config.fluid.rho_f * (L / h)
+                if rho_s <= config.fluid.rho_f:
+                    continue
+
+                plate = PlateParams(f"map_L{int(L*1000)}_h{int(h*1000)}_I{i_s:.2f}", rho_s, L, h)
+                res = simulate_drop(
+                    plate=plate,
+                    fluid=config.fluid,
+                    coeffs=config.coefficients,
+                    numerics=config.numerics,
+                    theta0=np.radians(theta0_deg)
+                )
+
+                regime, metrics = classify_regime(
+                    res.t, res.Y, res.theta, res.omega, res.H_fall, config.regime_classifier
+                )
+
+                # Compute mean descent speed discarding initial transient
+                valid_mask = res.Y <= (res.Y[0] - 0.1 * res.H_fall)
+                if np.sum(valid_mask) < 5:
+                    valid_mask = np.ones_like(res.Y, dtype=bool)
+
+                u_mean = float(np.mean(res.speed[valid_mask]))
+                re = compute_reynolds_number(config.fluid.rho_f, u_mean, plate.L, config.fluid.mu)
+
+                all_i_stars.append(i_s)
+                all_res.append(re)
+                all_regimes.append(regime)
+                all_speeds.append(u_mean)
+                all_L.append(L)
+
+    all_i_stars_arr = np.array(all_i_stars)
+    all_res_arr = np.array(all_res)
+
+    plot_regime_map(all_i_stars_arr, all_res_arr, all_regimes, out_path, "regime_map")
+
+    # Tally regime distribution
+    unique, counts = np.unique(all_regimes, return_counts=True)
+    tally = dict(zip(unique, counts))
+
+    print(f"Regime map generated ({len(all_i_stars)} points total):")
+    for reg, cnt in tally.items():
+        print(f"  {reg.capitalize():12s}: {cnt:3d} ({cnt/len(all_i_stars)*100:.1f}%)")
+    print(f"Outputs written to: {out_path / 'regime_map.png'} and {out_path / 'regime_map.csv'}")
+
+    return {
+        "i_stars": all_i_stars_arr,
+        "Re": all_res_arr,
+        "regimes": all_regimes,
+        "tally": tally,
+        "out_dir": str(out_path)
+    }
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Generate 2D Regime Map (I* vs Re).")
+    parser.add_argument("--theta0-deg", type=float, default=15.0, help="Release angle [deg]")
+    parser.add_argument("--out-dir", type=str, default="results", help="Output directory")
+    args = parser.parse_args()
+
+    base_yaml = get_default_config_path("base.yaml")
+    config = SimulationConfig.from_yaml(base_yaml)
+
+    t0 = time.time()
+    generate_regime_map(config, theta0_deg=args.theta0_deg, out_dir=args.out_dir)
+    print(f"Regime map completed in {time.time() - t0:.2f} s.")
+
+
+if __name__ == "__main__":
+    main()
