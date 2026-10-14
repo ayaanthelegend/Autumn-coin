@@ -1,0 +1,48 @@
+# Sweep specifications for Autumn Coin 2D Quasi-Steady Model
+
+i_star_sweep:
+  description: "I* sweep from 0.05 to 5.0 (log-spaced, 25 points). Varies rho_s with L and h fixed."
+  n_points: 25
+  i_star_min: 0.05
+  i_star_max: 5.0
+  L: 0.020
+  h: 0.002
+  theta0_deg: 5.0
+  perturbation_deg: 0.1
+  seed: 42
+
+release_angle_sweep:
+  description: "Release angle sweep from 0 to 90 deg (19 points) at three representative I* values."
+  n_points: 19
+  theta_min_deg: 0.0
+  theta_max_deg: 90.0
+  i_star_cases:
+    flutter: 0.15     # Flutter-like regime
+    transition: 0.8   # Transition-like regime
+    tumble: 3.0       # Tumble-like regime
+  L: 0.020
+  h: 0.002
+  seed: 42
+
+chaos_ensemble:
+  description: "Monte Carlo ensemble of 50 drops for 3 selected I* values with small initial perturbations."
+  n_drops: 50
+  i_star_cases:
+    flutter: 0.15
+    transition: 0.8
+    tumble: 3.0
+  L: 0.020
+  h: 0.002
+  theta0_mean_deg: 5.0
+  theta0_std_deg: 0.5
+  v_pert_std: 1.0e-4   # std dev of u0, v0 in m/s
+  seed: 12345
+
+regime_map:
+  description: "2D grid across dimensionless parameters (I* and Re), varying rho_s, L, and h."
+  n_i_star: 15
+  i_star_min: 0.05
+  i_star_max: 5.0
+  L_values: [0.010, 0.020, 0.030, 0.050]
+  theta0_deg: 5.0
+  seed: 42

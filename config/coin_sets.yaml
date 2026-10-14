@@ -1,0 +1,30 @@
+# Parameter sets for falling plates / coins
+# Note: These values are illustrative inputs for simulation, not measurements.
+
+reference_card:
+  role: "baseline for flutter/tumble physics"
+  rho_s: 1200.0   # Solid density [kg/m^3]
+  L: 0.020        # Chord (major diameter) [m] (20 mm)
+  h: 0.002        # Thickness [m] (2 mm)
+  notes: "Illustrative simulation input for baseline flutter/tumble comparison (not experimental measurement)."
+
+heavy_coin:
+  role: "metal coin, high I*"
+  rho_s: 7800.0   # Solid density [kg/m^3] (e.g. steel/copper alloy proxy)
+  L: 0.024        # Chord [m] (24 mm)
+  h: 0.0018       # Thickness [m] (1.8 mm)
+  notes: "Illustrative simulation input for heavy metal coin with high dimensionless moment of inertia (not experimental measurement)."
+
+light_coin:
+  role: "low I*"
+  rho_s: 2700.0   # Solid density [kg/m^3] (e.g. aluminium proxy)
+  L: 0.024        # Chord [m] (24 mm)
+  h: 0.0018       # Thickness [m] (1.8 mm)
+  notes: "Illustrative simulation input for light coin with lower dimensionless moment of inertia (not experimental measurement)."
+
+washer_proxy:
+  role: "lower effective density (hole)"
+  rho_s: 4000.0   # Solid density [kg/m^3]
+  L: 0.024        # Chord [m] (24 mm)
+  h: 0.0018       # Thickness [m] (1.8 mm)
+  notes: "Illustrative simulation input representing effective density reduction due to center perforation (not experimental measurement)."
