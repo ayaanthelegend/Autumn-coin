@@ -23,6 +23,7 @@ coefficients:
   C_D1: 1.0            # Viscous drag angle dependence term (Verified: Andersen et al. 2005b Eq. 3.8)
   C_tau: 0.075         # Rotational damping torque coefficient (Andersen 2005b Eq. 3.9: pi*mu_2/8 = 0.0785 for mu_2=0.2)
   c_lin: 0.0           # Optional linear rotational damping [N*m*s/rad]
+  mu_1: 0.01           # Dimensionless linear rotational damping coefficient (Andersen 2005b Eq. 3.9)
   eps_V: 1.0e-7        # Velocity regularization threshold [m/s]
 
 regime_classifier:
@@ -30,6 +31,7 @@ regime_classifier:
   transient_t_min: 1.0     # Minimum time to discard for transient [s]
   theta_std_steady_deg: 1.0 # Post-transient std(theta) threshold for steady descent [deg]
   theta_ptp_steady_deg: 2.0 # Post-transient peak-to-peak threshold for steady descent [deg]
+  theta_ptp_flutter_max_deg: 300.0 # Upper bound on peak-to-peak angle for pure flutter vs heteroclinic mixed [deg]
   min_flips_tumble: 2      # Minimum net 2*pi rotations in post-transient window
   max_reversal_tumble_deg: 180.0 # Maximum allowed backward excursion for unidirectional tumbling [deg]
   min_reversal_mixed_deg: 90.0   # Minimum excursion reversal defining chaotic mixed tumbling [deg]

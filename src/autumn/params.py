@@ -55,6 +55,7 @@ class Coefficients:
     C_D1: float = 1.0
     C_tau: float = 0.075
     c_lin: float = 0.0
+    mu_1: float = 0.01
     eps_V: float = 1.0e-7
 
 
@@ -78,6 +79,7 @@ class RegimeClassifierParams:
     transient_t_min: float = 1.0
     theta_std_steady_deg: float = 1.0
     theta_ptp_steady_deg: float = 2.0
+    theta_ptp_flutter_max_deg: float = 300.0
     min_flips_tumble: int = 2
     max_reversal_tumble_deg: float = 180.0
     min_reversal_mixed_deg: float = 90.0

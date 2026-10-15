@@ -14,7 +14,7 @@ References:
 from __future__ import annotations
 
 import math
-from typing import Tuple
+from typing import Optional, Tuple
 from autumn.params import Coefficients, FluidParams
 
 
@@ -84,7 +84,7 @@ def compute_drag_coefficient(alpha: float, coeffs: Coefficients) -> float:
         C_D(\alpha) = C_{D0} - C_{D1} \cos(2 \alpha)
 
     Reference:
-        Andersen et al. (2005), eq. (2.9).
+        Andersen, Pesavento & Wang (2005b), eq. (3.8).
     """
     return coeffs.C_D0 - coeffs.C_D1 * math.cos(2.0 * alpha)
 
@@ -95,7 +95,11 @@ def compute_viscous_forces_and_torque(
     omega: float,
     L: float,
     rho_f: float,
-    coeffs: Coefficients
+    coeffs: Coefficients,
+    h: float = 0.0,
+    rho_s: float = 0.0,
+    g: float = 9.81,
+    c_lin_override: Optional[float] = None,
 ) -> Tuple[float, float, float]:
     r"""Compute viscous dissipative drag forces and rotational damping torque.
 
@@ -106,8 +110,12 @@ def compute_viscous_forces_and_torque(
 
     Reference:
         Andersen, Pesavento & Wang (2005b), eqs. (3.8)-(3.9).
-        Note: In eq. (3.9), \tau = \pi \rho_f a^4 \mu_2 |\omega|\omega with a = L/2 and \mu_2 = 0.2,
-        giving C_\tau = \pi \mu_2 / 8 = 0.0785 (within 4% of strip theory C_\tau = 0.075).
+        In eq. (3.9):
+            \tau_\nu = \pi \rho_f a^4 ( (U / a) \mu_1 + \mu_2 |\omega| ) \omega
+        where a = L / 2 and characteristic velocity U = \sqrt{\max(\rho_s / \rho_f - 1.0, 0.0) g (h / 2)}.
+        In terms of full chord L = 2a:
+            \tau_{\text{quad}} = 0.5 C_\tau \rho_f L^4 |\omega| \omega  with C_\tau = \pi \mu_2 / 8 \approx 0.075 - 0.0785
+            \tau_{\text{lin}} = c_{\text{lin}} \omega  with c_{\text{lin}} = (\pi / 8) \rho_f L^3 U \mu_1
 
     Args:
         u: Body velocity along chord [m/s].
@@ -116,6 +124,10 @@ def compute_viscous_forces_and_torque(
         L: Plate chord [m].
         rho_f: Fluid density [kg/m^3].
         coeffs: Hydrodynamic coefficients.
+        h: Plate thickness [m] (optional, for linear damping).
+        rho_s: Solid density [kg/m^3] (optional, for linear damping).
+        g: Gravitational acceleration [m/s^2].
+        c_lin_override: Explicit precomputed linear damping coefficient [N*m*s/rad].
 
     Returns:
         Tuple of (F_u, F_v, tau) in SI units ([N/m], [N/m], [N*m/m]).
@@ -126,6 +138,16 @@ def compute_viscous_forces_and_torque(
 
     f_u = 0.5 * rho_f * L * c_d * speed * u
     f_v = 0.5 * rho_f * L * c_d * speed * v
-    tau = 0.5 * coeffs.C_tau * rho_f * (L ** 4) * abs(omega) * omega + coeffs.c_lin * omega
+
+    if c_lin_override is not None:
+        c_lin_eff = c_lin_override
+    elif coeffs.mu_1 > 0.0 and h > 0.0 and rho_s > rho_f:
+        u_char = math.sqrt(max(rho_s / rho_f - 1.0, 0.0) * g * (h / 2.0))
+        c_lin_phys = (math.pi / 8.0) * rho_f * (L ** 3) * u_char * coeffs.mu_1
+        c_lin_eff = coeffs.c_lin + c_lin_phys
+    else:
+        c_lin_eff = coeffs.c_lin
+
+    tau = 0.5 * coeffs.C_tau * rho_f * (L ** 4) * abs(omega) * omega + c_lin_eff * omega
 
     return f_u, f_v, tau

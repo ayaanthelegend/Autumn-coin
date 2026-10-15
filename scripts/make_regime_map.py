@@ -16,7 +16,7 @@ import yaml
 
 from autumn.dimensionless import classify_regime, compute_reynolds_number
 from autumn.integrate import simulate_drop
-from autumn.params import PlateParams, SimulationConfig, get_default_config_path
+from autumn.params import NumericsParams, PlateParams, SimulationConfig, get_default_config_path
 from autumn.plotting import plot_regime_map
 
 
@@ -26,7 +26,7 @@ def generate_regime_map(
     i_star_min: float = 0.05,
     i_star_max: float = 3.5,
     L_values: list[float] = None,
-    theta0_deg: float = 15.0,
+    theta0_deg: float = 20.0,
     out_dir: Path | str = "results"
 ) -> dict:
     if L_values is None:
@@ -36,6 +36,16 @@ def generate_regime_map(
     out_path.mkdir(parents=True, exist_ok=True)
 
     i_star_grid = np.geomspace(i_star_min, i_star_max, n_i_star)
+    numerics_map = NumericsParams(
+        integrator=config.numerics.integrator,
+        rtol=config.numerics.rtol,
+        atol=config.numerics.atol,
+        dt_out=config.numerics.dt_out,
+        H_fall_factor=60.0,
+        t_max_factor=config.numerics.t_max_factor,
+        t_max_min=config.numerics.t_max_min,
+        seed=config.numerics.seed,
+    )
 
     all_i_stars = []
     all_res = []
@@ -49,20 +59,25 @@ def generate_regime_map(
 
     for L in L_values:
         for i_s in i_star_grid:
-            # Physical aspect ratio scaling keeping h/L in [0.02, 0.15]
-            aspect = float(np.clip(0.025 + 0.08 * (i_s / i_star_max), 0.02, 0.15))
+            # Physical aspect ratio scaling keeping h/L in [0.035, 0.14] and rho_s > rho_f
+            aspect = float(np.clip(0.045 + 0.05 * np.sqrt(i_s), 0.035, 0.14))
+            if i_s <= 0.08:
+                aspect = min(aspect, i_s / 1.25)
             h = L * aspect
             rho_s = float(i_s * config.fluid.rho_f / aspect)
             if rho_s <= config.fluid.rho_f:
                 continue
 
             plate = PlateParams(f"map_L{int(L*1000)}_I{i_s:.2f}", rho_s, L, h)
+            # Probe steady descent for low I* (I* <= 0.08), and post-transient attractor for flutter/tumble
+            th0 = 0.0 if i_s <= 0.08 else np.radians(theta0_deg)
+
             res = simulate_drop(
                 plate=plate,
                 fluid=config.fluid,
                 coeffs=config.coefficients,
-                numerics=config.numerics,
-                theta0=np.radians(theta0_deg)
+                numerics=numerics_map,
+                theta0=th0
             )
 
             regime, metrics = classify_regime(
@@ -115,7 +130,7 @@ def generate_regime_map(
 
 def main():
     parser = argparse.ArgumentParser(description="Generate 2D Regime Map (I* vs Re).")
-    parser.add_argument("--theta0-deg", type=float, default=15.0, help="Release angle [deg]")
+    parser.add_argument("--theta0-deg", type=float, default=20.0, help="Release angle [deg]")
     parser.add_argument("--out-dir", type=str, default="results", help="Output directory")
     args = parser.parse_args()
 

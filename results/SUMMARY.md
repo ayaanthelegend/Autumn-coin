@@ -1,8 +1,8 @@
 # Autumn Coin (Step 1): External Review Handoff Summary
 **2D Quasi-Steady ODE Model of a Falling Plate**
 
-- **Date:** 2026-10-15 13:05:59
-- **Git Commit Hash:** `1b29ae2ade710badfa09f48001974f1c935805b7`
+- **Date:** 2026-10-15 14:50:05
+- **Git Commit Hash:** `cdeddc45ea2eebe53be4f73ce8a931ece76afd35`
 - **Python Version:** `3.14.5` (Windows 11 (AMD64))
 - **Key Packages:** `numpy==2.5.4`, `scipy==1.18.1`, `matplotlib==3.11.2`, `pytest==9.1.1`, `pyyaml==6.0.3`
 
@@ -14,17 +14,20 @@ All physical coefficients are centralized in `config/base.yaml`, loaded dynamica
 
 | Parameter | Value | Status | Mathematical Role & Formula | Source / Verification Rationale |
 |---|---|---|---|---|
-| `C_T` | `1.2` | Verified (Andersen et al. 2005b) | Translational circulation magnitude: $\Gamma_{\text{trans}} = -C_T L (u v / |V|)$ | Andersen, Pesavento & Wang (2005b) Eq. (2.5); peaks $C_L(\alpha) = 1.2$ at $\alpha = 45^\circ$ |
-| `C_R` | `3.14159` ($\pi$) | Verified (Andersen et al. 2005b) | Rotational circulation magnitude: $\Gamma_{\text{rot}} = 0.5 C_R L^2 \omega$ | Andersen et al. (2005b) Eq. (2.6); rotational Magnus/vortex circulation |
-| `C_D0` | `1.4` | Verified (Andersen et al. 2005b) | Viscous drag baseline constant: $C_D(\alpha) = C_{D0} - C_{D1} \cos(2\alpha)$ | Andersen et al. (2005b) Eq. (2.7); thin plate drag model |
-| `C_D1` | `1.0` | Verified (Andersen et al. 2005b) | Viscous drag angle dependence ($C_D(\pi/2) = 2.4$, $C_D(0) = 0.4$) | Andersen et al. (2005b) Eq. (2.7); minimum edge-on, maximum broadside |
+| Parameter | Value | Status | Mathematical Role & Formula | Source / Verification Rationale |
+|---|---|---|---|---|
+| `C_T` | `1.2` | Verified (Andersen et al. 2005b) | Translational circulation magnitude: $\Gamma_{\text{trans}} = -C_T L (u v / |V|)$ | Andersen, Pesavento & Wang (2005b) Eq. (3.7); peaks $C_L(\alpha) = 1.2$ at $\alpha = 45^\circ$ |
+| `C_R` | `3.14159` ($\pi$) | Verified (Andersen et al. 2005b) | Rotational circulation magnitude: $\Gamma_{\text{rot}} = 0.5 C_R L^2 \omega$ | Andersen et al. (2005b) Eq. (3.7); rotational Magnus/vortex circulation |
+| `C_D0` | `1.4` | Verified (Andersen et al. 2005b) | Viscous drag baseline constant: $C_D(\alpha) = C_{D0} - C_{D1} \cos(2\alpha)$ | Andersen et al. (2005b) Eq. (3.8); thin plate drag model |
+| `C_D1` | `1.0` | Verified (Andersen et al. 2005b) | Viscous drag angle dependence ($C_D(\pi/2) = 2.4$, $C_D(0) = 0.4$) | Andersen et al. (2005b) Eq. (3.8); minimum edge-on, maximum broadside |
 | `C_tau` | `0.075` | Verified (Andersen et al. 2005b) | Rotational damping torque: $\tau = 0.5 C_\tau \rho_f L^4 |\omega| \omega$ | Andersen et al. (2005b) Eq. (3.9) quadratic damping torque is $\tau = \pi \rho_f a^4 \mu_2 |\omega|\omega$ with $a = L/2$ and fitted dimensionless parameter $\mu_2 = 0.2$. In our convention $\tau = \frac{1}{2} C_\tau \rho_f L^4 |\omega|\omega$, this corresponds to $C_\tau = \pi \mu_2 / 8 = 0.0785$, which matches our strip-theory derivation $C_D / 32 \approx 2.4 / 32 = 0.075$ within **4.5%**. |
-| `c_lin` | `0.0` | Default | Optional linear rotational damping: $\tau_{\text{lin}} = c_{\text{lin}} \omega$ | Regularization (set to 0 for pure physical quadratic damping) |
+| `mu_1` | `0.01` | Default (Andersen et al. 2005b) | Linear rotational damping coefficient: $c_{\text{lin}} = (\pi / 8) \rho_f L^3 U_{\text{char}} \mu_1$ | Andersen et al. (2005b) Eq. (3.9); stabilizes steady broadside descent at low $I^*$ |
+| `c_lin` | `0.0` | Default | Optional manual linear rotational damping constant [N*m*s/rad] | Regularization guard |
 | `eps_V` | `1.0e-7` | Default | Regularization threshold below which translational circulation is 0 | Numerical guard preventing singularity as $|V| \to 0$ |
 
 ### Primary Literature Citations
 1. **Andersen, A., Pesavento, U., & Wang, Z. J. (2005a).** *Unsteady aerodynamics of fluttering and tumbling plates.* Journal of Fluid Mechanics, 541, 65–90. [DOI: 10.1017/S002211200500594X](https://doi.org/10.1017/S002211200500594X) *(Physical experiments, high-speed photography, and 2D Navier–Stokes direct numerical simulations).*
-2. **Andersen, A., Pesavento, U., & Wang, Z. J. (2005b).** *Analysis of a model for fluttering and tumbling plates.* Journal of Fluid Mechanics, 541, 91–104. [DOI: 10.1017/S0022112005005951](https://doi.org/10.1017/S0022112005005951) *(The coupled 2D quasi-steady ODE model, added-mass formulation, and parameter bifurcation analysis).*
+2. **Andersen, A., Pesavento, U., & Wang, Z. J. (2005b).** *Analysis of transitions between fluttering, tumbling and steady descent of falling cards.* Journal of Fluid Mechanics, 541, 91–104. [DOI: 10.1017/S0022112005005847](https://doi.org/10.1017/S0022112005005847) *(The coupled 2D quasi-steady ODE model: Eqs. (3.1)–(3.3), added-mass formulation, circulation Eqs. (3.6)–(3.7), drag Eq. (3.8), torque Eq. (3.9), and parameter bifurcation analysis).*
 
 ---
 
@@ -44,7 +47,7 @@ All 16 acceptance tests in `tests/` pass with zero failures:
 | `test_energy_budget_closure_reference_card` | Acceptance Test 5 | Energy budget closes to **0.0000%** residual normalized by potential energy drop | **PASS** |
 | `test_energy_budget_closure_heavy_coin` | Acceptance Test 5 | Heavy coin energy budget closes to **0.0000%** residual | **PASS** |
 | `test_all_four_regimes_detected` | Acceptance Test 6 | Verified that all 4 regimes (steady, fluttering, tumbling, mixed) are cleanly detected | **PASS** |
-| `test_regime_ordering_transition` | Acceptance Test 6 | Low $I^*$ exhibits fluttering, and tumbling emerges cleanly at $I^* \ge 1.10$ | **PASS** |
+| `test_regime_ordering_transition` | Acceptance Test 6 | Low $I^*$ exhibits steady/fluttering, tumbling emerges cleanly at $I^* \ge 1.05$, and mixed dynamics at higher $I^*$ | **PASS** |
 | `test_regime_threshold_sensitivity` | Acceptance Test 6 | Classifications do not flip under $\pm 20\%$ variations in classifier thresholds | **PASS** |
 | `test_numerical_convergence_tolerance_tightening` | Acceptance Test 7 | 10x tolerance tightening changes landing $X$ by $< 10^{-6}\%$ of chord $L$ (< 0.1% limit) | **PASS** |
 | `test_byte_identical_reproducibility` | Acceptance Test 8 | Same seed generates byte-identical trajectory CSV files | **PASS** |
@@ -60,8 +63,8 @@ All 16 acceptance tests in `tests/` pass with zero failures:
 - **Runs completed:** 25 / 25 (0 timeouts, 100% bottom reached).
 - **Regime Transition Observed:**
   - $I^* \in [0.05, 0.90]$: **Fluttering** (periodic side-to-side oscillation, $n_{\text{flips}} = 0$).
-  - $I^* \in [1.10, 1.25]$: **Clean Tumbling** (continuous unidirectional autorotation with 0 directional reversals, $> 20$ full flips, and $> 2\,\text{m}$ lateral glide).
-  - $I^* \in [1.30, 5.00]$: **Mixed / Chaotic Tumbling** (sustained autorotation with intermittent direction reversals).
+  - $I^* \in [1.05, 1.25]$: **Clean Tumbling** (continuous unidirectional autorotation with 0 directional reversals, $> 20$ full flips, and $> 2\,\text{m}$ lateral glide).
+  - $I^* \in [1.30, 5.00]$: **Mixed / Chaotic Tumbling** (sustained autorotation with intermittent direction reversals and large separatrix excursions).
 
 ### 3.2 Experiment 2: Release Angle Sweep ($0^\circ$ to $90^\circ$, 19 values)
 - **Cases Tested:**
@@ -77,21 +80,21 @@ All 16 acceptance tests in `tests/` pass with zero failures:
   - High inertia ($I^* = 3.50$): Landing $X = 1.48 \pm 0.32\,\text{m}$ (broad dispersion reflecting sensitivity to release angle during autorotation initiation).
 
 ### 3.4 Experiment 4: 2D Regime Map ($I^*$ vs $\text{Re}$, 60 grid points)
-- **Grid Setup:** Realistic plate and coin dimensions: chords $L \in [12, 18, 24, 30]\,\text{mm}$, $I^* \in [0.05, 3.50]$, aspect ratios $h/L \in [0.02, 0.15]$, and density ratios $\rho_s / \rho_f \in [1.2, 10.0]$ in water.
+- **Grid Setup:** Realistic plate and coin dimensions: chords $L \in [12, 18, 24, 30]\,\text{mm}$, $I^* \in [0.05, 3.50]$, aspect ratios $h/L \in [0.035, 0.14]$, and density ratios $\rho_s / \rho_f \in [1.2, 10.0]$ in water. Fall depth $H_{\text{fall}} = 60 L$.
 - **Quasi-Steady Model Limitation:** The quasi-steady ODE model carries **no explicit viscosity dependence** ($\mu$ appears in none of the force terms because $C_D, C_T, C_R, C_\tau$ are empirical constants). Therefore, the Reynolds number $\text{Re} = \rho_f U_{\text{mean}} L / \mu$ is computed *a posteriori* from the post-transient mean descent speed. Real $\text{Re}$ scaling will be probed directly in the upcoming SPH FSI step.
-- **Measured Reynolds Numbers:** $\text{Re} \in [426, 21174]$, matching realistic coin drops in water.
+- **Measured Reynolds Numbers:** $\text{Re} \in [332, 20206]$, matching realistic coin drops in water.
 - **Regime Distribution (60 total points):**
-- **Steady:** 0 / 60 points (0.0%)
-- **Fluttering:** 48 / 60 points (80.0%)
+- **Steady:** 8 / 60 points (13.3%)
+- **Fluttering:** 32 / 60 points (53.3%)
 - **Tumbling:** 4 / 60 points (6.7%)
-- **Mixed:** 8 / 60 points (13.3%)
+- **Mixed:** 16 / 60 points (26.7%)
 
 ### 3.5 Regime Classifier Thresholds & Sensitivity
 To avoid contamination from release transients, the classifier discards $t < \max(0.20 t_{\text{end}}, 1.0\,\text{s})$ and vertical drop $Y \le Y_0 - 0.20 H_{\text{fall}}$.
 - **Steady:** $\text{std}(\theta_{\text{post}}) < 1.0^\circ$ or $\text{ptp}(\theta_{\text{post}}) < 2.0^\circ$ with $n_{\text{flips}} = 0$.
-- **Fluttering:** Bounded periodic oscillations ($\text{ptp} < 360^\circ$) with $\text{std}(\theta_{\text{post}}) \ge 1.0^\circ$.
+- **Fluttering:** Bounded periodic oscillations below separatrix threshold ($\text{ptp} < 300^\circ$) with $\text{std}(\theta_{\text{post}}) \ge 1.0^\circ$.
 - **Tumbling:** Net rotation $\ge 2 \times 360^\circ$ and maximum backward excursion $< 180^\circ$ (clean unidirectional spin).
-- **Mixed / Chaotic:** Net rotation or $\text{ptp} \ge 360^\circ$ with directional reversals $\ge 90^\circ$.
+- **Mixed / Chaotic:** Net rotation $\ge 360^\circ$ with directional reversals $\ge 90^\circ$, or large-amplitude heteroclinic separatrix swings ($\text{ptp} \ge 300^\circ$).
 Threshold sensitivity was tested under $\pm 20\%$ perturbations; zero classifications flipped.
 
 ---

@@ -79,6 +79,11 @@ class AutumnModel:
         self.M_v = self.m + self.m22
         self.I_tot = self.I + self.I_a
 
+        # Linear rotational damping from Andersen et al. (2005b) Eq. (3.9)
+        u_char = math.sqrt(max(plate.rho_s / fluid.rho_f - 1.0, 0.0) * fluid.g * (plate.h / 2.0))
+        self.c_lin_phys = (math.pi / 8.0) * fluid.rho_f * (plate.L ** 3) * u_char * coeffs.mu_1
+        self.c_lin_total = coeffs.c_lin + self.c_lin_phys
+
     def rhs(self, t: float, state: Sequence[float]) -> np.ndarray:
         """Compute time derivative of the 6-element state vector d(state)/dt."""
         X, Y, theta, u, v, omega = state
@@ -98,7 +103,8 @@ class AutumnModel:
 
         if self.enable_drag or self.enable_torque:
             f_u_calc, f_v_calc, tau_calc = compute_viscous_forces_and_torque(
-                u, v, omega, self.plate.L, self.fluid.rho_f, self.coeffs
+                u, v, omega, self.plate.L, self.fluid.rho_f, self.coeffs,
+                c_lin_override=self.c_lin_total
             )
             f_u = f_u_calc if self.enable_drag else 0.0
             f_v = f_v_calc if self.enable_drag else 0.0

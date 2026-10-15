@@ -100,7 +100,8 @@ def compute_energy_budget(
         e_pot[i] = model.potential_energy(st)
 
         f_u, f_v, tau = compute_viscous_forces_and_torque(
-            res.u[i], res.v[i], res.omega[i], res.plate.L, res.fluid.rho_f, res.coeffs
+            res.u[i], res.v[i], res.omega[i], res.plate.L, res.fluid.rho_f, res.coeffs,
+            c_lin_override=model.c_lin_total
         )
         p_diss[i] = res.u[i] * f_u + res.v[i] * f_v + res.omega[i] * tau
 

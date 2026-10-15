@@ -148,9 +148,9 @@ def classify_regime(
     if (net_rotation >= params.min_flips_tumble * 2.0 * math.pi) and (back_deg < params.max_reversal_tumble_deg):
         return "tumbling", metrics
 
-    # 3. Fluttering: bounded periodic oscillations without completing any full 360 deg flip
-    if ptp_deg < 360.0:
+    # 3. Fluttering: bounded periodic oscillations below separatrix threshold (ptp < theta_ptp_flutter_max_deg)
+    if ptp_deg < params.theta_ptp_flutter_max_deg:
         return "fluttering", metrics
 
-    # 4. Mixed / Chaotic tumbling
+    # 4. Mixed / Chaotic tumbling (including large-amplitude heteroclinic separatrix swings and chaotic reversals)
     return "mixed", metrics
