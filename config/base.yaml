@@ -35,3 +35,4 @@ regime_classifier:
   min_flips_tumble: 2      # Minimum net 2*pi rotations in post-transient window
   max_reversal_tumble_deg: 180.0 # Maximum allowed backward excursion for unidirectional tumbling [deg]
   min_reversal_mixed_deg: 90.0   # Minimum excursion reversal defining chaotic mixed tumbling [deg]
+  min_spin_ratio_tumble: 0.70    # Minimum |<omega>| / <|omega|> spin consistency for tumbling

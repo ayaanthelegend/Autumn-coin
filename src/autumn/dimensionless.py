@@ -127,6 +127,12 @@ def classify_regime(
         running_min = np.minimum.accumulate(th_crop)
         max_backward_excursion = float(np.max(th_crop - running_min))
 
+    mean_abs_om = float(np.mean(np.abs(om_crop)))
+    mean_om = float(np.mean(om_crop))
+    std_om = float(np.std(om_crop))
+    spin_ratio = float(abs(mean_om) / (mean_abs_om + 1e-9))
+    rel_std_om = float(std_om / (mean_abs_om + 1e-9))
+
     std_deg = math.degrees(std_theta)
     ptp_deg = math.degrees(ptp_theta)
     back_deg = math.degrees(max_backward_excursion)
@@ -137,20 +143,27 @@ def classify_regime(
         "std_theta_deg": std_deg,
         "n_flips": float(n_flips),
         "delta_theta_net_rad": delta_th_net,
-        "max_backward_excursion_deg": back_deg
+        "max_backward_excursion_deg": back_deg,
+        "spin_ratio": spin_ratio,
+        "rel_std_omega": rel_std_om,
+        "mean_abs_omega": mean_abs_om
     }
 
     # 1. Steady: post-transient standard deviation < 1 deg (or ptp < 2 deg) and no flips
     if (std_deg < params.theta_std_steady_deg or ptp_deg < params.theta_ptp_steady_deg) and ptp_deg < 360.0:
         return "steady", metrics
 
-    # 2. Tumbling: at least 2 full rotations with no sustained reversal (> 180 deg) in opposite direction
-    if (net_rotation >= params.min_flips_tumble * 2.0 * math.pi) and (back_deg < params.max_reversal_tumble_deg):
+    # 2. Tumbling: at least min_flips_tumble full rotations with predominant unidirectional spin
+    # (either backward excursion < max_reversal_tumble_deg OR high spin consistency ratio >= min_spin_ratio_tumble)
+    if (net_rotation >= params.min_flips_tumble * 2.0 * math.pi) and (
+        back_deg < params.max_reversal_tumble_deg or spin_ratio >= params.min_spin_ratio_tumble
+    ):
         return "tumbling", metrics
 
     # 3. Fluttering: bounded periodic oscillations below separatrix threshold (ptp < theta_ptp_flutter_max_deg)
-    if ptp_deg < params.theta_ptp_flutter_max_deg:
+    # with no full rotations and low spin ratio (oscillating back and forth about zero)
+    if (ptp_deg < params.theta_ptp_flutter_max_deg) and (net_rotation < 2.0 * math.pi) and (spin_ratio < params.min_spin_ratio_tumble):
         return "fluttering", metrics
 
-    # 4. Mixed / Chaotic tumbling (including large-amplitude heteroclinic separatrix swings and chaotic reversals)
+    # 4. Mixed / Chaotic: anything else (separatrix swings, chaotic direction reversals)
     return "mixed", metrics

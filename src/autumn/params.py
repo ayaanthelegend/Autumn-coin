@@ -83,6 +83,7 @@ class RegimeClassifierParams:
     min_flips_tumble: int = 2
     max_reversal_tumble_deg: float = 180.0
     min_reversal_mixed_deg: float = 90.0
+    min_spin_ratio_tumble: float = 0.70
 
 
 @dataclass(frozen=True)

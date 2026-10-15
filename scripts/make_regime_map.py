@@ -30,7 +30,7 @@ def generate_regime_map(
     out_dir: Path | str = "results"
 ) -> dict:
     if L_values is None:
-        L_values = [0.012, 0.018, 0.024, 0.030]
+        L_values = [0.008, 0.012, 0.016, 0.020]
 
     out_path = Path(out_dir)
     out_path.mkdir(parents=True, exist_ok=True)
@@ -41,21 +41,23 @@ def generate_regime_map(
         rtol=config.numerics.rtol,
         atol=config.numerics.atol,
         dt_out=config.numerics.dt_out,
-        H_fall_factor=60.0,
+        H_fall_factor=100.0,
         t_max_factor=config.numerics.t_max_factor,
         t_max_min=config.numerics.t_max_min,
         seed=config.numerics.seed,
     )
 
     all_i_stars = []
-    all_res = []
+    all_res_in = []
+    all_res_meas = []
     all_regimes = []
     all_speeds = []
+    all_u_t = []
     all_L = []
     all_h = []
     all_rho_s = []
 
-    print(f"Generating regime map across {len(i_star_grid)} I* values and {len(L_values)} plate chords (realistic coins: L in 12-30 mm, I* in 0.05-3.5)...")
+    print(f"Generating regime map across {len(i_star_grid)} I* values and {len(L_values)} plate chords (fitted Re range [200, 5000]: L in 8-20 mm, I* in 0.05-3.5)...")
 
     for L in L_values:
         for i_s in i_star_grid:
@@ -94,20 +96,43 @@ def generate_regime_map(
                     valid_mask = np.ones_like(res.Y, dtype=bool)
 
             u_mean = float(np.mean(res.speed[valid_mask]))
-            re = compute_reynolds_number(config.fluid.rho_f, u_mean, plate.L, config.fluid.mu)
+            re_meas = compute_reynolds_number(config.fluid.rho_f, u_mean, plate.L, config.fluid.mu)
+
+            # Input Froude-based terminal velocity scale and Reynolds number
+            u_t = float(np.sqrt(max(rho_s / config.fluid.rho_f - 1.0, 0.0) * config.fluid.g * h))
+            re_in = float(config.fluid.rho_f * u_t * plate.L / config.fluid.mu)
 
             all_i_stars.append(i_s)
-            all_res.append(re)
+            all_res_in.append(re_in)
+            all_res_meas.append(re_meas)
             all_regimes.append(regime)
             all_speeds.append(u_mean)
-            all_L.append(L)
-            all_h.append(h)
+            all_u_t.append(u_t)
+            all_L.append(L * 1000.0)
+            all_h.append(h * 1000.0)
             all_rho_s.append(rho_s)
 
     all_i_stars_arr = np.array(all_i_stars)
-    all_res_arr = np.array(all_res)
+    all_res_in_arr = np.array(all_res_in)
+    all_res_meas_arr = np.array(all_res_meas)
 
-    plot_regime_map(all_i_stars_arr, all_res_arr, all_regimes, out_path, "regime_map")
+    extra_cols = {
+        "mean_speed_ms": all_speeds,
+        "U_t_ms": all_u_t,
+        "L_mm": all_L,
+        "h_mm": all_h,
+        "rho_s": all_rho_s
+    }
+
+    plot_regime_map(
+        i_stars=all_i_stars_arr,
+        res=all_res_meas_arr,
+        regimes=all_regimes,
+        out_dir=out_path,
+        base_name="regime_map",
+        res_in=all_res_in_arr,
+        extra_cols=extra_cols
+    )
 
     # Tally regime distribution
     unique, counts = np.unique(all_regimes, return_counts=True)
@@ -116,12 +141,14 @@ def generate_regime_map(
     print(f"Regime map generated ({len(all_i_stars)} points total):")
     for reg, cnt in tally.items():
         print(f"  {reg.capitalize():12s}: {cnt:3d} ({cnt/len(all_i_stars)*100:.1f}%)")
-    print(f"  Reynolds number range: [{min(all_res):.1f}, {max(all_res):.1f}]")
+    print(f"  Reynolds number range (measured): [{min(all_res_meas):.1f}, {max(all_res_meas):.1f}]")
+    print(f"  Reynolds number range (input Froude): [{min(all_res_in):.1f}, {max(all_res_in):.1f}]")
     print(f"Outputs written to: {out_path / 'regime_map.png'} and {out_path / 'regime_map.csv'}")
 
     return {
         "i_stars": all_i_stars_arr,
-        "Re": all_res_arr,
+        "Re_in": all_res_in_arr,
+        "Re_meas": all_res_meas_arr,
         "regimes": all_regimes,
         "tally": tally,
         "out_dir": str(out_path)

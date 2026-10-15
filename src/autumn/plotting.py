@@ -351,10 +351,12 @@ def plot_regime_map(
     res: np.ndarray,
     regimes: Sequence[str],
     out_dir: Path | str,
-    base_name: str = "regime_map"
+    base_name: str = "regime_map",
+    res_in: Optional[np.ndarray] = None,
+    extra_cols: Optional[Dict[str, Sequence]] = None,
 ) -> None:
-    r"""Plot phase diagram of I* vs Re with regime colors and single clean legend."""
-    fig, ax = plt.subplots(figsize=(8, 6))
+    r"""Plot phase diagram of I* vs Re with regime colors, Re=5000 fitted threshold, and single clean legend."""
+    fig, ax = plt.subplots(figsize=(8.5, 6.2))
     fig.suptitle(r"Phase Diagram: Falling Regime Map ($I^*$ vs $\mathrm{Re}$) (2D quasi-steady model simulation)", fontsize=13)
 
     color_map = {
@@ -370,6 +372,11 @@ def plot_regime_map(
         "tumbling": "D"
     }
 
+    # Shade the extrapolation zone Re > 5000 beyond the fitted quasi-steady coefficient range
+    max_re_plot = max(float(np.max(res)) * 1.25, 6000.0)
+    ax.axvspan(5000.0, max_re_plot, color="gray", alpha=0.14, label="Extrapolated (Re > 5000)", zorder=1)
+    ax.axvline(5000.0, color="#b22222", ls="--", lw=1.5, alpha=0.85, label="Fitted Re Limit (Re = 5000)", zorder=2)
+
     unique_regimes = ["steady", "fluttering", "mixed", "tumbling"]
     for reg in unique_regimes:
         idx = [i for i, r in enumerate(regimes) if r == reg]
@@ -384,18 +391,33 @@ def plot_regime_map(
                 edgecolors="black",
                 linewidths=0.5,
                 label=reg.capitalize(),
-                zorder=3
+                zorder=4
             )
 
     ax.set_xscale("log")
     ax.set_yscale("log")
-    ax.set_xlabel(r"Reynolds Number $\mathrm{Re} = \rho_f U L / \mu$ (a posteriori from descent speed)")
+    ax.set_xlim(left=min(150.0, float(np.min(res)) * 0.8), right=max_re_plot)
+    ax.set_xlabel(r"Measured Reynolds Number $\mathrm{Re}_{\mathrm{meas}} = \rho_f U_{\mathrm{mean}} L / \mu$ (a posteriori)")
     ax.set_ylabel(r"Dimensionless Moment of Inertia $I^* = (\rho_s h) / (\rho_f L)$")
-    ax.grid(True, which="both")
-    ax.legend(title="Regime", loc="lower right", framealpha=0.95)
+    ax.grid(True, which="both", alpha=0.35)
+    ax.legend(title="Regime & Thresholds", loc="lower right", framealpha=0.95, fontsize=9)
 
     plt.tight_layout()
 
-    csv_headers = ["I_star", "Re", "regime"]
-    csv_rows = [[i_s, r_val, reg] for i_s, r_val, reg in zip(i_stars, res, regimes)]
+    if res_in is not None:
+        csv_headers = ["I_star", "Re_in", "Re_meas", "regime"]
+        if extra_cols:
+            for k in extra_cols.keys():
+                csv_headers.append(k)
+        csv_rows = []
+        for i in range(len(i_stars)):
+            row = [i_stars[i], res_in[i], res[i], regimes[i]]
+            if extra_cols:
+                for k, col in extra_cols.items():
+                    row.append(col[i])
+            csv_rows.append(row)
+    else:
+        csv_headers = ["I_star", "Re", "regime"]
+        csv_rows = [[i_s, r_val, reg] for i_s, r_val, reg in zip(i_stars, res, regimes)]
+
     save_figure_and_csv(fig, out_dir, base_name, csv_headers, csv_rows)
