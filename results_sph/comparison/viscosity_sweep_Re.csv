@@ -1,0 +1,5 @@
+Re_in,mu_Pa_s,Re_meas,U_mean_m_s,theta_std_deg,regime
+25.0,0.352514,14.5,0.2134,30.57,Fluttering
+100.0,0.088128,62.0,0.2281,29.04,Fluttering
+300.0,0.029376,242.3,0.2972,50.7,Fluttering
+800.0,0.011016,457.9,0.2106,14.74,Fluttering

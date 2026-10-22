@@ -1,0 +1,5 @@
+case,I_star,ODE_regime,SPH_regime,Re_in,Re_meas,U_mean_m_s,theta_std_deg,N_h
+steady_I006,0.06,Steady,Fluttering,0.0,9712.7,0.4055,43.11,1.2
+flutter_I068,0.68,Fluttering,Fluttering,9039.8,10488.1,0.4379,14.83,1.2
+tumble_I120,1.2,Tumbling,Fluttering,12327.0,9054.9,0.378,26.05,1.2
+mixed_I235,2.35,Mixed,Fluttering,17529.6,11341.9,0.4735,11.83,1.2

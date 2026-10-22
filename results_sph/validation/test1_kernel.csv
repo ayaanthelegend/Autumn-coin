@@ -1,0 +1,4 @@
+metric,value,tolerance,status
+partition_of_unity_error,0.00814151,0.01,PASS
+constant_gradient_error,2.76336e-14,1e-6,PASS
+linear_renorm_inf_error,0.0171695,0.02,PASS
