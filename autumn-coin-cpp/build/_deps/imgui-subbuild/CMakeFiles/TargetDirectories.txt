@@ -1,0 +1,3 @@
+D:/Autumn coin/autumn-coin-cpp/build/_deps/imgui-subbuild/CMakeFiles/imgui-populate.dir
+D:/Autumn coin/autumn-coin-cpp/build/_deps/imgui-subbuild/CMakeFiles/edit_cache.dir
+D:/Autumn coin/autumn-coin-cpp/build/_deps/imgui-subbuild/CMakeFiles/rebuild_cache.dir

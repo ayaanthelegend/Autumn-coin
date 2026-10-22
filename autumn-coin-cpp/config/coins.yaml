@@ -1,0 +1,32 @@
+# Pakistani Rupee Coins (Demo class for Autumn Coin 2D Model)
+# Note: These values are demo starting points from public sources (Numista & SBP).
+# Replace with caliper and precision scale measurements for published papers.
+
+coins:
+  - id: pk_rs10
+    label: "Rs 10 coin (2015-2022, brass)"
+    kind: coin               # coin | washer (washers are loaded in a later version)
+    mass_g: 5.5
+    diameter_mm: 25.5
+    thickness_mm: 1.5
+    material: "brass"
+    source: "demo (Numista), replace with measurement"
+    enabled: true
+  - id: pk_rs5_2002
+    label: "Rs 5 coin (2002, cupronickel)"
+    kind: coin
+    mass_g: 6.5
+    diameter_mm: 24.0
+    thickness_mm: 2.1
+    material: "cupronickel"
+    source: "demo (dealer listing), replace with measurement"
+    enabled: true
+  - id: pk_rs5_2015
+    label: "Rs 5 coin (2015, small brass)"
+    kind: coin
+    mass_g: 3.0
+    diameter_mm: 18.5
+    thickness_mm: null       # measure it, then set enabled: true
+    material: "brass"
+    source: "SBP press release (mass, diameter)"
+    enabled: false

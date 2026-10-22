@@ -371,16 +371,16 @@
     let theta0_deg = 5.0;
     let mu_visc = 0.001; // water (Pa*s)
 
-    // Tank geometry (meters)
-    const TANK_W = 0.30; // 300 mm
-    const TANK_H = 1.60; // 1600 mm
+    // Tank geometry (meters) - Matches 38 cm tank
+    const TANK_W = 0.38; // 380 mm
+    const TANK_H = 0.45; // 450 mm
     const L = 0.024;    // 24 mm
     const h = 0.0018;   // 1.8 mm
     const rho_f = 998.0;
     const g = 9.81;
 
     // Viewport camera
-    let ppm = 2200.0; // pixels per meter
+    let ppm = 1600.0; // pixels per meter
     let camX = 0.0;
     let camY = 0.0;
 
@@ -490,6 +490,16 @@
         this.time += dt;
         this.FLx = k1.flx; this.FLy = k1.fly;
         this.FDx = k1.fdx; this.FDy = k1.fdy;
+
+        // Collision with bottom floor and side walls
+        if (this.Y <= -TANK_H) {
+          this.Y = -TANK_H;
+          this.u = 0; this.v = 0; this.omega = 0;
+        }
+        if (Math.abs(this.X) >= TANK_W * 0.5 - this.a) {
+          this.X = Math.sign(this.X) * (TANK_W * 0.5 - this.a);
+          this.u = 0; this.v = 0; this.omega = 0;
+        }
       }
     }
 
@@ -848,23 +858,66 @@
       ctx.fillStyle = "#FFFFFF";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Tank boundary walls
-      const pLeft = worldToScreen(-TANK_W * 0.5, 10.0);
-      const pRight = worldToScreen(TANK_W * 0.5, 10.0);
-      ctx.strokeStyle = "#CBD5E1";
-      ctx.lineWidth = 2.0;
+      // Tank boundary geometry
+      const pTopLeft = worldToScreen(-TANK_W * 0.5, 0.0);
+      const pBottomRight = worldToScreen(TANK_W * 0.5, -TANK_H);
+      const tankScreenW = pBottomRight.x - pTopLeft.x;
+      const tankScreenH = pBottomRight.y - pTopLeft.y;
+
+      // 1. Water Fill inside tank (Vibrant aquatic gradient)
+      const grad = ctx.createLinearGradient(0, pTopLeft.y, 0, pBottomRight.y);
+      grad.addColorStop(0, "rgba(186, 230, 253, 0.80)"); // Sky cyan
+      grad.addColorStop(1, "rgba(96, 165, 250, 0.88)");  // Ocean blue
+      ctx.fillStyle = grad;
+      ctx.fillRect(pTopLeft.x, pTopLeft.y, tankScreenW, tankScreenH);
+
+      // Water surface line (y = 0)
+      ctx.strokeStyle = "#0284C7";
+      ctx.lineWidth = 3.0;
       ctx.beginPath();
-      ctx.moveTo(pLeft.x, -500); ctx.lineTo(pLeft.x, canvas.height + 500);
-      ctx.moveTo(pRight.x, -500); ctx.lineTo(pRight.x, canvas.height + 500);
+      ctx.moveTo(pTopLeft.x, pTopLeft.y);
+      ctx.lineTo(pBottomRight.x, pTopLeft.y);
       ctx.stroke();
 
-      // Subtle millimeter ruler ticks along wall
-      for (let ym = 2.0; ym >= -10.0; ym -= 0.05) {
-        const pt = worldToScreen(TANK_W * 0.5, ym);
+      ctx.fillStyle = "#0369A1";
+      ctx.font = "bold 12px sans-serif";
+      ctx.fillText("Water Surface (Y = 0)", pTopLeft.x + 10, pTopLeft.y - 8);
+
+      // Glass walls and floor (rendered with thickness and highlight)
+      const glassThick = 12;
+      ctx.fillStyle = "rgba(190, 225, 238, 0.65)";
+      ctx.strokeStyle = "#38728C";
+      ctx.lineWidth = 2.0;
+
+      // Left glass wall
+      ctx.fillRect(pTopLeft.x - glassThick, pTopLeft.y - 12, glassThick, tankScreenH + 24);
+      ctx.strokeRect(pTopLeft.x - glassThick, pTopLeft.y - 12, glassThick, tankScreenH + 24);
+
+      // Right glass wall
+      ctx.fillRect(pBottomRight.x, pTopLeft.y - 12, glassThick, tankScreenH + 24);
+      ctx.strokeRect(pBottomRight.x, pTopLeft.y - 12, glassThick, tankScreenH + 24);
+
+      // Bottom floor
+      ctx.fillRect(pTopLeft.x - glassThick, pBottomRight.y, tankScreenW + 2 * glassThick, glassThick);
+      ctx.strokeRect(pTopLeft.x - glassThick, pBottomRight.y, tankScreenW + 2 * glassThick, glassThick);
+
+      // Ruler ticks on left wall
+      ctx.strokeStyle = "#1E3A5F";
+      ctx.fillStyle = "#1E3A5F";
+      ctx.font = "10px sans-serif";
+      for (let ym = 0.0; ym >= -TANK_H; ym -= 0.01) {
+        const pt = worldToScreen(-TANK_W * 0.5, ym);
+        const cm = Math.round(-ym * 100);
+        const major = (cm % 5 === 0);
+        const tickLen = major ? 10 : 4;
+        ctx.lineWidth = major ? 1.5 : 1.0;
         ctx.beginPath();
-        ctx.moveTo(pt.x, pt.y);
-        ctx.lineTo(pt.x + 8, pt.y);
+        ctx.moveTo(pt.x - tickLen, pt.y);
+        ctx.lineTo(pt.x, pt.y);
         ctx.stroke();
+        if (major && cm > 0) {
+          ctx.fillText(cm.toString(), pt.x - tickLen - 18, pt.y + 3);
+        }
       }
 
       if (currentMode === 0) {

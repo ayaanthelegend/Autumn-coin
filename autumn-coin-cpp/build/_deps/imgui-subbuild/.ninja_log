@@ -1,0 +1,37 @@
+# ninja log v7
+3	65	8143541239793013	imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-mkdir	110afc883117a96
+3	65	8143541239793013	D:/Autumn coin/autumn-coin-cpp/build/_deps/imgui-subbuild/imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-mkdir	110afc883117a96
+65	18461	8143541423743628	imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-download	cb2b8ff6ea2850a9
+65	18461	8143541423743628	D:/Autumn coin/autumn-coin-cpp/build/_deps/imgui-subbuild/imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-download	cb2b8ff6ea2850a9
+4	131	8143582972253959	imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-update	6d85a304500319d6
+4	131	8143582972253959	D:/Autumn coin/autumn-coin-cpp/build/_deps/imgui-subbuild/imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-update	6d85a304500319d6
+131	191	8143582974066113	imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-patch	2fdeff0d9e9a0084
+131	191	8143582974066113	D:/Autumn coin/autumn-coin-cpp/build/_deps/imgui-subbuild/imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-patch	2fdeff0d9e9a0084
+191	246	8143582974619571	imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-configure	ed829d399919ad48
+191	246	8143582974619571	D:/Autumn coin/autumn-coin-cpp/build/_deps/imgui-subbuild/imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-configure	ed829d399919ad48
+246	303	8143582975193858	imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-build	37c2f39f74e9776c
+246	303	8143582975193858	D:/Autumn coin/autumn-coin-cpp/build/_deps/imgui-subbuild/imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-build	37c2f39f74e9776c
+303	360	8143582975762323	imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-install	cd982b3db28ffa65
+303	360	8143582975762323	D:/Autumn coin/autumn-coin-cpp/build/_deps/imgui-subbuild/imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-install	cd982b3db28ffa65
+361	419	8143582976342415	imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-test	e2a97043993968b8
+361	419	8143582976342415	D:/Autumn coin/autumn-coin-cpp/build/_deps/imgui-subbuild/imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-test	e2a97043993968b8
+419	493	8143582977086040	CMakeFiles/imgui-populate-complete	f282c42f9327b83b
+419	493	8143582977086040	imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-done	f282c42f9327b83b
+419	493	8143582977086040	D:/Autumn coin/autumn-coin-cpp/build/_deps/imgui-subbuild/CMakeFiles/imgui-populate-complete	f282c42f9327b83b
+419	493	8143582977086040	D:/Autumn coin/autumn-coin-cpp/build/_deps/imgui-subbuild/imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-done	f282c42f9327b83b
+4	136	8143585046648197	imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-update	6d85a304500319d6
+4	136	8143585046648197	D:/Autumn coin/autumn-coin-cpp/build/_deps/imgui-subbuild/imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-update	6d85a304500319d6
+136	192	8143585048471330	imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-patch	2fdeff0d9e9a0084
+136	192	8143585048471330	D:/Autumn coin/autumn-coin-cpp/build/_deps/imgui-subbuild/imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-patch	2fdeff0d9e9a0084
+192	248	8143585049038804	imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-configure	ed829d399919ad48
+192	248	8143585049038804	D:/Autumn coin/autumn-coin-cpp/build/_deps/imgui-subbuild/imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-configure	ed829d399919ad48
+248	304	8143585049593787	imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-build	37c2f39f74e9776c
+248	304	8143585049593787	D:/Autumn coin/autumn-coin-cpp/build/_deps/imgui-subbuild/imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-build	37c2f39f74e9776c
+304	361	8143585050156469	imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-install	cd982b3db28ffa65
+304	361	8143585050156469	D:/Autumn coin/autumn-coin-cpp/build/_deps/imgui-subbuild/imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-install	cd982b3db28ffa65
+361	415	8143585050705320	imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-test	e2a97043993968b8
+361	415	8143585050705320	D:/Autumn coin/autumn-coin-cpp/build/_deps/imgui-subbuild/imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-test	e2a97043993968b8
+415	490	8143585051442473	CMakeFiles/imgui-populate-complete	f282c42f9327b83b
+415	490	8143585051442473	imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-done	f282c42f9327b83b
+415	490	8143585051442473	D:/Autumn coin/autumn-coin-cpp/build/_deps/imgui-subbuild/CMakeFiles/imgui-populate-complete	f282c42f9327b83b
+415	490	8143585051442473	D:/Autumn coin/autumn-coin-cpp/build/_deps/imgui-subbuild/imgui-populate-prefix/src/imgui-populate-stamp/imgui-populate-done	f282c42f9327b83b
