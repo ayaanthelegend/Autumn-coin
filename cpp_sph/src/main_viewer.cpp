@@ -171,7 +171,7 @@ struct SyntheticVortex {
 struct VisualizerState {
     int mode = 0; // 0 = Mode A (ODE), 1 = Mode B (SPH)
     bool paused = false;
-    double playback_speed = 1.0;
+    double playback_speed = 0.3; // Default 0.3x slow-motion
     bool show_vectors = true;
     bool ensemble_mode = false;
     int color_mode_sph = 0; // 0 = speed, 1 = vorticity, 2 = pressure

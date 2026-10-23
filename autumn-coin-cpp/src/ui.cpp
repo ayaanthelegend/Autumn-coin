@@ -195,15 +195,23 @@ void UIController::render_controls(UIState& ui,
         }
 
         float ts = (float)ui.time_scale;
-        if (ImGui::SliderFloat("Time Scale", &ts, 0.1f, 5.0f, "%.1fx")) {
+        if (ImGui::SliderFloat("Time Scale", &ts, 0.05f, 2.0f, "%.2fx")) {
             ui.time_scale = (double)ts;
         }
+
+        if (ImGui::Button("0.25x Slo-Mo")) { ui.time_scale = 0.25; }
+        ImGui::SameLine();
+        if (ImGui::Button("0.5x")) { ui.time_scale = 0.50; }
+        ImGui::SameLine();
+        if (ImGui::Button("1.0x Real-Time")) { ui.time_scale = 1.00; }
     }
 
     ImGui::Separator();
 
     // 4. Visual Rendering Options
     if (ImGui::CollapsingHeader("Visual & Display Options", ImGuiTreeNodeFlags_DefaultOpen)) {
+        ImGui::TextDisabled("Lines on Coin: Red stripe = chord orientation; Arrows = V, L, D vectors");
+
         float thick_ex = (float)render_settings.thickness_exaggeration;
         if (ImGui::SliderFloat("Coin Visual Thickness", &thick_ex, 1.0f, 5.0f, "%.1fx")) {
             render_settings.thickness_exaggeration = (double)thick_ex;
@@ -216,6 +224,25 @@ void UIController::render_controls(UIState& ui,
         ImGui::Checkbox("Stroboscopic Ghosts", &render_settings.show_ghosts);
         ImGui::SameLine();
         ImGui::Checkbox("Show Force Vectors", &render_settings.show_forces);
+
+        ImGui::Checkbox("Orientation Stripe (Red Line)", &render_settings.show_orientation_stripe);
+        ImGui::SameLine();
+        ImGui::Checkbox("Center Dot", &render_settings.show_center_dot);
+
+        if (ImGui::Button("Clean Coin (Hide All Lines)")) {
+            render_settings.show_forces = false;
+            render_settings.show_orientation_stripe = false;
+            render_settings.show_trail = false;
+            render_settings.show_ghosts = false;
+            render_settings.show_center_dot = false;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Show All Lines")) {
+            render_settings.show_orientation_stripe = true;
+            render_settings.show_trail = true;
+            render_settings.show_ghosts = true;
+            render_settings.show_center_dot = true;
+        }
 
         if (ImGui::Checkbox("Compare Previous Runs", &plot_data.compare_previous)) {
             // Toggled

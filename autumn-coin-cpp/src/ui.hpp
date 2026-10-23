@@ -17,7 +17,7 @@ struct UIState {
     int selected_coin_idx = 0;
     double theta0_deg = 45.0;
     double perturb_rad = 1e-6;
-    double time_scale = 1.0;
+    double time_scale = 0.3; // Default 0.3x slow-motion instead of real-time
     bool is_paused = false;
     bool single_step_requested = false;
     bool reset_requested = false;

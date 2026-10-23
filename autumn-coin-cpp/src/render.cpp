@@ -174,11 +174,15 @@ void TankRenderer::draw(const TankConfig& tank,
     DrawLineEx(v3, v0, 2.0f, coin_outline);
 
     // Orientation stripe on top chord edge (v2 -> v3) to show spin/tumble direction
-    DrawLineEx(v2, v3, 3.5f, orientation_mark);
+    if (eff.show_orientation_stripe) {
+        DrawLineEx(v2, v3, 3.5f, orientation_mark);
+    }
 
     // Center of mass dot
     Vec2 cm_s = world_to_screen(current_state[0], current_state[1], tank, eff);
-    DrawCircleV(Vector2{ (float)cm_s.x, (float)cm_s.y }, 2.5f, Color{ 30, 30, 30, 255 });
+    if (eff.show_center_dot) {
+        DrawCircleV(Vector2{ (float)cm_s.x, (float)cm_s.y }, 2.5f, Color{ 30, 30, 30, 255 });
+    }
 
     // 7. Live Force & Velocity Vectors (if enabled)
     if (eff.show_forces) {

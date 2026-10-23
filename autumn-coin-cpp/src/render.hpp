@@ -15,6 +15,8 @@ struct RenderSettings {
     bool show_trail = true;
     bool show_ghosts = true;
     bool show_forces = false;
+    bool show_orientation_stripe = true;  // Red stripe on top chord edge of coin
+    bool show_center_dot = true;          // Center-of-mass dot
     int ghost_interval_ms = 80;
     int max_trail_points = 4000;
 };

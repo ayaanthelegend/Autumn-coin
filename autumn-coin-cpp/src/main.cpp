@@ -48,7 +48,7 @@ int main(int argc, char* argv[]) {
     std::string config_dir = "";
     std::string coin_id = "reference_card";
     double theta0_deg = 45.0;
-    double time_scale = 1.0;
+    double time_scale = 0.3; // Default 0.3x slow-motion
     bool headless = false;
     std::string out_csv = "";
     std::string sweep_arg = "";

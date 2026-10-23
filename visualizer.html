@@ -199,7 +199,7 @@
     .vector-legend {
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
+      gap: 6px 12px;
       font-size: 11px;
       margin-top: 6px;
     }
@@ -207,6 +207,18 @@
       display: flex;
       align-items: center;
       gap: 5px;
+      cursor: pointer;
+      user-select: none;
+      padding: 2px 4px;
+      border-radius: 3px;
+      transition: background 0.15s, opacity 0.15s;
+    }
+    .legend-item:hover {
+      background: #F1F5F9;
+    }
+    .legend-item.dimmed {
+      opacity: 0.35;
+      text-decoration: line-through;
     }
     .legend-swatch {
       width: 12px;
@@ -217,6 +229,65 @@
     .legend-lift { background: #2563EB; }
     .legend-drag { background: #DC2626; }
     .legend-chord { background: #475569; }
+    .legend-trail { background: #3B82F6; }
+    .legend-vort { background: #E11D48; border-radius: 50%; width: 8px; height: 8px; }
+    .speed-btn-group {
+      display: flex;
+      gap: 5px;
+      margin-top: 6px;
+    }
+    .speed-btn {
+      flex: 1;
+      padding: 4px 6px;
+      font-size: 11px;
+      background: #F8FAFC;
+      border: 1px solid #CBD5E1;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .speed-btn:hover {
+      background: #E2E8F0;
+    }
+    .speed-btn.active {
+      background: #0284C7;
+      color: #FFFFFF;
+      border-color: #0369A1;
+    }
+    .info-card {
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 5px;
+      padding: 8px 10px;
+      font-size: 11px;
+      color: #334155;
+      line-height: 1.45;
+      margin-top: 6px;
+    }
+    .info-card strong {
+      color: #0F172A;
+    }
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 0;
+      border-bottom: 1px dotted #E2E8F0;
+      font-size: 11.5px;
+    }
+    .toggle-row:last-child {
+      border-bottom: none;
+    }
+    .toggle-row label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      color: #334155;
+      font-weight: 500;
+    }
     .shortcut-list {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -250,6 +321,7 @@
       <button class="preset-btn" onclick="applyPreset(3)">[3] Tumble</button>
       <button class="preset-btn" onclick="applyPreset(4)">[4] Mixed</button>
       <div style="width: 1px; height: 20px; background: #CBD5E1; margin: 0 4px;"></div>
+      <button id="btnSloMo" class="active" onclick="toggleSloMo()" title="Toggle Slow Motion Mode">⏱️ Slo-Mo (0.30x)</button>
       <button id="btnPlay" onclick="togglePause()">[Space] Pause</button>
       <button onclick="resetDrop()">[R] Reset</button>
       <button id="btnEnsemble" onclick="toggleEnsemble()">[E] Ensemble (15)</button>
@@ -283,10 +355,65 @@
         </div>
 
         <div class="vector-legend" id="vectorLegend">
-          <div class="legend-item"><div class="legend-swatch legend-vel"></div> Velocity V</div>
-          <div class="legend-item"><div class="legend-swatch legend-lift"></div> Lift F<sub>L</sub></div>
-          <div class="legend-item"><div class="legend-swatch legend-drag"></div> Drag F<sub>D</sub></div>
-          <div class="legend-item"><div class="legend-swatch legend-chord"></div> Chord Director</div>
+          <div class="legend-item" id="legVel" onclick="toggleVelocity()" title="Click to toggle Velocity vector">
+            <div class="legend-swatch legend-vel"></div> Velocity <b>V</b>
+          </div>
+          <div class="legend-item" id="legLift" onclick="toggleLift()" title="Click to toggle Circulation Lift vector">
+            <div class="legend-swatch legend-lift"></div> Lift <b>F<sub>L</sub></b>
+          </div>
+          <div class="legend-item" id="legDrag" onclick="toggleDrag()" title="Click to toggle Fluid Drag vector">
+            <div class="legend-swatch legend-drag"></div> Drag <b>F<sub>D</sub></b>
+          </div>
+          <div class="legend-item" id="legChord" onclick="toggleChord()" title="Click to toggle Chord Director">
+            <div class="legend-swatch legend-chord"></div> Chord Director
+          </div>
+          <div class="legend-item" id="legTrail" onclick="toggleTrail()" title="Click to toggle Path Trail">
+            <div class="legend-swatch legend-trail"></div> Path Trail
+          </div>
+          <div class="legend-item" id="legVort" onclick="toggleVortices()" title="Click to toggle Vortex Rings">
+            <div class="legend-swatch legend-vort"></div> Vortex Rings
+          </div>
+        </div>
+      </div>
+
+      <!-- Coin Lines & Visibility Options Panel -->
+      <div class="panel-box">
+        <div class="panel-title">
+          <span>Coin Lines &amp; Visibility</span>
+          <button id="btnToggleAllLines" onclick="toggleAllLines()" style="padding: 2px 8px; font-size: 11px; font-weight:600;">Hide All Lines (Clean Coin)</button>
+        </div>
+
+        <div class="info-card">
+          <strong>What are the extra lines on the coin?</strong>
+          <div style="margin-top: 3px; font-size: 11px; line-height: 1.4;">
+            The arrows and lines attached to the coin visualize real-time hydrodynamic physics:
+          </div>
+          <ul style="margin: 4px 0 2px 14px; padding: 0; font-size: 10.5px; line-height: 1.35;">
+            <li><b style="color:#06B6D4;">Velocity V (Teal)</b>: Direction and instantaneous speed of the coin.</li>
+            <li><b style="color:#2563EB;">Lift F<sub>L</sub> (Blue)</b>: Circulation lift from translational-rotational coupling (drives fluttering oscillations).</li>
+            <li><b style="color:#DC2626;">Drag F<sub>D</sub> (Red)</b>: Fluid resistance opposing the coin's motion.</li>
+            <li><b style="color:#475569;">Chord Director (Slate)</b>: Orientation of coin's longitudinal axis.</li>
+            <li><b style="color:#3B82F6;">Path Trail (Blue line)</b>: Fading flight trajectory behind the coin.</li>
+            <li><b style="color:#E11D48;">Vortex Rings (Circles)</b>: Vortices shed into the wake at flutter turning cusps.</li>
+          </ul>
+        </div>
+
+        <div style="margin-top: 8px;">
+          <div class="toggle-row">
+            <label><input type="checkbox" id="chkForces" checked onchange="setForcesVisible(this.checked)"> Force Vectors (Lift F<sub>L</sub> &amp; Drag F<sub>D</sub>)</label>
+          </div>
+          <div class="toggle-row">
+            <label><input type="checkbox" id="chkVelocity" checked onchange="setVelocityVisible(this.checked)"> Velocity Vector (V)</label>
+          </div>
+          <div class="toggle-row">
+            <label><input type="checkbox" id="chkChord" checked onchange="setChordVisible(this.checked)"> Coin Chord Director Line</label>
+          </div>
+          <div class="toggle-row">
+            <label><input type="checkbox" id="chkTrail" checked onchange="setTrailVisible(this.checked)"> Trajectory Flight Trail Line</label>
+          </div>
+          <div class="toggle-row">
+            <label><input type="checkbox" id="chkVortices" checked onchange="setVorticesVisible(this.checked)"> Wake Vortex Rings</label>
+          </div>
         </div>
       </div>
 
@@ -321,13 +448,19 @@
         </div>
 
         <div class="slider-row">
-          <div class="slider-label"><span>Playback Speed</span><span id="labelSpeed">1.0x</span></div>
-          <input type="range" id="sliderSpeed" min="0.25" max="2.0" step="0.05" value="1.0" oninput="onSpeedChange(this.value)">
+          <div class="slider-label"><span>Playback Speed</span><span id="labelSpeed">0.30x (Slo-Mo)</span></div>
+          <input type="range" id="sliderSpeed" min="0.05" max="2.0" step="0.05" value="0.30" oninput="onSpeedChange(this.value)">
+          <div class="speed-btn-group">
+            <button class="speed-btn" onclick="setSpeed(0.10)">0.1x Ultra</button>
+            <button class="speed-btn active" id="spdBtn03" onclick="setSpeed(0.30)">0.3x Slo-Mo</button>
+            <button class="speed-btn" id="spdBtn05" onclick="setSpeed(0.50)">0.5x Half</button>
+            <button class="speed-btn" id="spdBtn10" onclick="setSpeed(1.00)">1.0x Real</button>
+          </div>
         </div>
 
         <div style="display: flex; gap: 8px; margin-top: 8px;">
           <button style="flex:1" id="btnColorMode" onclick="cycleColorMode()">Color: Speed [C]</button>
-          <button style="flex:1" id="btnVectors" onclick="toggleVectors()">Vectors: ON</button>
+          <button style="flex:1" id="btnVectors" onclick="toggleVectors()">Vectors: ON [V]</button>
         </div>
       </div>
 
@@ -340,6 +473,9 @@
           <div><span class="shortcut-key">Space</span> Pause / Resume</div>
           <div><span class="shortcut-key">S</span> Step 1 Frame</div>
           <div><span class="shortcut-key">R</span> Reset Drop</div>
+          <div><span class="shortcut-key">V</span> Toggle Vectors</div>
+          <div><span class="shortcut-key">T</span> Toggle Trail</div>
+          <div><span class="shortcut-key">[ / ]</span> Slower / Faster</div>
           <div><span class="shortcut-key">E</span> Toggle 15 Coins</div>
           <div><span class="shortcut-key">C</span> Cycle Colormap</div>
           <div><span class="shortcut-key">P</span> Save 300DPI PNG</div>
@@ -362,8 +498,13 @@
 
     let currentMode = 0; // 0 = Mode A (ODE), 1 = Mode B (SPH)
     let isPaused = false;
-    let playbackSpeed = 1.0;
-    let showVectors = true;
+    let playbackSpeed = 0.30; // Default: Slow-Motion (0.30x) instead of real-time
+    let showVectors = true; // Master vector arrows toggle
+    let showForces = true;  // Lift & Drag vectors
+    let showVelocity = true; // Velocity vector V
+    let showChord = true;   // Coin chord director line
+    let showTrail = true;   // Trajectory path trail
+    let showVortices = true; // Shed vortex rings
     let ensembleMode = false;
     let sphColorMode = 0; // 0 = Speed, 1 = Vorticity, 2 = Pressure
 
@@ -658,9 +799,47 @@
       document.getElementById("labelMu").innerText = mu_visc.toFixed(4);
     }
 
+    function setSpeed(v) {
+      playbackSpeed = parseFloat(v);
+      const sl = document.getElementById("sliderSpeed");
+      if (sl) sl.value = playbackSpeed;
+      updateSpeedUI();
+    }
+
     function onSpeedChange(v) {
       playbackSpeed = parseFloat(v);
-      document.getElementById("labelSpeed").innerText = playbackSpeed.toFixed(2) + "x";
+      updateSpeedUI();
+    }
+
+    function updateSpeedUI() {
+      const isSlow = playbackSpeed < 0.95;
+      const lbl = document.getElementById("labelSpeed");
+      if (lbl) {
+        lbl.innerText = playbackSpeed.toFixed(2) + "x" + (isSlow ? " (Slo-Mo)" : " (Real-Time)");
+      }
+      const btnSloMo = document.getElementById("btnSloMo");
+      if (btnSloMo) {
+        btnSloMo.className = isSlow ? "active" : "";
+        btnSloMo.innerText = isSlow ? `⏱️ Slo-Mo (${playbackSpeed.toFixed(2)}x)` : "⏱️ Slo-Mo (OFF)";
+      }
+
+      // Highlight preset buttons
+      const presets = [0.10, 0.30, 0.50, 1.00];
+      const ids = ["", "spdBtn03", "spdBtn05", "spdBtn10"];
+      for (let i = 1; i < presets.length; ++i) {
+        const el = document.getElementById(ids[i]);
+        if (el) {
+          el.className = "speed-btn" + (Math.abs(playbackSpeed - presets[i]) < 0.02 ? " active" : "");
+        }
+      }
+    }
+
+    function toggleSloMo() {
+      if (playbackSpeed > 0.45) {
+        setSpeed(0.30); // switch to slow motion
+      } else {
+        setSpeed(1.00); // switch to real time
+      }
     }
 
     function togglePause() {
@@ -668,9 +847,100 @@
       document.getElementById("btnPlay").innerText = isPaused ? "[Space] Play" : "[Space] Pause";
     }
 
+    // -------------------------------------------------------------------------
+    // Visibility & Line Options
+    // -------------------------------------------------------------------------
+    function setForcesVisible(v) {
+      showForces = v;
+      const chk = document.getElementById("chkForces");
+      if (chk) chk.checked = v;
+      const legLift = document.getElementById("legLift");
+      if (legLift) legLift.classList.toggle("dimmed", !v);
+      const legDrag = document.getElementById("legDrag");
+      if (legDrag) legDrag.classList.toggle("dimmed", !v);
+      updateMasterButton();
+    }
+
+    function setVelocityVisible(v) {
+      showVelocity = v;
+      const chk = document.getElementById("chkVelocity");
+      if (chk) chk.checked = v;
+      const legVel = document.getElementById("legVel");
+      if (legVel) legVel.classList.toggle("dimmed", !v);
+      updateMasterButton();
+    }
+
+    function setChordVisible(v) {
+      showChord = v;
+      const chk = document.getElementById("chkChord");
+      if (chk) chk.checked = v;
+      const legChord = document.getElementById("legChord");
+      if (legChord) legChord.classList.toggle("dimmed", !v);
+      updateMasterButton();
+    }
+
+    function setTrailVisible(v) {
+      showTrail = v;
+      const chk = document.getElementById("chkTrail");
+      if (chk) chk.checked = v;
+      const legTrail = document.getElementById("legTrail");
+      if (legTrail) legTrail.classList.toggle("dimmed", !v);
+      updateMasterButton();
+    }
+
+    function setVorticesVisible(v) {
+      showVortices = v;
+      const chk = document.getElementById("chkVortices");
+      if (chk) chk.checked = v;
+      const legVort = document.getElementById("legVort");
+      if (legVort) legVort.classList.toggle("dimmed", !v);
+      updateMasterButton();
+    }
+
+    function toggleVelocity() { setVelocityVisible(!showVelocity); }
+    function toggleLift() { setForcesVisible(!showForces); }
+    function toggleDrag() { setForcesVisible(!showForces); }
+    function toggleChord() { setChordVisible(!showChord); }
+    function toggleTrail() { setTrailVisible(!showTrail); }
+    function toggleVortices() { setVorticesVisible(!showVortices); }
+
     function toggleVectors() {
-      showVectors = !showVectors;
-      document.getElementById("btnVectors").innerText = "Vectors: " + (showVectors ? "ON" : "OFF");
+      // Toggle all vector arrows (V, L, D, chord)
+      const anyOn = showForces || showVelocity || showChord;
+      const target = !anyOn;
+      showVectors = target;
+      setForcesVisible(target);
+      setVelocityVisible(target);
+      setChordVisible(target);
+      const btn = document.getElementById("btnVectors");
+      if (btn) btn.innerText = "Vectors: " + (target ? "ON [V]" : "OFF [V]");
+    }
+
+    function toggleAllLines() {
+      const anyVisible = showForces || showVelocity || showChord || showTrail || showVortices;
+      const target = !anyVisible;
+      showVectors = target;
+      setForcesVisible(target);
+      setVelocityVisible(target);
+      setChordVisible(target);
+      setTrailVisible(target);
+      setVorticesVisible(target);
+      updateMasterButton();
+    }
+
+    function updateMasterButton() {
+      const anyVisible = showForces || showVelocity || showChord || showTrail || showVortices;
+      const btn = document.getElementById("btnToggleAllLines");
+      if (btn) {
+        btn.innerText = anyVisible ? "Hide All Lines (Clean Coin)" : "Show All Extra Lines";
+        btn.style.background = anyVisible ? "#F1F5F9" : "#DCFCE7";
+        btn.style.color = anyVisible ? "#14181F" : "#166534";
+      }
+      const btnVec = document.getElementById("btnVectors");
+      if (btnVec) {
+        const vecOn = showForces || showVelocity || showChord;
+        btnVec.innerText = "Vectors: " + (vecOn ? "ON [V]" : "OFF [V]");
+      }
     }
 
     function toggleEnsemble() {
@@ -711,6 +981,10 @@
       else if (e.key === "4") applyPreset(4);
       else if (e.key === " ") { e.preventDefault(); togglePause(); }
       else if (e.key === "r" || e.key === "R") resetDrop();
+      else if (e.key === "v" || e.key === "V") toggleVectors();
+      else if (e.key === "t" || e.key === "T") setTrailVisible(!showTrail);
+      else if (e.key === "[") setSpeed(Math.max(0.05, playbackSpeed - 0.05));
+      else if (e.key === "]") setSpeed(Math.min(2.0, playbackSpeed + 0.05));
       else if (e.key === "e" || e.key === "E") toggleEnsemble();
       else if (e.key === "c" || e.key === "C") cycleColorMode();
       else if (e.key === "p" || e.key === "P") saveScreenshot();
@@ -923,18 +1197,20 @@
       if (currentMode === 0) {
         // --- MODE A RENDERING ---
         // Draw shed vortices
-        for (let vort of shedVortices) {
-          const pt = worldToScreen(vort.x, vort.y);
-          const alpha = (vort.life / 2.5);
-          ctx.strokeStyle = vort.sign > 0 ? `rgba(37, 99, 235, ${alpha})` : `rgba(220, 38, 38, ${alpha})`;
-          ctx.lineWidth = 1.5;
-          ctx.beginPath();
-          ctx.arc(pt.x, pt.y, 8, 0, Math.PI * 2);
-          ctx.stroke();
+        if (showVortices) {
+          for (let vort of shedVortices) {
+            const pt = worldToScreen(vort.x, vort.y);
+            const alpha = (vort.life / 2.5);
+            ctx.strokeStyle = vort.sign > 0 ? `rgba(37, 99, 235, ${alpha})` : `rgba(220, 38, 38, ${alpha})`;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, 8, 0, Math.PI * 2);
+            ctx.stroke();
+          }
         }
 
-        // Draw Fading Wake Ribbon
-        if (pathTrail.length >= 2) {
+        // Draw Fading Wake Ribbon (Path Trail)
+        if (showTrail && pathTrail.length >= 2) {
           for (let i = 1; i < pathTrail.length; ++i) {
             const p0 = worldToScreen(pathTrail[i - 1].x, pathTrail[i - 1].y);
             const p1 = worldToScreen(pathTrail[i].x, pathTrail[i].y);
@@ -988,13 +1264,21 @@
           const lab_vy = odeSim.u * sin_th + odeSim.v * cos_th;
 
           // 1. Velocity vector (teal)
-          drawArrow(coinPt.x, coinPt.y, lab_vx, lab_vy, 140.0, "#06B6D4");
+          if (showVelocity) {
+            drawArrow(coinPt.x, coinPt.y, lab_vx, lab_vy, 140.0, "#06B6D4");
+          }
           // 2. Circulation Lift vector (blue, perpendicular to V)
-          drawArrow(coinPt.x, coinPt.y, odeSim.FLx, odeSim.FLy, 380.0, "#2563EB");
+          if (showForces) {
+            drawArrow(coinPt.x, coinPt.y, odeSim.FLx, odeSim.FLy, 380.0, "#2563EB");
+          }
           // 3. Drag vector (red, opposing V)
-          drawArrow(coinPt.x, coinPt.y, odeSim.FDx, odeSim.FDy, 380.0, "#DC2626");
+          if (showForces) {
+            drawArrow(coinPt.x, coinPt.y, odeSim.FDx, odeSim.FDy, 380.0, "#DC2626");
+          }
           // 4. Orientation director (dark slate)
-          drawArrow(coinPt.x, coinPt.y, cos_th * 0.02, sin_th * 0.02, 1200.0, "#475569");
+          if (showChord) {
+            drawArrow(coinPt.x, coinPt.y, cos_th * 0.02, sin_th * 0.02, 1200.0, "#475569");
+          }
         }
       } else {
         // --- MODE B SPH RENDERING ---

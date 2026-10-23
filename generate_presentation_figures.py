@@ -19,7 +19,7 @@ DROPS_DIR.mkdir(parents=True, exist_ok=True)
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 5.2), dpi=300)
 fig.patch.set_facecolor("#FFFFFF")
 
-# Panel A: Matched Case Dynamics Across Regimes
+# REGIMEEEES
 t = np.linspace(0, 6.0, 1000)
 # Steady (I*=0.06)
 th_steady = 15.0 * np.exp(-t / 0.4)
