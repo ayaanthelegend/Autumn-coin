@@ -1,17 +1,18 @@
-# Pakistani Rupee Coins (Demo class for Autumn Coin 2D Model)
-# Note: These values are demo starting points from public sources (Numista & SBP).
-# Replace with caliper and precision scale measurements for published papers.
+# Pakistani Rupee Coins and Synthetic Design Discs (Autumn Coin 2D Model)
+# Note: Values for Pakistani coins are demo starting points from public sources (Numista & SBP).
+# Design discs represent physical disk configurations spanning the I* parameter space.
 
 coins:
   - id: pk_rs10
     label: "Rs 10 coin (2015-2022, brass)"
-    kind: coin               # coin | washer (washers are loaded in a later version)
+    kind: coin
     mass_g: 5.5
     diameter_mm: 25.5
     thickness_mm: 1.5
     material: "brass"
     source: "demo (Numista), replace with measurement"
     enabled: true
+
   - id: pk_rs5_2002
     label: "Rs 5 coin (2002, cupronickel)"
     kind: coin
@@ -21,12 +22,76 @@ coins:
     material: "cupronickel"
     source: "demo (dealer listing), replace with measurement"
     enabled: true
+
   - id: pk_rs5_2015
     label: "Rs 5 coin (2015, small brass)"
     kind: coin
     mass_g: 3.0
     diameter_mm: 18.5
-    thickness_mm: null       # measure it, then set enabled: true
+    thickness_mm: null
     material: "brass"
     source: "SBP press release (mass, diameter)"
     enabled: false
+
+  - id: design_acrylic_24x1.2
+    label: "Acrylic disc 24x1.2 mm"
+    kind: design
+    rho_s_kgm3: 1180.0
+    diameter_mm: 24.0
+    thickness_mm: 1.2
+    material: "acrylic"
+    enabled: true
+
+  - id: design_aluminium_24x1.5
+    label: "Aluminium disc 24x1.5 mm"
+    kind: design
+    rho_s_kgm3: 2700.0
+    diameter_mm: 24.0
+    thickness_mm: 1.5
+    material: "aluminium"
+    enabled: true
+
+  - id: design_brass_24x3.0
+    label: "Brass disc 24x3.0 mm"
+    kind: design
+    rho_s_kgm3: 8500.0
+    diameter_mm: 24.0
+    thickness_mm: 3.0
+    material: "brass"
+    enabled: true
+
+  - id: design_brass_24x3.5
+    label: "Brass disc 24x3.5 mm"
+    kind: design
+    rho_s_kgm3: 8500.0
+    diameter_mm: 24.0
+    thickness_mm: 3.5
+    material: "brass"
+    enabled: true
+
+  - id: design_steel_24x4.5
+    label: "Steel disc 24x4.5 mm"
+    kind: design
+    rho_s_kgm3: 7850.0
+    diameter_mm: 24.0
+    thickness_mm: 4.5
+    material: "steel"
+    enabled: true
+
+  - id: design_lead_24x3.5
+    label: "Lead disc 24x3.5 mm"
+    kind: design
+    rho_s_kgm3: 11340.0
+    diameter_mm: 24.0
+    thickness_mm: 3.5
+    material: "lead"
+    enabled: true
+
+  - id: design_tungsten_24x3.0
+    label: "Tungsten disc 24x3.0 mm"
+    kind: design
+    rho_s_kgm3: 19250.0
+    diameter_mm: 24.0
+    thickness_mm: 3.0
+    material: "tungsten"
+    enabled: true

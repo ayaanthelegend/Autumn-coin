@@ -143,18 +143,14 @@ int main(int argc, char** argv) {
         solver.init_domain_walls();
         solver.add_fluid_block(d_cfg.x_min + 0.005, d_cfg.x_max - 0.005, d_cfg.y_min + 0.005, 0.0, dx);
 
-        // Equilibration phase: allow particle pressure and density to equilibrate around fixed plate
-        int equil_steps = 60;
-        for (int eq = 0; eq < equil_steps; ++eq) {
-            solver.step_kdk(dt);
-        }
-        // Release plate into free flight at t = 0
-        solver.rigid_bodies[0].config.fixed = false;
-        solver.rigid_bodies[0].vel = {0.0, 0.0};
-        solver.rigid_bodies[0].vel_half = {0.0, 0.0};
-        solver.rigid_bodies[0].omega = 0.0;
-        solver.rigid_bodies[0].omega_half = 0.0;
-        solver.sim_time = 0.0;
+        // Fluid-structure equilibration: hold plate fixed to relax acoustic pressure transients
+        int equil_steps = 100;
+        EquilibrationResult eq_rep = solver.equilibrate(equil_steps, dt);
+        std::cout << "[FSI Drop] Equilibration complete (" << equil_steps << " steps):\n"
+                  << "  Initial a_y (measured): " << std::fixed << std::setprecision(3) << eq_rep.initial_ay_measured << " m/s^2\n"
+                  << "  Initial a_y (theoretical added mass): " << eq_rep.initial_ay_theoretical << " m/s^2\n"
+                  << "  Initial alpha: " << eq_rep.initial_alpha << " rad/s^2 (Shock suppressed: "
+                  << (eq_rep.shock_suppressed ? "YES" : "NO") << ")\n";
 
         std::filesystem::path csv_path(out_csv);
         if (csv_path.has_parent_path()) {

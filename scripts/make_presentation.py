@@ -45,7 +45,7 @@ RESULTS_SPH = ROOT / "results_sph"
 # ==============================================================================
 # Helper Functions for Slide Construction
 # ==============================================================================
-def init_slide(prs: Presentation, slide_num: int, total_slides: int = 22):
+def init_slide(prs: Presentation, slide_num: int, total_slides: int = 24):
     """Create a blank slide with a solid white background and footer."""
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     bg = slide.background
@@ -66,6 +66,16 @@ def init_slide(prs: Presentation, slide_num: int, total_slides: int = 22):
     p.font.color.rgb = TEXT_MUTED
     p.font.name = "Calibri"
     return slide
+
+
+def add_speaker_notes(slide, notes_text: str):
+    """Attach structured speaker notes to the slide."""
+    try:
+        notes_slide = slide.notes_slide
+        tf = notes_slide.notes_text_frame
+        tf.text = notes_text
+    except Exception as e:
+        print(f"Warning: could not add speaker notes: {e}")
 
 
 def add_header(slide, title: str, subtitle: str = ""):
@@ -391,6 +401,52 @@ def get_coin_sets_table_rows() -> list[list[str]]:
     return rows
 
 
+def get_coin_regimes_table_rows() -> list[list[str]]:
+    """Dynamically construct Slide 16 (Slide A) table rows from results/coin_regimes.csv."""
+    import pandas as pd
+    p = ROOT / "results" / "coin_regimes.csv"
+    if not p.exists():
+        return []
+    df = pd.read_csv(p)
+    sub = df[df["theta0_deg"] == 5.0]
+    coins = sub["coin"].unique()
+    rows = []
+    for c in coins:
+        c_sub = sub[sub["coin"] == c]
+        row_020 = c_sub[c_sub["mu_1"] == 0.20]
+        row_001 = c_sub[c_sub["mu_1"] == 0.01]
+        if len(row_020) == 0:
+            continue
+        r0 = row_020.iloc[0]
+        i_star = float(r0["I_star"])
+        rho_ratio = float(r0["rho_s_over_rho_f"])
+        reg_020 = str(r0["regime"]).capitalize()
+        reg_001 = str(row_001.iloc[0]["regime"]).capitalize() if len(row_001) > 0 else "—"
+        rows.append([
+            c,
+            f"{i_star:.3f}",
+            f"{rho_ratio:.2f}",
+            reg_020,
+            reg_001,
+        ])
+    return rows
+
+
+def get_onset_istar_range_text() -> str:
+    """Extract onset I* range across mu_1 from results/mu1_sensitivity.csv."""
+    import pandas as pd
+    p = ROOT / "results" / "mu1_sensitivity.csv"
+    if not p.exists():
+        return "Onset of tumbling: Critical threshold spans I*_c = 0.958 ± 0.003 (at μ₁ = 0.00) to I*_c = 1.217 ± 0.003 (at baseline μ₁ = 0.20), invariant across release angles θ₀ in [5°, 45°]."
+    df = pd.read_csv(p)
+    sub = df[df["theta0_deg"] == 5.0]
+    row_000 = sub[sub["mu_1"] == 0.00]
+    row_020 = sub[sub["mu_1"] == 0.20]
+    c_min = float(row_000.iloc[0]["I_star_c"]) if len(row_000) > 0 else 0.958
+    c_max = float(row_020.iloc[0]["I_star_c"]) if len(row_020) > 0 else 1.217
+    return f"Onset of tumbling: Critical threshold spans I*_c = {c_min:.3f} ± 0.003 (at μ₁ = 0.00) to I*_c = {c_max:.3f} ± 0.003 (at baseline μ₁ = 0.20), invariant across release angles θ₀ in [5°, 45°]."
+
+
 # ==============================================================================
 # Main 22-Slide Deck Builder
 # ==============================================================================
@@ -637,7 +693,7 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
             "• Exact Conversion: C_τ = π μ_2 / 8. For Andersen's fitted μ_2 = 0.2, C_τ = 0.0785.",
             "• Strip-Theory Derivation: Integrating 0.5 ρ_f C_D(π/2) |ω r| (ω r) r dr from −L/2 to +L/2 gives:",
             "      C_τ,strip = C_D(π/2) / 32 = 2.4 / 32 = 0.0750  (Agrees with Andersen Eq. 3.9 within 4.5%!).",
-            "• Role of Linear Term μ_1: Literature baseline μ_1 = 0.20 reproduces flutter-tumble boundary at I*_c = 1.206; μ_1 = 0.01 is a tuned alternative yielding I*_c = 0.957.",
+            "• Role of Linear Term μ_1: Literature baseline μ_1 = 0.20 reproduces flutter-tumble boundary at I*_c = 1.217; μ_1 = 0.01 is a tuned value ('tuned, not from the paper') yielding premature tumbling at I*_c = 0.970.",
         ],
         left=6.75, top=1.35, width=6.08, height=5.35, font_size=12.0
     )
@@ -648,21 +704,21 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
     s7 = init_slide(prs, 7)
     add_header(
         s7,
-        "6. Hydrodynamic Coefficient Table & Literature Verification",
+        "6. Hydrodynamic Coefficient Table & Literature Baseline",
         "All Parameters Centralized in `config/base.yaml` with Literature Baseline and Sensitivity Analyses",
     )
     add_summary_table(
         s7,
-        headers=["Symbol", "Value", "Units", "Mathematical Formula / Role", "Primary Literature Source & Verification"],
+        headers=["Symbol", "Value", "Units", "Mathematical Formula / Role", "Primary Literature Source & Literature Status"],
         rows=[
             ["ρ_f", "998.0", "kg/m³", "Fluid density (water at 20°C)", "Standard physical property (water at 20°C)"],
             ["μ", "1.00 × 10⁻³", "Pa·s", "Dynamic viscosity (for a posteriori Re)", "Standard physical property (water at 20°C)"],
-            ["C_T", "1.20", "—", "Translational circulation: Γ_trans = −C_T L u v / |V|", "Andersen et al. (2005b) Eq. (3.7); peaks C_L = 1.2 at α = 45°"],
-            ["C_R", "π (3.1416)", "—", "Rotational circulation: Γ_rot = 0.5 C_R L² ω", "Andersen et al. (2005b) Eq. (3.7); Munk/Magnus rotational lift"],
-            ["C_D0", "1.40", "—", "Baseline drag constant: C_D(α) = C_D0 − C_D1 cos(2α)", "Andersen et al. (2005b) Eq. (3.8)"],
-            ["C_D1", "1.00", "—", "Angle-dependent drag amplitude (C_D in [0.4, 2.4])", "Andersen et al. (2005b) Eq. (3.8)"],
-            ["C_τ", "0.075", "—", "Quadratic rotational damping: 0.5 C_τ ρ_f L⁴ |ω|ω", "Strip theory C_D/32 = 0.075 (Andersen Eq. 3.9 gives πμ₂/8 = 0.0785)"],
-            ["μ_1", "0.20", "—", "Linear viscous rotational damping: (π/8) ρ_f L³ U_char μ_1 ω", "Literature baseline (Andersen et al. 2005b Eq. 3.9); 0.01 is tuned alternative"],
+            ["C_T", "1.20", "—", "Translational circulation: Γ_trans = −C_T L u v / |V|", "Andersen et al. (2005b) as used in ondrej-cloud implementation"],
+            ["C_R", "π (3.1416)", "—", "Rotational circulation: Γ_rot = 0.5 C_R L² ω", "Andersen et al. (2005b) as used in ondrej-cloud implementation"],
+            ["C_D0", "1.40", "—", "Baseline drag constant: C_D(α) = C_D0 − C_D1 cos(2α)", "Andersen et al. (2005b) thin plate drag model"],
+            ["C_D1", "1.00", "—", "Angle-dependent drag amplitude (C_D in [0.4, 2.4])", "Andersen et al. (2005b) edge-on min, broadside max"],
+            ["C_τ", "0.07854", "—", "Quadratic rotational damping: 0.5 C_τ ρ_f L⁴ |ω|ω", "Derived baseline C_τ = π μ₂ / 8 (μ₂ = 0.20); 0.075 strip theory is alternative"],
+            ["μ_1", "0.20", "—", "Linear viscous rotational damping: (π/8) ρ_f L³ U_char μ_1 ω", "Literature baseline (Andersen et al. 2005b); 0.01 is tuned, not from paper"],
         ],
         left=0.5, top=1.35, width=12.33, height=5.35,
         col_widths=[1.1, 1.3, 1.0, 4.3, 4.63],
@@ -727,21 +783,22 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
     s9 = init_slide(prs, 9)
     add_header(
         s9,
-        "8. Verification Suite (16/16 Passing) & Energy Budget Closure",
-        "Rigorous Unit, Conservation, Analytical Limit, and Convergence Verification (`pytest`)",
+        "8. Verification Suite (18/18 Passing) & Energy Budget Closure",
+        "Rigorous Unit, Conservation, Benchmark Reproduction, and Energy Budget Verification (`pytest`)",
     )
     add_summary_table(
         s9,
         headers=["Test Group", "Verification Property Tested", "Target Tolerance", "Measured Result", "Status"],
         rows=[
-            ["Test 1: Added Mass", "Circular limit (a=b → m11=m22, I_a=0) & thin plate ratio", "Exact (< 10⁻¹²)", "< 10⁻¹⁵", "PASS"],
-            ["Test 2: Kirchhoff Inv.", "Forces off: Total kinetic energy T & lab momentum P_lab constant", "< 1.0 × 10⁻⁸", "< 1.0 × 10⁻¹¹", "PASS"],
-            ["Test 3: Terminal Speed", "Broadside terminal speed matches analytical drag balance", "< 2.0%", "0.05%", "PASS"],
-            ["Test 4: Symmetry", "Zero initial tilt (θ_0 = 0): zero lateral drift |X|", "< 10⁻⁶ L", "0.0000 L", "PASS"],
-            ["Test 5: Energy Closure", "Δ(T + V_buoy + E_diss) / ΔV_buoy across full drop", "< 1.0%", "0.0000%", "PASS"],
-            ["Test 6: Regimes & Sens.", "All 4 regimes detected; 0 flips under ±20% threshold shift", "0 flips", "0 flips", "PASS"],
-            ["Test 7: Convergence", "10× tighter tolerance change in landing coordinate X", "< 0.1% L", "< 10⁻⁶ % L", "PASS"],
-            ["Audit: Lift & Units", "C_L(45°) = 1.2000 & dimensional consistency [N/m] across RHS", "Exact", "1.2000 / Exact", "PASS"],
+            ["Test 1: Added Mass (3)", "Circular limit (a=b → m11=m22, I_a=0) & thin plate ratio", "Exact (< 10⁻¹²)", "< 10⁻¹⁵", "PASS"],
+            ["Test 2: Kirchhoff Inv. (2)", "Forces off: Total kinetic energy T & lab momentum P_lab constant", "< 1.0 × 10⁻⁸", "< 1.0 × 10⁻¹¹", "PASS"],
+            ["Test 3: Terminal Speed (1)", "Broadside terminal speed matches analytical drag balance", "< 2.0%", "0.05%", "PASS"],
+            ["Test 4: Symmetry (1)", "Zero initial tilt (θ_0 = 0): zero lateral drift |X|", "< 10⁻⁶ L", "0.0000 L", "PASS"],
+            ["Test 5: Energy Closure (2)", "Δ(T + V_buoy + E_diss) / ΔV_buoy across full drop", "< 1.0%", "0.0000%", "PASS"],
+            ["Test 6: Regimes & Sens. (3)", "All 4 regimes detected; 0 flips under ±20% threshold shift", "0 flips", "0 flips", "PASS"],
+            ["Test 7: Convergence (2)", "10× tighter tolerance change in landing coordinate X", "< 0.1% L", "< 10⁻⁶ % L", "PASS"],
+            ["Test 8: Benchmarks (2)", "Andersen et al. (2005b) at t*=50 (I*=1.1, 1.4, 1.6)", "< 0.30 a", "< 0.08 a", "PASS"],
+            ["Test 9: Lift & Units (2)", "C_L(45°) = 1.2000 & dimensional consistency [N/m] across RHS", "Exact", "1.2000 / Exact", "PASS"],
         ],
         left=0.5, top=1.35, width=6.25, height=5.35,
         col_widths=[1.45, 2.35, 1.0, 0.9, 0.55],
@@ -891,7 +948,7 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
         s13,
         [
             "Exact Broadside Equilibrium (θ_0 = 0.0°): Falls purely vertically (X = 0) at all I* because gravity and drag act symmetrically along the minor axis.",
-            "Empirical Limit-Cycle Attractor in Fluttering (θ_0 in [5°, 85°], Fig. 5): Any non-zero release angle in this range contracts onto the exact same post-transient fluttering amplitude and mean descent speed; θ_0 only shifts the initial transient phase (smoothly varying net drift from 0 to 0.12 m at I*=0.20, and 0 to 0.45 m at I*=0.80).",
+            "Limit-Cycle Contraction Observed Numerically in Fluttering (θ_0 in [5°, 85°], Fig. 5): Any non-zero release angle in this range contracts onto the exact same post-transient fluttering amplitude and mean descent speed; θ_0 only shifts the initial transient phase (smoothly varying net drift from 0 to 0.12 m at I*=0.20, and 0 to 0.45 m at I*=0.80).",
             "High Sensitivity Above Bifurcation (I* = 3.50): In the mixed/tumbling regime, small changes in release angle select between clockwise/counterclockwise spin basins and alter multi-meter lateral excursions (> 1.5 m).",
         ],
         left=0.5, top=1.35, width=5.8, height=5.35, font_size=13.5
@@ -904,10 +961,10 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
     )
     add_equation_card(
         s13,
-        "Attractor Stability & Pitchfork Symmetry Breaking (Fig. 5)",
+        "Numerical Stability & Pitchfork Symmetry Breaking (Fig. 5)",
         [
             "• Symmetrical Saddle: At θ_0 = 0.0°, dX/dt = 0 strictly by bilateral symmetry.",
-            "• Flutter Basin (I* = 0.20 & 0.80): Trajectories contract onto a stable periodic limit cycle. Initial tilt θ_0 acts purely as a phase shift on the limit cycle.",
+            "• Flutter Basin (I* = 0.20 & 0.80): Trajectories contract onto a stable periodic limit cycle observed numerically. Initial tilt θ_0 acts purely as a phase shift on the limit cycle.",
             "• Tumbling Basin Bifurcation (I* = 3.50): Separatrix crossing makes spin direction clockwise vs counter-clockwise highly sensitive to θ_0 (∂X_land / ∂θ_0 > 50 mm/deg).",
             "• Measured Speed Invariance: Post-transient U_mean = 0.158 ± 0.002 m/s regardless of θ_0.",
         ],
@@ -934,7 +991,7 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
             ["Near-Transition Case", "0.80", "50", "Wide Flutter-Glide", "−0.250", "± 0.060 m", "2.50 L (Moderate spread)"],
             ["High-Inertia Ensemble", "3.50", "50", "Mixed / Chaotic", "+1.480", "± 0.320 m", "13.3 L (32× amplification)"],
             ["I* Sweep (Flutter)", "0.05–0.90", "14", "Steady / Flutter", "0.00 to −0.35", "< 0.15 m", "Bounded (0 flips)"],
-            ["I* Sweep (Tumble)", "1.05–1.25", "3", "Clean Tumbling", "> 2.00 m", "Autorotative", "> 20 full flips (0 rev.)"],
+            ["I* Sweep (Tumble)", "1.20–1.25", "3", "Clean Tumbling", "> 2.00 m", "Autorotative", "> 20 full flips (0 rev.)"],
             ["I* Sweep (Chaotic)", "1.30–5.00", "8", "Mixed / Chaotic", "0.40 to 2.50 m", "Chaotic", "Separatrix reversals"],
         ],
         left=0.5, top=1.35, width=6.25, height=3.20,
@@ -961,7 +1018,7 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
         s14,
         "Chaos & 32× Dispersion Amplification Analysis (Fig. 6)",
         [
-            "• Fluttering Coherence (I* = 0.20): σ_X = 0.010 m (0.42 L). Trajectories form a tight, coherent bundle collapsing to the limit cycle.",
+            "• Fluttering Coherence (I* = 0.20): σ_X = 0.010 m (0.42 L). Trajectories form a tight, coherent bundle collapsing to the limit cycle observed numerically.",
             "• Chaotic Amplification (I* = 3.50): σ_X = 0.320 m (13.3 L), a 32-fold increase in landing uncertainty from the exact same input perturbation!",
             "• Separatrix Crossings: High inertia allows states to graze the edge-on saddle, where tiny perturbations dictate whether the coin flips or falls back.",
         ],
@@ -1005,16 +1062,121 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
     )
 
     # --------------------------------------------------------------------------
-    # SLIDE 16: Stage 2 Model — 2D WCSPH + Akinci Two-Way Rigid-Fluid FSI
+    # SLIDE 16 (NEW SLIDE A): Different Coins, Different Regimes: I* Selects Motion
     # --------------------------------------------------------------------------
     s16 = init_slide(prs, 16)
     add_header(
         s16,
-        "15. Stage 2 Mathematical Model: 2D WCSPH + Akinci Rigid-Fluid FSI",
-        "Resolving Explicit Laminar Viscosity, Wake Vorticity, and Two-Way Fluid-Structure Coupling",
+        "15. Different Coins, Different Regimes: I* Selects the Motion",
+        "Regime Classification of Physical Coins and Design Discs at Literature Baseline μ₁ = 0.20 vs. Tuned μ₁ = 0.01",
+    )
+    coin_regime_rows = get_coin_regimes_table_rows()
+    add_summary_table(
+        s16,
+        headers=["Coin / Disc ID", "I*", "ρ_s / ρ_f", "Regime (μ₁ = 0.20)", "Regime (μ₁ = 0.01)"],
+        rows=coin_regime_rows,
+        left=0.5, top=1.35, width=6.25, height=3.00,
+        col_widths=[1.85, 0.75, 0.85, 1.40, 1.40],
+        font_size=10.0
     )
     add_equation_card(
         s16,
+        "Physical Findings & Open Discrepancy Note",
+        [
+            "• Linear Damping Sensitivity: At literature baseline μ₁ = 0.20, design_brass_24x3.0 (I* = 1.065) flutters cleanly; tuned μ₁ = 0.01 triggers premature tumbling due to under-damped pitching.",
+            "• Open Discrepancy (2D vs. 3D): Real Pakistani coins (Rs10 with I* ≈ 0.42 and Rs5 with I* ≈ 0.60) flutter in this 2D planar model. In contrast, 3D tracked Czech coins at similar I* in ondrej-cloud (2024) mostly tumbled or moved chaotically.",
+            "• Discrepancy Mechanism: 3D conical precession, edge-roll, and tip vortex shedding destabilize real coins into tumbling at lower inertia than predicted by 2D planar models. We report this honestly as an open discrepancy; we do not claim agreement.",
+        ],
+        left=0.5, top=4.50, width=6.25, height=2.35, font_size=10.5
+    )
+    add_figure(
+        s16,
+        ["coin_regimes.png", "results/coin_regimes.png"],
+        left=7.1, top=1.30, width=5.4,
+        caption="Fig. 8a: Trajectory sweeps across Pakistani coins and design discs at literature baseline μ₁ = 0.20."
+    )
+    add_speaker_notes(
+        s16,
+        "Speaker Notes for Slide 16:\n"
+        "Here we map real physical coins and custom design discs across dimensionless inertia I*.\n"
+        "Notice the crucial difference between the literature baseline damping mu_1 = 0.20 and the tuned value 0.01: "
+        "at mu_1 = 0.20, the brass 24x3.0 mm disc (I* = 1.065) flutters stably, whereas at mu_1 = 0.01 it falsely tumbles.\n"
+        "Crucially, real Pakistani coins (Rs10 and Rs5) have I* = 0.42 and 0.60, which flutter periodically in our 2D model. "
+        "However, in 3D stereoscopic drop experiments (such as ondrej-cloud's MIT dataset), Czech coins at similar I* mostly tumbled. "
+        "This is an open discrepancy: real coins possess three rotational degrees of freedom, edge roll, and conical precession that "
+        "destabilize them into tumbling at much lower effective inertia than a 2D planar cross-section. We report this as an open discrepancy "
+        "and never claim agreement between 2D planar theory and 3D coin experiments."
+    )
+
+    # --------------------------------------------------------------------------
+    # SLIDE 17 (NEW SLIDE B): Regime Bands in I* and What Is Established vs. Ours
+    # --------------------------------------------------------------------------
+    s17 = init_slide(prs, 17)
+    add_header(
+        s17,
+        "16. Regime Bands in I* and What Is Established vs. Ours",
+        "Established Literature Boundaries vs. Present Computational Contributions & Sensitivities",
+    )
+    add_equation_card(
+        s17,
+        "Established in Literature (Field et al. 1997; Andersen et al. 2005a,b)",
+        [
+            "• Monotonic Regime Sequence: Established literature proved the progression with increasing inertia I*: Steady → Fluttering → Tumbling → Mixed / Chaotic.",
+            "• Competing Torques Mechanism: Potential-flow Munk moment pitches coin broadside; shedding generates Kutta–Joukowski lift; tumbling onsets when rotational inertia carries coin past vertical.",
+            "• Priority Statement: The monotonic I* regime ordering is established literature physics; it is not a new discovery of this work.",
+        ],
+        left=0.5, top=1.35, width=6.25, height=2.15, font_size=10.5
+    )
+    add_equation_card(
+        s17,
+        "Our Contributions (Present Computational Investigation)",
+        [
+            "• Coin-by-Coin Mapping: Quantitative mapping of circulating Pakistani coins (Rs10, Rs5) and engineered discs (acrylic, aluminium, brass, steel, lead, tungsten).",
+            "• Damping Sensitivity: Systematically varied linear torque damping μ₁ in [0.0, 0.20], mapping the shift in critical tumbling threshold I*_c.",
+            "• Release Angle Robustness: Verified invariance of the flutter-to-tumble boundary across perturbed drop angles θ₀ in [5°, 45°].",
+            "• 2D vs. 3D Open Discrepancy: Rigorous identification of planar modeling limitations vs. 3D experimental coin tumbling.",
+        ],
+        left=0.5, top=3.60, width=6.25, height=2.00, font_size=10.5
+    )
+    onset_text = get_onset_istar_range_text()
+    add_equation_card(
+        s17,
+        "Onset of Tumbling (Bisection Study across μ₁)",
+        [
+            f"• {onset_text}",
+            "• Physical Interpretation: Lower linear damping μ₁ lowers critical I*_c by up to 21.3%, making coins tumble more easily. At baseline μ₁ = 0.20, I*_c = 1.217 matches literature card midpoints (1.20) within +1.4%.",
+        ],
+        left=0.5, top=5.70, width=6.25, height=1.15, font_size=10.5
+    )
+    add_figure(
+        s17,
+        ["regime_vs_istar.png", "results/regime_vs_istar.png"],
+        left=6.9, top=1.35, width=5.9,
+        caption="Fig. 8b: Regime distribution across dimensionless inertia I* showing the flutter-to-tumble transition band."
+    )
+    add_speaker_notes(
+        s17,
+        "Speaker Notes for Slide 17:\n"
+        "On this slide, we clearly delineate what is established in the literature versus what constitutes our own contribution.\n"
+        "The sequence of regimes—steady descent, periodic fluttering, autorotating tumbling, and chaotic/mixed—was established by "
+        "Field et al. in Nature (1997) and Andersen, Pesavento, and Wang in Journal of Fluid Mechanics (2005). We do not claim this ordering as a novel discovery.\n"
+        "Our contribution consists of: first, a coin-by-coin physical mapping for Pakistani coins and precision design discs; second, "
+        "an explicit sensitivity study of the linear torque damping mu_1 showing that tumbling onset shifts from I*_c = 0.958 at mu_1 = 0.00 "
+        "to 1.217 at the literature baseline mu_1 = 0.20; third, proving that the tumbling boundary is robustly invariant across release angles; "
+        "and fourth, establishing an honest assessment of the open discrepancy between 2D planar models and 3D coin dynamics."
+    )
+
+    # --------------------------------------------------------------------------
+    # SLIDE 18: Stage 2 Model — 2D WCSPH + Akinci Two-Way Rigid-Fluid FSI
+    # --------------------------------------------------------------------------
+    s18 = init_slide(prs, 18)
+    add_header(
+        s18,
+        "17. Stage 2 Mathematical Model: 2D WCSPH + Akinci Rigid-Fluid FSI",
+        "Resolving Explicit Laminar Viscosity, Wake Vorticity, and Two-Way Fluid-Structure Coupling",
+    )
+    add_equation_card(
+        s18,
         "1. 2D Wendland C² Kernel & Exact Gradient (h_sml = 1.3 Δx, q = r / h_sml in [0, 2])",
         [
             "W(q, h) = (7 / (4 π h^2)) * (1 − q/2)^4 * (2q + 1)",
@@ -1023,7 +1185,7 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
         left=0.5, top=1.35, width=12.33, height=1.35, font_size=12.0
     )
     add_equation_card(
-        s16,
+        s18,
         "2. Weakly Compressible Tait EOS & Morris Laminar Viscosity (α_art = 0 Default)",
         [
             "• Density Summation (with Akinci boundary volumes Ψ_b = 1 / Σ_k W_bk):   ρ_i = Σ_j m_j W_ij + ρ_0 Σ_b Ψ_b W_ib",
@@ -1035,7 +1197,7 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
         left=0.5, top=2.82, width=12.33, height=2.15, font_size=11.5
     )
     add_equation_card(
-        s16,
+        s18,
         "3. Two-Way Elliptical Boundary Coupling (Akinci et al. 2012; Adami et al. 2012) & Synchronous KDK",
         [
             "• Fluid-Boundary Force (using dissipative sign v_i − v_b):",
@@ -1047,16 +1209,16 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
     )
 
     # --------------------------------------------------------------------------
-    # SLIDE 17: Stage 2 SPH Validation Ladder (7 Quantitative Benchmarks)
+    # SLIDE 19: Stage 2 SPH Validation Ladder (7 Quantitative Benchmarks)
     # --------------------------------------------------------------------------
-    s17 = init_slide(prs, 17)
+    s19 = init_slide(prs, 19)
     add_header(
-        s17,
-        "16. Stage 2 SPH-FSI Verification & Validation Ladder",
+        s19,
+        "18. Stage 2 SPH-FSI Verification & Validation Ladder",
         "Automated Seven-Level Benchmark Suite Verifying Kernel Calculus, Hydrostatics, Physical Viscosity, and Drag",
     )
     add_summary_table(
-        s17,
+        s19,
         headers=["Test #", "Physical / Mathematical Test", "Benchmark vs. Measured", "Status"],
         rows=[
             [
@@ -1109,27 +1271,27 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
     # 7-panel validation ladder figure on right
     val_ladder_img = RESULTS_SPH / "validation" / "validation_ladder_summary.png"
     if val_ladder_img.exists():
-        pic17 = s17.shapes.add_picture(str(val_ladder_img), Inches(7.45), Inches(1.35), height=Inches(5.05))
-        cap17 = s17.shapes.add_textbox(Inches(7.35), Inches(6.48), Inches(5.4), Inches(0.40))
-        tf17 = cap17.text_frame
-        tf17.word_wrap = True
-        p17 = tf17.paragraphs[0]
-        p17.text = "Fig. 7: 7-panel automated validation ladder demonstrating exact convergence across all benchmarks."
-        p17.font.size = Pt(9.5)
-        p17.font.italic = True
-        p17.font.color.rgb = TEXT_MUTED
+        pic19 = s19.shapes.add_picture(str(val_ladder_img), Inches(7.45), Inches(1.35), height=Inches(5.05))
+        cap19 = s19.shapes.add_textbox(Inches(7.35), Inches(6.48), Inches(5.4), Inches(0.40))
+        tf19 = cap19.text_frame
+        tf19.word_wrap = True
+        p19 = tf19.paragraphs[0]
+        p19.text = "Fig. 7: 7-panel automated validation ladder demonstrating exact convergence across all benchmarks."
+        p19.font.size = Pt(9.5)
+        p19.font.italic = True
+        p19.font.color.rgb = TEXT_MUTED
 
     # --------------------------------------------------------------------------
-    # SLIDE 18: Stage 2 SPH vs. Stage 1 ODE Comparison & Explicit Viscosity Sweep
+    # SLIDE 20: Stage 2 SPH vs. Stage 1 ODE Comparison & Explicit Viscosity Sweep
     # --------------------------------------------------------------------------
-    s18 = init_slide(prs, 18)
+    s20 = init_slide(prs, 20)
     add_header(
-        s18,
-        "17. Stage 2 SPH-FSI vs. Stage 1 ODE & Explicit Viscosity Sweep",
+        s20,
+        "19. Stage 2 SPH-FSI vs. Stage 1 ODE & Explicit Viscosity Sweep",
         "Probing True Reynolds Number Dependence at Fixed Dimensionless Inertia (I* = 0.65, W_tank >= 12 L)",
     )
     add_bullets(
-        s18,
+        s20,
         [
             "Why Tank Width W >= 12 L and Stopping 2 L Above Bottom Are Mandatory:",
             "   – Broadside Blockage Control: Tank width W = 12 L keeps maximum blockage below 8.3%, avoiding boundary speedup.",
@@ -1145,18 +1307,18 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
     )
     sph_comp_img = RESULTS_SPH / "comparison" / "sph_vs_ode_comparison.png"
     if sph_comp_img.exists():
-        pic18 = s18.shapes.add_picture(str(sph_comp_img), Inches(6.75), Inches(1.35), width=Inches(5.75))
-        cap18 = s18.shapes.add_textbox(Inches(6.75), Inches(5.62), Inches(5.75), Inches(0.32))
-        tf18 = cap18.text_frame
-        tf18.word_wrap = True
-        p18 = tf18.paragraphs[0]
-        p18.text = "Fig. 8: (a) Matched SPH vs ODE dynamics across regimes; (b) Explicit SPH viscosity sweep at I*=0.65."
-        p18.font.size = Pt(9.5)
-        p18.font.italic = True
-        p18.font.color.rgb = TEXT_MUTED
+        pic20 = s20.shapes.add_picture(str(sph_comp_img), Inches(6.75), Inches(1.35), width=Inches(5.75))
+        cap20 = s20.shapes.add_textbox(Inches(6.75), Inches(5.62), Inches(5.75), Inches(0.32))
+        tf20 = cap20.text_frame
+        tf20.word_wrap = True
+        p20 = tf20.paragraphs[0]
+        p20.text = "Fig. 8: (a) Matched SPH vs ODE dynamics across regimes; (b) Explicit SPH viscosity sweep at I*=0.65."
+        p20.font.size = Pt(9.5)
+        p20.font.italic = True
+        p20.font.color.rgb = TEXT_MUTED
 
         add_equation_card(
-            s18,
+            s20,
             "Explicit Navier-Stokes Viscous Dissipation & Scaling",
             [
                 "• Physical Viscosity: a_visc = 2ν Σ (m_j/ρ_j) [(v_i − v_j)/(r_ij² + 0.01h²)] (r_ij · ∇W_ij)",
@@ -1167,16 +1329,16 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
         )
 
     # --------------------------------------------------------------------------
-    # SLIDE 19: Sebastian Lague-Style Dual-Mode Visual Renderer Architecture
+    # SLIDE 21: Sebastian Lague-Style Dual-Mode Visual Renderer Architecture
     # --------------------------------------------------------------------------
-    s19 = init_slide(prs, 19)
+    s21 = init_slide(prs, 21)
     add_header(
-        s19,
-        "18. Sebastian Lague-Style Dual-Mode Visual Renderer Architecture",
+        s21,
+        "20. Sebastian Lague-Style Dual-Mode Visual Renderer Architecture",
         "Deterministic C++20 Visualization: Mode A ODE Replay & Mode B Live SPH-FSI",
     )
     add_equation_card(
-        s19,
+        s21,
         "Mode A: Step 1 ODE Trajectory Replay (Headless PNG Export)",
         [
             "• Ingests byte-identical trajectory.csv from Python DOP853 solver.",
@@ -1186,7 +1348,7 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
         left=0.5, top=1.35, width=5.9, height=2.65, font_size=11.0
     )
     add_equation_card(
-        s19,
+        s21,
         "Mode B: Live 2D WCSPH-FSI & Vorticity Field (Headless PNG Export)",
         [
             "• Unified Physics & Renderer: C++20 engine powers simulation and rasterization via stb_image_write.h without code divergence.",
@@ -1199,19 +1361,19 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
     frame_ode = RESULTS_SPH / "drops" / "frames" / "ode_replay" / "frame_0100.png"
     frame_sph = RESULTS_SPH / "drops" / "frames" / "tumble_vorticity" / "frame_0015.png"
     if frame_ode.exists() and frame_sph.exists():
-        s19.shapes.add_picture(str(frame_ode), Inches(6.70), Inches(1.35), height=Inches(3.85))
-        s19.shapes.add_picture(str(frame_sph), Inches(9.80), Inches(1.35), height=Inches(3.85))
-        cap19 = s19.shapes.add_textbox(Inches(6.65), Inches(5.26), Inches(6.0), Inches(0.35))
-        tf19 = cap19.text_frame
-        tf19.word_wrap = True
-        p19 = tf19.paragraphs[0]
-        p19.text = "Fig. 9: (a) Mode A ODE trajectory replay & trail; (b) Mode B WCSPH vorticity field showing shed dipole."
-        p19.font.size = Pt(9.5)
-        p19.font.italic = True
-        p19.font.color.rgb = TEXT_MUTED
+        s21.shapes.add_picture(str(frame_ode), Inches(6.70), Inches(1.35), height=Inches(3.85))
+        s21.shapes.add_picture(str(frame_sph), Inches(9.80), Inches(1.35), height=Inches(3.85))
+        cap21 = s21.shapes.add_textbox(Inches(6.65), Inches(5.26), Inches(6.0), Inches(0.35))
+        tf21 = cap21.text_frame
+        tf21.word_wrap = True
+        p21 = tf21.paragraphs[0]
+        p21.text = "Fig. 9: (a) Mode A ODE trajectory replay & trail; (b) Mode B WCSPH vorticity field showing shed dipole."
+        p21.font.size = Pt(9.5)
+        p21.font.italic = True
+        p21.font.color.rgb = TEXT_MUTED
 
         add_equation_card(
-            s19,
+            s21,
             "Vorticity Dynamics & Vortex Dipole Shedding",
             [
                 "• Vorticity Definition: ω_z = (∂v_y / ∂x) − (∂v_x / ∂y)",
@@ -1222,36 +1384,36 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
         )
 
     # --------------------------------------------------------------------------
-    # SLIDE 20: Validation Against Published Literature & 3D Coin Dataset
+    # SLIDE 22: Validation Against Published Literature & 3D Coin Dataset
     # --------------------------------------------------------------------------
-    s20 = init_slide(prs, 20)
+    s22 = init_slide(prs, 22)
     add_header(
-        s20,
-        "19. Validation Against Published Literature & 3D Coin Datasets",
+        s22,
+        "21. Validation Against Published Literature & 3D Coin Datasets",
         "Cross-Validation of 2D ODE Simulations with Andersen et al. (2005a,b), Field et al. (1997), and ondrej-cloud (2024)",
     )
     # Figure on top-left (width=6.80, height ~2.07 in)
     add_figure(
-        s20,
+        s22,
         ["literature_validation.png", "results/literature_validation.png"],
         left=0.5, top=1.35, width=6.80,
         caption="Fig. 10: Validation benchmarks: (a) Phase diagram vs 3D disks; (b) Descent speed vs Andersen; (c) Strouhal scaling vs Belmonte."
     )
     # Key comparison callout card on top-right
     add_equation_card(
-        s20,
-        "Key Quantitative Benchmark Agreements (Fig. 10)",
+        s22,
+        "Key Quantitative Benchmark Comparisons (Fig. 10)",
         [
-            "• Critical Bifurcation Threshold: With literature baseline μ_1 = 0.20 (Andersen 2005b Eq. 3.9), bisection yields I*_c = 1.206 ([1.205, 1.208]), matching Andersen's card transition midpoint (1.20, band [1.10, 1.30]) within +0.5% (Fig. 10b).",
+            "• Critical Bifurcation Threshold: With literature baseline μ_1 = 0.20 (Andersen 2005b), bisection yields I*_c = 1.217 ([1.216, 1.219]), matching Andersen's card transition midpoint (1.20, band [1.10, 1.30]) within +1.4% (Fig. 10b).",
             "• Terminal Speed Ratio: Simulated U_mean / U_t matches Andersen (2005b) cards within 4% across both fluttering and tumbling branches (Fig. 10b).",
             "• Flutter Frequency: Implied Strouhal number St ≈ 0.201 agrees with the Belmonte (1998) / Andersen (2005a) empirical card band St in [0.18, 0.22] (Fig. 10c).",
-            "• 3D vs 2D Discrepancy: Real 3D coins (ondrej-cloud 2024) tumble at lower I*_disk due to 3D azimuthal tipping modes absent in 2D planar models.",
+            "• 3D vs 2D Discrepancy: Real 3D coins (ondrej-cloud 2024) tumble at lower I* due to 3D azimuthal tipping modes absent in 2D planar models.",
         ],
-        left=7.55, top=1.35, width=5.28, height=2.45, font_size=11.0
+        left=7.55, top=1.30, width=5.28, height=2.55, font_size=10.5
     )
     # Summarized table across bottom
     add_summary_table(
-        s20,
+        s22,
         headers=[
             "Study / Source", "Methodology & Geometry", "Re Range",
             "Steady → Flutter", "Flutter → Tumble (I*_c)", "Key Agreement / Difference vs. Our Model (Fig. 10)"
@@ -1262,7 +1424,7 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
                 "2D Quasi-Steady ODE\n(Elliptical cross-section)",
                 "181 – 5000\n(extrap. to 13,541)",
                 "I* ≈ 0.07 – 0.09\n(stabilized by μ_1)",
-                "I*_c = 1.206 ± 0.002\n(μ_1 = 0.20 baseline;\n0.957 for μ_1=0.01)",
+                "I*_c = 1.217 ± 0.003\n(μ_1 = 0.20 baseline;\n0.970 for μ_1=0.01)",
                 "Closes energy budget to < 10⁻⁴%; reproduces flutter St ≈ 0.20 and speed ratio U/U_t within 4%."
             ],
             [
@@ -1271,7 +1433,7 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
                 "280 – 1200\n(2D card experiments)",
                 "I* ≈ 0.08 – 0.12\n(linear damping μ_1)",
                 "I*_c ≈ 1.10 – 1.30\n(Midpoint 1.20;\nTable 1 cards 1 & 2)",
-                "Our baseline I*_c = 1.206 matches their physical card transition midpoint within +0.5%!"
+                "Our baseline I*_c = 1.217 matches their physical card transition midpoint within +1.4%."
             ],
             [
                 "Field et al.\n(Nature 1997)",
@@ -1286,8 +1448,8 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
                 "143 Drops of 6 Czech Coins\n& Washers (2 Phones, 38cm)",
                 "2000 – 6000\n(1–50 CZK coins)",
                 "Washers with hole\nmost stable (lower I*)",
-                "All solid coins sit in\ntumbling / chaotic regime",
-                "Confirms real metal coins lie above I*_c; washers stabilize into fluttering."
+                "Solid coins tumble or\nchaotic at I* ≈ 0.3–0.7",
+                "Open Discrepancy: 2D model predicts flutter for I* in [0.4, 0.6] (e.g. Rs10, Rs5), while 3D coins tumble due to out-of-plane torque."
             ],
         ],
         left=0.5, top=3.95, width=12.33, height=2.85,
@@ -1296,16 +1458,16 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
     )
 
     # --------------------------------------------------------------------------
-    # SLIDE 21: Critical Model Limitations & Scope Boundaries (Dedicated Slide)
+    # SLIDE 23: Critical Model Limitations & Scope Boundaries (Dedicated Slide)
     # --------------------------------------------------------------------------
-    s21 = init_slide(prs, 21)
+    s23 = init_slide(prs, 23)
     add_header(
-        s21,
-        "20. Critical Model Limitations & Scope Boundaries",
+        s23,
+        "22. Critical Model Limitations & Scope Boundaries",
         "Transparent Assessment of Physical, Geometric, and Numerical Approximations",
     )
     add_summary_table(
-        s21,
+        s23,
         headers=["Limitation Category", "Specific Approximation in Present Study", "Physical / Numerical Consequence", "Mitigation & Future Work Path"],
         rows=[
             [
@@ -1345,16 +1507,16 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
     )
 
     # --------------------------------------------------------------------------
-    # SLIDE 22: Conclusions, Parameter Dependence Summary & References
+    # SLIDE 24: Conclusions, Parameter Dependence Summary & References
     # --------------------------------------------------------------------------
-    s22 = init_slide(prs, 22)
+    s24 = init_slide(prs, 24)
     add_header(
-        s22,
-        "21. Conclusions & Primary Literature References",
+        s24,
+        "23. Conclusions & Primary Literature References",
         "Summary of How Falling Coin Motion Depends on Governing Physical Parameters",
     )
     add_summary_table(
-        s22,
+        s24,
         headers=["Governing Parameter", "Symbol & Definition", "Observed Effect on Falling Coin Motion"],
         rows=[
             [
@@ -1370,7 +1532,7 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
             [
                 "Initial Release Angle",
                 "θ_0 in [0°, 90°]",
-                "Insensitive attractor in fluttering regime (sets only initial glide phase); near/above I*_c, small θ_0 perturbations amplify landing scatter by 32× (50-drop Gaussian ensemble: σ_X = 0.010 m at I*=0.20 → 0.320 m at I*=3.50)."
+                "Limit-cycle contraction in fluttering regime (sets only initial glide phase); near/above I*_c, small θ_0 perturbations amplify landing scatter by 32× (50-drop Gaussian ensemble: σ_X = 0.010 m at I*=0.20 → 0.320 m at I*=3.50)."
             ],
             [
                 "Geometry / Internal Cutout",
@@ -1383,13 +1545,13 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
         font_size=10.5
     )
     add_equation_card(
-        s22,
+        s24,
         "Verified Primary Literature References (Replacing All Non-Peer-Reviewed / AI Tool Citations)",
         [
             "1. S. B. Field, M. Klaus, M. G. Moore & F. Nori, “Chaotic dynamics of falling disks,” Nature 388, 252–254 (1997). DOI: 10.1038/40817.",
             "2. U. Pesavento & Z. J. Wang, “Falling paper: Navier–Stokes solutions, model of fluid forces, and center of mass elevation,” Phys. Rev. Lett. 93, 144501 (2004).",
             "3. A. Andersen, U. Pesavento & Z. J. Wang, “Unsteady aerodynamics of fluttering and tumbling plates,” J. Fluid Mech. 541, 65–90 (2005a). DOI: 10.1017/S002211200500594X.",
-            "4. A. Andersen, U. Pesavento & Z. J. Wang, “Analysis of transitions between fluttering, tumbling and steady descent of falling cards,” J. Fluid Mech. 541, 91–104 (2005b). DOI: 10.1017/S0022112005005847.",
+            "4. A. Andersen, U. Pesavento & Z. J. Wang, “Analysis of transitions between fluttering, tumbling and steady descent of falling cards,” J. Fluid Mech. 541, 91–104 (2005b), as used in the ondrej-cloud implementation (equation number unchecked). DOI: 10.1017/S0022112005005847.",
             "5. N. Akinci, M. Ihmsen, G. Akinci, B. Solenthaler & M. Teschner, “Versatile rigid-fluid coupling for incompressible SPH,” ACM Trans. Graph. 31(4), 62 (2012).",
             "6. O. Šrámek et al., “Autumn Coin: 3D Stereoscopic Tracking & ODE Simulation Dataset,” GitHub Repository (MIT License), github.com/ondrej-cloud/autumn-coin.",
         ],
@@ -1398,7 +1560,7 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
 
     out_path = ROOT / output_filename
     prs.save(str(out_path))
-    print(f"[SUCCESS] Built 22-slide presentation at: {out_path}")
+    print(f"[SUCCESS] Built 24-slide presentation at: {out_path}")
 
 
 if __name__ == "__main__":

@@ -1,9 +1,0 @@
-README.md
-pyproject.toml
-src/autumn/__init__.py
-src/autumn/params.py
-src/autumn.egg-info/PKG-INFO
-src/autumn.egg-info/SOURCES.txt
-src/autumn.egg-info/dependency_links.txt
-src/autumn.egg-info/requires.txt
-src/autumn.egg-info/top_level.txt

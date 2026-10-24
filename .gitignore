@@ -21,22 +21,30 @@ bin/
 *.ilk
 *.exp
 imgui.ini
+autumn-coin-cpp/imgui.ini
 .vscode/
 
 # Project-specific C++ build directories
 autumn-coin-cpp/build/
+autumn-coin-cpp/test_*.csv
+cpp_sph/build/
 cpp_sph/*.obj
 cpp_sph/bin/
 
-# Heavy simulation frames and scratch dumps
+# Heavy simulation frames, old presentation exports, and scratch dumps
 results_sph/frames/
 results_sph/drops/frames/
+slides_export/
 scratch/
 shared_bundle/
 
 # Keep important summaries and small CSV/PNG result artifacts
 !results/SUMMARY.md
 !results/*.csv
+!results/coin_regimes.csv
+!results/mu1_sensitivity.csv
+!results/coin_regimes.png
+!results/regime_vs_istar.png
 !results_sph/SUMMARY_SPH.md
 !results_sph/comparison/*.csv
 !results_sph/validation/*.csv

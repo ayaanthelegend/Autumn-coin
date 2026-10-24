@@ -11,6 +11,8 @@ def build_sph():
     
     bin_dir = script_dir / "bin"
     bin_dir.mkdir(exist_ok=True)
+    build_dir = script_dir / "build"
+    build_dir.mkdir(exist_ok=True)
     exe_target = bin_dir / ("sph_runner.exe" if sys.platform == "win32" else "sph_runner")
     viewer_target = bin_dir / ("sph_viewer.exe" if sys.platform == "win32" else "sph_viewer")
     
@@ -42,7 +44,8 @@ def build_sph():
         print(f"[Build] Using MSVC via {vcvars_path}...")
         sources_str = " ".join(f'"{f}"' for f in src_files)
         inc_str = " ".join(f'"{d}"' for d in include_dirs)
-        out_str = f'/Fe:"{exe_target}"'
+        build_dir_str = str(build_dir).replace("\\", "/") + "/"
+        out_str = f'/Fe:"{exe_target}" /Fo"{build_dir_str}"'
         
         cmd = f'call "{vcvars_path}" x64 && cl /nologo /std:c++20 /O2 /openmp /EHsc /utf-8 /DNOMINMAX /D_USE_MATH_DEFINES {inc_str} {sources_str} {out_str}'
         res = subprocess.run(cmd, shell=True, cwd=str(script_dir))
@@ -53,7 +56,7 @@ def build_sph():
 
         print(f"[Build] Compiling native Win32 60 FPS viewer: {viewer_target}...")
         v_sources_str = " ".join(f'"{f}"' for f in viewer_src_files)
-        v_out_str = f'/Fe:"{viewer_target}"'
+        v_out_str = f'/Fe:"{viewer_target}" /Fo"{build_dir_str}"'
         v_libs = "user32.lib gdi32.lib"
         v_cmd = f'call "{vcvars_path}" x64 && cl /nologo /std:c++20 /O2 /openmp /EHsc /utf-8 /DNOMINMAX /D_USE_MATH_DEFINES {inc_str} {v_sources_str} {v_libs} {v_out_str}'
         res_v = subprocess.run(v_cmd, shell=True, cwd=str(script_dir))

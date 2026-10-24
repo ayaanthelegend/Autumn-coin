@@ -158,7 +158,6 @@ def classify_regime(
         "n_flips": float(n_flips),
         "delta_theta_net_rad": delta_th_net,
         "max_backward_excursion_deg": back_deg,
-        "min_reversal_mixed_deg": params.min_reversal_mixed_deg,
         "spin_ratio": spin_ratio,
         "rel_std_omega": rel_std_om,
         "mean_abs_omega": mean_abs_om,
@@ -170,10 +169,9 @@ def classify_regime(
         return "steady", metrics
 
     # 2. Tumbling: at least min_flips_tumble full rotations with predominant unidirectional spin
-    # (either backward excursion < min_reversal_mixed_deg OR high spin consistency ratio >= min_spin_ratio_tumble
-    # while keeping backward excursion below max_reversal_tumble_deg)
+    # (either backward excursion < max_reversal_tumble_deg OR high spin consistency ratio >= min_spin_ratio_tumble)
     if (net_rotation >= params.min_flips_tumble * 2.0 * math.pi) and (
-        back_deg < params.min_reversal_mixed_deg or (spin_ratio >= params.min_spin_ratio_tumble and back_deg < params.max_reversal_tumble_deg)
+        back_deg < params.max_reversal_tumble_deg or spin_ratio >= params.min_spin_ratio_tumble
     ):
         return "tumbling", metrics
 
@@ -182,6 +180,5 @@ def classify_regime(
     if (ptp_deg < params.theta_ptp_flutter_max_deg) and (net_rotation < 2.0 * math.pi) and (spin_ratio < params.min_spin_ratio_tumble):
         return "fluttering", metrics
 
-    # 4. Mixed / Chaotic: trajectories exhibiting large reversals (back_deg >= min_reversal_mixed_deg),
-    # separatrix swings, or erratic non-uniform autorotation
+    # 4. Mixed / Chaotic: anything else (separatrix swings, erratic non-uniform autorotation)
     return "mixed", metrics

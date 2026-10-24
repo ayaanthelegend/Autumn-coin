@@ -2,26 +2,29 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Autumn Coin: Real-Time 2D Physics Visualizer (Sebastian Lague Style)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Autumn Coin: Real-Time 2D Physics Visualizer</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       background: #FFFFFF;
       color: #14181F;
-      overflow: hidden;
-      height: 100vh;
+      overflow-x: hidden;
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
     }
     header {
       background: #F4F7FB;
       border-bottom: 1px solid #D2D9E4;
-      padding: 8px 18px;
+      padding: 8px 16px;
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
-      height: 48px;
+      gap: 8px;
+      min-height: 48px;
     }
     .header-title {
       font-size: 15px;
@@ -32,7 +35,7 @@
       gap: 10px;
     }
     .honesty-banner {
-      font-size: 12px;
+      font-size: 11.5px;
       font-weight: 600;
       padding: 3px 10px;
       border-radius: 4px;
@@ -42,7 +45,8 @@
     }
     .top-controls {
       display: flex;
-      gap: 8px;
+      flex-wrap: wrap;
+      gap: 6px;
       align-items: center;
     }
     button {
@@ -50,7 +54,7 @@
       color: #14181F;
       border: 1px solid #C4CDDC;
       border-radius: 5px;
-      padding: 5px 12px;
+      padding: 5px 11px;
       font-size: 12px;
       font-weight: 600;
       cursor: pointer;
@@ -59,9 +63,16 @@
       align-items: center;
       gap: 4px;
     }
-    button:hover {
+    button:hover:not(:disabled) {
       background: #F0F4FA;
       border-color: #8CA0C0;
+    }
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      background: #F1F5F9;
+      border-color: #CBD5E1;
+      color: #94A3B8;
     }
     button.active {
       background: #194C94;
@@ -91,6 +102,7 @@
       align-items: center;
       justify-content: center;
       overflow: hidden;
+      min-height: 380px;
     }
     #simCanvas {
       display: block;
@@ -100,14 +112,29 @@
     #simCanvas:active {
       cursor: grabbing;
     }
+    #sphDisclaimer {
+      display: none;
+      position: absolute;
+      top: 14px;
+      left: 16px;
+      background: rgba(254, 242, 242, 0.96);
+      color: #991B1B;
+      border: 1px solid #F87171;
+      padding: 6px 14px;
+      border-radius: 5px;
+      font-weight: 700;
+      font-size: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      z-index: 10;
+    }
     #sidebar {
-      width: 440px;
+      width: 450px;
       background: #FAFCFE;
-      padding: 14px 18px;
+      padding: 14px 16px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 12px;
       border-left: 1px solid #E2E8F0;
     }
     .panel-box {
@@ -134,11 +161,13 @@
       padding: 3px 8px;
       border-radius: 4px;
       text-transform: uppercase;
+      letter-spacing: 0.3px;
     }
     .badge-steady { background: #DCFCE7; color: #166534; border: 1px solid #86EFAC; }
     .badge-flutter { background: #DBEAFE; color: #1E40AF; border: 1px solid #93C5FD; }
     .badge-tumble { background: #FEE2E2; color: #991B1B; border: 1px solid #FCA5A5; }
     .badge-mixed { background: #FEF3C7; color: #92400E; border: 1px solid #FCD34D; }
+    .badge-analyzing { background: #F1F5F9; color: #475569; border: 1px solid #CBD5E1; }
     .telemetry-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -161,21 +190,30 @@
     }
     .strip-chart-canvas {
       width: 100%;
-      height: 90px;
+      height: 85px;
       background: #F8FAFC;
       border: 1px solid #E2E8F0;
       border-radius: 4px;
       display: block;
       margin-top: 4px;
     }
+    #chartTraj {
+      width: 100%;
+      height: 220px;
+      background: #FFFFFF;
+      border: 1px solid #CBD5E1;
+      border-radius: 4px;
+      display: block;
+      margin-top: 6px;
+    }
     .slider-row {
-      margin-bottom: 10px;
+      margin-bottom: 9px;
     }
     .slider-label {
       display: flex;
       justify-content: space-between;
       font-size: 12px;
-      margin-bottom: 4px;
+      margin-bottom: 3px;
       color: #334155;
       font-weight: 500;
     }
@@ -195,6 +233,77 @@
       border-radius: 50%;
       background: #1E40AF;
       cursor: pointer;
+    }
+    select, input[type=number], input[type=text] {
+      width: 100%;
+      padding: 6px 10px;
+      font-size: 12px;
+      color: #0F172A;
+      background: #FFFFFF;
+      border: 1px solid #CBD5E1;
+      border-radius: 5px;
+      outline: none;
+    }
+    select:focus, input[type=number]:focus {
+      border-color: #2563EB;
+      box-shadow: 0 0 0 2px rgba(37,99,235,0.15);
+    }
+    .info-card {
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 5px;
+      padding: 8px 10px;
+      font-size: 11px;
+      color: #334155;
+      line-height: 1.45;
+      margin-top: 6px;
+    }
+    .info-card strong {
+      color: #0F172A;
+    }
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 0;
+      border-bottom: 1px dotted #E2E8F0;
+      font-size: 11.5px;
+    }
+    .toggle-row:last-child {
+      border-bottom: none;
+    }
+    .toggle-row label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      color: #334155;
+      font-weight: 500;
+    }
+    .speed-btn-group {
+      display: flex;
+      gap: 4px;
+      margin-top: 5px;
+    }
+    .speed-btn {
+      flex: 1;
+      padding: 4px 6px;
+      font-size: 11px;
+      background: #F8FAFC;
+      border: 1px solid #CBD5E1;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .speed-btn:hover {
+      background: #E2E8F0;
+    }
+    .speed-btn.active {
+      background: #0284C7;
+      color: #FFFFFF;
+      border-color: #0369A1;
     }
     .vector-legend {
       display: flex;
@@ -231,63 +340,6 @@
     .legend-chord { background: #475569; }
     .legend-trail { background: #3B82F6; }
     .legend-vort { background: #E11D48; border-radius: 50%; width: 8px; height: 8px; }
-    .speed-btn-group {
-      display: flex;
-      gap: 5px;
-      margin-top: 6px;
-    }
-    .speed-btn {
-      flex: 1;
-      padding: 4px 6px;
-      font-size: 11px;
-      background: #F8FAFC;
-      border: 1px solid #CBD5E1;
-      border-radius: 4px;
-      cursor: pointer;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-    .speed-btn:hover {
-      background: #E2E8F0;
-    }
-    .speed-btn.active {
-      background: #0284C7;
-      color: #FFFFFF;
-      border-color: #0369A1;
-    }
-    .info-card {
-      background: #F8FAFC;
-      border: 1px solid #E2E8F0;
-      border-radius: 5px;
-      padding: 8px 10px;
-      font-size: 11px;
-      color: #334155;
-      line-height: 1.45;
-      margin-top: 6px;
-    }
-    .info-card strong {
-      color: #0F172A;
-    }
-    .toggle-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 4px 0;
-      border-bottom: 1px dotted #E2E8F0;
-      font-size: 11.5px;
-    }
-    .toggle-row:last-child {
-      border-bottom: none;
-    }
-    .toggle-row label {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      cursor: pointer;
-      color: #334155;
-      font-weight: 500;
-    }
     .shortcut-list {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -302,6 +354,86 @@
       padding: 1px 4px;
       border-radius: 3px;
     }
+    .warning-box {
+      background: #FEF3C7;
+      border: 1px solid #FCD34D;
+      color: #92400E;
+      border-radius: 4px;
+      padding: 6px 8px;
+      font-size: 11px;
+      margin-top: 6px;
+      display: none;
+    }
+    /* Comparison Modal */
+    #modalCompare {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(3px);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-content {
+      background: #FFFFFF;
+      border-radius: 8px;
+      width: 95vw;
+      max-width: 1100px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      overflow: hidden;
+    }
+    .modal-header {
+      padding: 12px 18px;
+      border-bottom: 1px solid #E2E8F0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #F8FAFC;
+    }
+    .modal-body {
+      padding: 14px;
+      overflow-y: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #compareCanvas {
+      background: #FFFFFF;
+      border: 1px solid #CBD5E1;
+      border-radius: 4px;
+      max-width: 100%;
+    }
+
+    /* Responsive Stacking for <= 900px */
+    @media (max-width: 900px) {
+      header {
+        height: auto;
+        padding: 8px 12px;
+      }
+      #main-container {
+        flex-direction: column;
+        height: auto;
+        overflow-y: auto;
+      }
+      #viewport-container {
+        height: 52vh;
+        min-height: 340px;
+        border-right: none;
+        border-bottom: 1px solid #D2D9E4;
+      }
+      #sidebar {
+        width: 100%;
+        border-left: none;
+        overflow-y: visible;
+        padding: 12px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -314,13 +446,14 @@
 
     <div class="top-controls">
       <button id="btnModeA" class="active" onclick="switchMode(0)">Mode A: ODE</button>
-      <button id="btnModeB" onclick="switchMode(1)">Mode B: SPH</button>
-      <div style="width: 1px; height: 20px; background: #CBD5E1; margin: 0 4px;"></div>
-      <button class="preset-btn" onclick="applyPreset(1)">[1] Steady</button>
-      <button class="preset-btn" onclick="applyPreset(2)">[2] Flutter</button>
-      <button class="preset-btn" onclick="applyPreset(3)">[3] Tumble</button>
-      <button class="preset-btn" onclick="applyPreset(4)">[4] Mixed</button>
-      <div style="width: 1px; height: 20px; background: #CBD5E1; margin: 0 4px;"></div>
+      <button id="btnModeB" onclick="switchMode(1)">Mode B: Illustration</button>
+      <div style="width: 1px; height: 20px; background: #CBD5E1; margin: 0 2px;"></div>
+      <button class="preset-btn" id="btnPreset1" onclick="applyPreset(1)" disabled title="No steady descent found with a perturbed release (see results/coin_regimes.csv); theta0 = 0 exactly is an unstable symmetric equilibrium.">[1] Steady</button>
+      <button class="preset-btn" id="btnPreset2" onclick="applyPreset(2)">[2] Flutter</button>
+      <button class="preset-btn" id="btnPreset3" onclick="applyPreset(3)">[3] Tumble</button>
+      <button class="preset-btn" id="btnPreset4" onclick="applyPreset(4)">[4] Mixed</button>
+      <div style="width: 1px; height: 20px; background: #CBD5E1; margin: 0 2px;"></div>
+      <button id="btnCompare" onclick="openCompareModal()">📊 [G] Compare Coins</button>
       <button id="btnSloMo" class="active" onclick="toggleSloMo()" title="Toggle Slow Motion Mode">⏱️ Slo-Mo (0.30x)</button>
       <button id="btnPlay" onclick="togglePause()">[Space] Pause</button>
       <button onclick="resetDrop()">[R] Reset</button>
@@ -331,26 +464,27 @@
 
   <div id="main-container">
     <div id="viewport-container">
+      <div id="sphDisclaimer">ILLUSTRATIVE ANIMATION: not the C++ SPH solver</div>
       <canvas id="simCanvas"></canvas>
     </div>
 
     <div id="sidebar">
-      <!-- Live Regime & Telemetry -->
+      <!-- 1. Live Regime & Telemetry -->
       <div class="panel-box">
         <div class="panel-title">
           <span>Telemetry Readout</span>
-          <span class="regime-badge badge-flutter" id="regimeBadge">FLUTTERING</span>
+          <span class="regime-badge badge-analyzing" id="regimeBadge">ANALYSING...</span>
         </div>
         <div class="telemetry-grid">
           <div class="metric-item"><span class="metric-label">Time t:</span><span class="metric-value" id="valTime">0.00 s</span></div>
-          <div class="metric-item"><span class="metric-label">Inertia I*:</span><span class="metric-value" id="valIStar">0.68</span></div>
+          <div class="metric-item"><span class="metric-label">Inertia I*:</span><span class="metric-value" id="valIStar">0.17</span></div>
           <div class="metric-item"><span class="metric-label">Position X:</span><span class="metric-value" id="valX">0.0 mm</span></div>
           <div class="metric-item"><span class="metric-label">Position Y:</span><span class="metric-value" id="valY">0.0 mm</span></div>
           <div class="metric-item"><span class="metric-label">Tilt &theta;:</span><span class="metric-value" id="valTheta">5.0&deg;</span></div>
           <div class="metric-item"><span class="metric-label">Spin &omega;:</span><span class="metric-value" id="valOmega">0.0 rad/s</span></div>
           <div class="metric-item"><span class="metric-label">Speed |V|:</span><span class="metric-value" id="valSpeed">0.00 m/s</span></div>
           <div class="metric-item"><span class="metric-label">Descent v<sub>Y</sub>:</span><span class="metric-value" id="valVy">0.00 m/s</span></div>
-          <div class="metric-item"><span class="metric-label">Re<sub>in</sub>:</span><span class="metric-value" id="valReIn">9040</span></div>
+          <div class="metric-item"><span class="metric-label">Re<sub>in</sub>:</span><span class="metric-value" id="valReIn">3802</span></div>
           <div class="metric-item"><span class="metric-label">Viscosity &mu;:</span><span class="metric-value" id="valMu">0.0010 Pa&middot;s</span></div>
         </div>
 
@@ -376,78 +510,120 @@
         </div>
       </div>
 
-      <!-- Coin Lines & Visibility Options Panel -->
+      <!-- 2. Coin Selection & Catalog Panel -->
       <div class="panel-box">
-        <div class="panel-title">
-          <span>Coin Lines &amp; Visibility</span>
-          <button id="btnToggleAllLines" onclick="toggleAllLines()" style="padding: 2px 8px; font-size: 11px; font-weight:600;">Hide All Lines (Clean Coin)</button>
+        <div class="panel-title">Coin &amp; Geometry Catalog</div>
+
+        <div style="margin-bottom: 8px;">
+          <select id="selCoin" onchange="onCoinSelect(this.value)">
+            <optgroup label="Reference Thin Plates (h/L = 0.01)">
+              <option value="ref_1.1">Reference Plate I* = 1.1 (Flutter)</option>
+              <option value="ref_1.4">Reference Plate I* = 1.4 (Tumble)</option>
+              <option value="ref_1.6">Reference Plate I* = 1.6 (Mixed)</option>
+            </optgroup>
+            <optgroup label="Pakistani Rupee Coins (demo values, replace with measurements)">
+              <option value="pk_rs10">Rs 10 (2015-2022, brass) - demo</option>
+              <option value="pk_rs5_2002">Rs 5 (2002, cupronickel) - demo</option>
+              <option value="pk_rs5_2015" disabled>Rs 5 (2015, small brass) - disabled (missing thickness)</option>
+            </optgroup>
+            <optgroup label="Design Discs (hypothetical)">
+              <option value="design_acrylic_24x1.2">Acrylic 24x1.2 mm (I* = 0.059)</option>
+              <option value="design_aluminium_24x1.5" selected>Aluminium 24x1.5 mm (I* = 0.169)</option>
+              <option value="design_brass_24x3.0">Brass 24x3.0 mm (I* = 1.065)</option>
+              <option value="design_brass_24x3.5">Brass 24x3.5 mm (I* = 1.242)</option>
+              <option value="design_steel_24x4.5">Steel 24x4.5 mm (I* = 1.475)</option>
+              <option value="design_lead_24x3.5">Lead 24x3.5 mm (I* = 1.657)</option>
+              <option value="design_tungsten_24x3.0">Tungsten 24x3.0 mm (I* = 2.411)</option>
+            </optgroup>
+            <optgroup label="Custom & Free Mode">
+              <option value="custom_coin">Custom Coin (specify mass &amp; dimensions)</option>
+              <option value="free_istar">Free I* Parameter Slider</option>
+            </optgroup>
+          </select>
         </div>
 
-        <div class="info-card">
-          <strong>What are the extra lines on the coin?</strong>
-          <div style="margin-top: 3px; font-size: 11px; line-height: 1.4;">
-            The arrows and lines attached to the coin visualize real-time hydrodynamic physics:
+        <!-- Custom Coin Input Fields -->
+        <div id="customCoinInputs" style="display: none; background: #F8FAFC; border: 1px solid #E2E8F0; padding: 8px; border-radius: 4px; margin-bottom: 8px;">
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;">
+            <div>
+              <label style="font-size: 10px; color: #64748B;">Mass [g]</label>
+              <input type="number" id="custMass" value="6.0" step="0.1" min="0.1" oninput="onCustomCoinChange()">
+            </div>
+            <div>
+              <label style="font-size: 10px; color: #64748B;">Diameter [mm]</label>
+              <input type="number" id="custDiam" value="24.0" step="0.5" min="1.0" oninput="onCustomCoinChange()">
+            </div>
+            <div>
+              <label style="font-size: 10px; color: #64748B;">Thick. [mm]</label>
+              <input type="number" id="custThick" value="2.0" step="0.1" min="0.1" oninput="onCustomCoinChange()">
+            </div>
           </div>
-          <ul style="margin: 4px 0 2px 14px; padding: 0; font-size: 10.5px; line-height: 1.35;">
-            <li><b style="color:#06B6D4;">Velocity V (Teal)</b>: Direction and instantaneous speed of the coin.</li>
-            <li><b style="color:#2563EB;">Lift F<sub>L</sub> (Blue)</b>: Circulation lift from translational-rotational coupling (drives fluttering oscillations).</li>
-            <li><b style="color:#DC2626;">Drag F<sub>D</sub> (Red)</b>: Fluid resistance opposing the coin's motion.</li>
-            <li><b style="color:#475569;">Chord Director (Slate)</b>: Orientation of coin's longitudinal axis.</li>
-            <li><b style="color:#3B82F6;">Path Trail (Blue line)</b>: Fading flight trajectory behind the coin.</li>
-            <li><b style="color:#E11D48;">Vortex Rings (Circles)</b>: Vortices shed into the wake at flutter turning cusps.</li>
-          </ul>
         </div>
 
-        <div style="margin-top: 8px;">
-          <div class="toggle-row">
-            <label><input type="checkbox" id="chkForces" checked onchange="setForcesVisible(this.checked)"> Force Vectors (Lift F<sub>L</sub> &amp; Drag F<sub>D</sub>)</label>
-          </div>
-          <div class="toggle-row">
-            <label><input type="checkbox" id="chkVelocity" checked onchange="setVelocityVisible(this.checked)"> Velocity Vector (V)</label>
-          </div>
-          <div class="toggle-row">
-            <label><input type="checkbox" id="chkChord" checked onchange="setChordVisible(this.checked)"> Coin Chord Director Line</label>
-          </div>
-          <div class="toggle-row">
-            <label><input type="checkbox" id="chkTrail" checked onchange="setTrailVisible(this.checked)"> Trajectory Flight Trail Line</label>
-          </div>
-          <div class="toggle-row">
-            <label><input type="checkbox" id="chkVortices" checked onchange="setVorticesVisible(this.checked)"> Wake Vortex Rings</label>
-          </div>
+        <!-- Free I* Slider -->
+        <div id="freeIStarRow" style="display: none;" class="slider-row">
+          <div class="slider-label"><span>Free Inertia I*</span><span id="labelFreeIStar">1.20</span></div>
+          <input type="range" id="sliderFreeIStar" min="0.05" max="3.50" step="0.01" value="1.20" oninput="onFreeIStarChange(this.value)">
+        </div>
+
+        <!-- Physical Info Card -->
+        <div class="info-card" id="coinInfoCard">
+          <div><strong>Solid Density &rho;<sub>s</sub>:</strong> <span id="infoRhoS">2700.0 kg/m&sup3;</span> (&rho;<sub>s</sub>/&rho;<sub>f</sub> = <span id="infoRhoRatio">2.71</span>)</div>
+          <div><strong>Aspect Ratio h/L:</strong> <span id="infoAspect">0.0625</span> | <strong>I*:</strong> <span id="infoIStar">0.169</span></div>
+          <div><strong>Velocity Scale U<sub>t</sub>:</strong> <span id="infoUt">0.158 m/s</span> (U<sub>0</sub> = <span id="infoU0">0.112 m/s</span>)</div>
+          <div style="color: #64748B; font-size: 10px; margin-top: 2px;">Re<sub>in</sub> is display-only: the ODE model has no fluid viscosity.</div>
         </div>
       </div>
 
-      <!-- Real-Time Scrolling Strip Charts -->
+      <!-- 3. Release & Physics Controls -->
       <div class="panel-box">
-        <div class="panel-title">Tilt Angle &theta;(t) [deg]</div>
-        <canvas class="strip-chart-canvas" id="chartTheta"></canvas>
-      </div>
-
-      <div class="panel-box">
-        <div class="panel-title">Descent Speed |V(t)| (Red) &amp; |v<sub>Y</sub>| (Green) [m/s]</div>
-        <canvas class="strip-chart-canvas" id="chartSpeed"></canvas>
-      </div>
-
-      <!-- Interactive Sliders -->
-      <div class="panel-box">
-        <div class="panel-title">Physics Parameters &amp; Controls</div>
-
-        <div class="slider-row">
-          <div class="slider-label"><span>Dimensionless Inertia I*</span><span id="labelIStar">0.68</span></div>
-          <input type="range" id="sliderIStar" min="0.05" max="3.80" step="0.01" value="0.68" oninput="onIStarChange(this.value)">
-        </div>
+        <div class="panel-title">Release Controls &amp; Damping</div>
 
         <div class="slider-row">
           <div class="slider-label"><span>Release Angle &theta;<sub>0</sub></span><span id="labelTheta0">5.0&deg;</span></div>
-          <input type="range" id="sliderTheta0" min="0" max="85" step="1" value="5" oninput="onTheta0Change(this.value)">
+          <input type="range" id="sliderTheta0" min="0" max="360" step="1" value="5" oninput="onTheta0Change(this.value)">
         </div>
 
         <div class="slider-row">
-          <div class="slider-label"><span>Fluid Viscosity &mu; [Pa&middot;s]</span><span id="labelMu">0.0010</span></div>
-          <input type="range" id="sliderMu" min="0.001" max="0.300" step="0.001" value="0.001" oninput="onMuChange(this.value)">
+          <div class="slider-label"><span>Release Perturbation &delta;&theta;</span><span id="labelPerturb">0.0&deg;</span></div>
+          <input type="range" id="sliderPerturb" min="0.0" max="5.0" step="0.1" value="0.0" oninput="onPerturbChange(this.value)">
+        </div>
+
+        <div id="symmWarning" class="warning-box">
+          ⚠️ Symmetrically exact drop (|sin &theta;<sub>0</sub>| &lt; 10<sup>-6</sup>) with zero perturbation: trajectory direction is determined purely by floating-point roundoff.
+        </div>
+
+        <div style="margin: 8px 0; font-size: 12px; display: flex; gap: 14px; align-items: center;">
+          <span style="font-weight: 500; color: #334155;">Start Mode:</span>
+          <label style="cursor: pointer;"><input type="radio" name="startMode" value="rest" checked onchange="onStartModeChange(this.value)"> From Rest</label>
+          <label style="cursor: pointer;"><input type="radio" name="startMode" value="ref" onchange="onStartModeChange(this.value)"> Reference (v = -U<sub>0</sub>)</label>
         </div>
 
         <div class="slider-row">
+          <div class="slider-label"><span>Linear Damping &mu;<sub>1</sub></span><span id="labelMu1">0.20 (Literature Baseline)</span></div>
+          <input type="range" id="sliderMu1" min="0.00" max="0.30" step="0.01" value="0.20" oninput="onMu1Change(this.value)">
+          <div style="display: flex; justify-content: space-between; font-size: 10px; color: #64748B; margin-top: 1px;">
+            <span>0.00 (Pure Quad)</span>
+            <span style="color: #1E40AF; font-weight: bold;">0.20 (Lit.)</span>
+            <span>0.30</span>
+          </div>
+        </div>
+
+        <div class="slider-row">
+          <div class="slider-label"><span>Fluid Viscosity &mu; [Pa&middot;s] (Display Re<sub>in</sub> only)</span><span id="labelMu">0.0010</span></div>
+          <input type="range" id="sliderMu" min="0.001" max="0.100" step="0.001" value="0.001" oninput="onMuChange(this.value)">
+        </div>
+
+        <div class="slider-row">
+          <div class="slider-label"><span>Camera Zoom [px/m]</span><span id="labelZoom">1600</span></div>
+          <input type="range" id="sliderZoom" min="200" max="3000" step="50" value="1600" oninput="onZoomChange(this.value)">
+        </div>
+
+        <div class="toggle-row">
+          <label><input type="checkbox" id="chkWideTank" checked onchange="onWideTankChange(this.checked)"> Wide Tank (Reproduction Mode: no wall/floor stop)</label>
+        </div>
+
+        <div class="slider-row" style="margin-top: 8px;">
           <div class="slider-label"><span>Playback Speed</span><span id="labelSpeed">0.30x (Slo-Mo)</span></div>
           <input type="range" id="sliderSpeed" min="0.05" max="2.0" step="0.05" value="0.30" oninput="onSpeedChange(this.value)">
           <div class="speed-btn-group">
@@ -464,7 +640,57 @@
         </div>
       </div>
 
-      <!-- Keyboard Shortcuts -->
+      <!-- 4. Coin Lines & Visibility Options Panel -->
+      <div class="panel-box">
+        <div class="panel-title">
+          <span>Coin Lines &amp; Visibility</span>
+          <button id="btnToggleAllLines" onclick="toggleAllLines()" style="padding: 2px 8px; font-size: 11px; font-weight:600;">Hide All Lines (Clean Coin)</button>
+        </div>
+
+        <div class="toggle-row">
+          <label><input type="checkbox" id="chkForces" checked onchange="setForcesVisible(this.checked)"> Force Vectors (Lift F<sub>L</sub> &amp; Drag F<sub>D</sub>)</label>
+        </div>
+        <div class="toggle-row">
+          <label><input type="checkbox" id="chkVelocity" checked onchange="setVelocityVisible(this.checked)"> Velocity Vector (V)</label>
+        </div>
+        <div class="toggle-row">
+          <label><input type="checkbox" id="chkChord" checked onchange="setChordVisible(this.checked)"> Coin Chord Director Line</label>
+        </div>
+        <div class="toggle-row">
+          <label><input type="checkbox" id="chkTrail" checked onchange="setTrailVisible(this.checked)"> Trajectory Flight Trail Line</label>
+        </div>
+        <div class="toggle-row">
+          <label><input type="checkbox" id="chkVortices" checked onchange="setVorticesVisible(this.checked)"> Wake Vortex Rings</label>
+        </div>
+        <div class="toggle-row">
+          <label><input type="checkbox" id="chkGhosts" checked onchange="setGhostsVisible(this.checked)"> Ghost Outlines (every 1.0 a/U<sub>0</sub>)</label>
+        </div>
+      </div>
+
+      <!-- 5. Real-Time Trajectory Phase Plot (X/a vs Y/a) -->
+      <div class="panel-box">
+        <div class="panel-title">
+          <span>Trajectory Space (x/a vs y/a)</span>
+          <div style="display: flex; gap: 4px;">
+            <button id="btnTrajFit" onclick="toggleTrajFitMode()" style="padding: 2px 6px; font-size: 10px;">Fit: All</button>
+            <button onclick="saveTrajPNG()" style="padding: 2px 6px; font-size: 10px;">Save PNG</button>
+          </div>
+        </div>
+        <canvas id="chartTraj"></canvas>
+      </div>
+
+      <!-- 6. Real-Time Scrolling Strip Charts -->
+      <div class="panel-box">
+        <div class="panel-title">Tilt Angle &theta;(t) [deg]</div>
+        <canvas class="strip-chart-canvas" id="chartTheta"></canvas>
+      </div>
+
+      <div class="panel-box">
+        <div class="panel-title">Descent Speed |V(t)| (Red) &amp; |v<sub>Y</sub>| (Green) [m/s]</div>
+        <canvas class="strip-chart-canvas" id="chartSpeed"></canvas>
+      </div>
+
+      <!-- 7. Keyboard Shortcuts -->
       <div class="panel-box">
         <div class="panel-title">Hotkeys Reference</div>
         <div class="shortcut-list">
@@ -478,83 +704,101 @@
           <div><span class="shortcut-key">[ / ]</span> Slower / Faster</div>
           <div><span class="shortcut-key">E</span> Toggle 15 Coins</div>
           <div><span class="shortcut-key">C</span> Cycle Colormap</div>
+          <div><span class="shortcut-key">G</span> Compare Coins</div>
           <div><span class="shortcut-key">P</span> Save 300DPI PNG</div>
         </div>
       </div>
     </div>
   </div>
 
+  <!-- Compare Coins Modal -->
+  <div id="modalCompare">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 style="font-size: 14px; color: #0E2A54;">📊 Multi-Coin Trajectory Comparison (First 60 a/U<sub>0</sub>, classified at 80 L)</h3>
+        <div style="display: flex; gap: 8px;">
+          <button onclick="saveComparePNG()" style="background: #0E7490; color: #FFFFFF; border-color: #085166;">Save Comparison PNG</button>
+          <button onclick="closeCompareModal()">Close</button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <canvas id="compareCanvas" width="960" height="720"></canvas>
+      </div>
+    </div>
+  </div>
+
   <script>
     // =========================================================================
-    // 2D Autumn Coin Real-Time Physics & Renderer Engine (Sebastian Lague Style)
+    // <CORE>
+    // Pure, DOM-free mathematical core of Autumn Coin
     // =========================================================================
 
-    const canvas = document.getElementById("simCanvas");
-    const ctx = canvas.getContext("2d");
-    const chartTheta = document.getElementById("chartTheta");
-    const ctxTheta = chartTheta.getContext("2d");
-    const chartSpeed = document.getElementById("chartSpeed");
-    const ctxSpeed = chartSpeed.getContext("2d");
+    const COEFFS = {
+      C_T: 1.2,
+      C_R: Math.PI,
+      C_D0: 1.4,
+      C_D1: 1.0,
+      mu_1: 0.20,
+      mu_2: 0.20,
+      C_tau: (Math.PI * 0.20) / 8.0,
+      rho_f: 998.0,
+      g: 9.81,
+      eps_V: 1e-7
+    };
 
-    let currentMode = 0; // 0 = Mode A (ODE), 1 = Mode B (SPH)
-    let isPaused = false;
-    let playbackSpeed = 0.30; // Default: Slow-Motion (0.30x) instead of real-time
-    let showVectors = true; // Master vector arrows toggle
-    let showForces = true;  // Lift & Drag vectors
-    let showVelocity = true; // Velocity vector V
-    let showChord = true;   // Coin chord director line
-    let showTrail = true;   // Trajectory path trail
-    let showVortices = true; // Shed vortex rings
-    let ensembleMode = false;
-    let sphColorMode = 0; // 0 = Speed, 1 = Vorticity, 2 = Pressure
+    function compute_U_t(rho_s, rho_f, g, h) {
+      const buoy = (rho_s / rho_f) - 1.0;
+      return buoy > 0.0 ? Math.sqrt(buoy * g * h) : 0.0;
+    }
 
-    let I_star = 0.68;
-    let theta0_deg = 5.0;
-    let mu_visc = 0.001; // water (Pa*s)
+    function compute_U_0(rho_s, rho_f, g, b) {
+      const buoy = (rho_s / rho_f) - 1.0;
+      return buoy > 0.0 ? Math.sqrt(buoy * g * b) : 0.0;
+    }
 
-    // Tank geometry (meters) - Matches 38 cm tank
-    const TANK_W = 0.38; // 380 mm
-    const TANK_H = 0.45; // 450 mm
-    const L = 0.024;    // 24 mm
-    const h = 0.0018;   // 1.8 mm
-    const rho_f = 998.0;
-    const g = 9.81;
+    function compute_aspect_ratio(i_star) {
+      return i_star < 0.1125 ? i_star / 1.5 : Math.max(0.075, i_star / 20.0);
+    }
 
-    // Viewport camera
-    let ppm = 1600.0; // pixels per meter
-    let camX = 0.0;
-    let camY = 0.0;
+    const COINS = [
+      // 1. Reference Thin Plates (h/L = 0.01)
+      { id: "ref_1.1", label: "Reference Plate I* = 1.1 (Flutter)", group: "reference", I_star: 1.1, L: 0.024, h: 0.00024, rho_s: 1.1 * 998.0 * 100.0, enabled: true, is_reference: true },
+      { id: "ref_1.4", label: "Reference Plate I* = 1.4 (Tumble)", group: "reference", I_star: 1.4, L: 0.024, h: 0.00024, rho_s: 1.4 * 998.0 * 100.0, enabled: true, is_reference: true },
+      { id: "ref_1.6", label: "Reference Plate I* = 1.6 (Mixed)", group: "reference", I_star: 1.6, L: 0.024, h: 0.00024, rho_s: 1.6 * 998.0 * 100.0, enabled: true, is_reference: true },
+      // 2. Pakistani Rupee Coins (demo values, labelled "replace with measurements")
+      { id: "pk_rs10", label: "Rs 10 (2015-2022, brass) - demo", group: "pakistani", mass_g: 5.5, diameter_mm: 25.5, thickness_mm: 1.5, L: 0.0255, h: 0.0015, rho_s: (5.5e-3) / (Math.PI * (0.5 * 0.0255) ** 2 * 0.0015), material: "brass", enabled: true },
+      { id: "pk_rs5_2002", label: "Rs 5 (2002, cupronickel) - demo", group: "pakistani", mass_g: 6.5, diameter_mm: 24.0, thickness_mm: 2.1, L: 0.0240, h: 0.0021, rho_s: (6.5e-3) / (Math.PI * (0.5 * 0.0240) ** 2 * 0.0021), material: "cupronickel", enabled: true },
+      { id: "pk_rs5_2015", label: "Rs 5 (2015, small brass) - disabled (missing thickness)", group: "pakistani", mass_g: 3.0, diameter_mm: 18.5, thickness_mm: null, L: 0.0185, h: 0.0, rho_s: 0.0, material: "brass", enabled: false },
+      // 3. Design Discs (hypothetical)
+      { id: "design_acrylic_24x1.2", label: "Acrylic 24x1.2 mm (I* = 0.059)", group: "design", diameter_mm: 24.0, thickness_mm: 1.2, L: 0.024, h: 0.0012, rho_s: 1180.0, material: "acrylic", enabled: true },
+      { id: "design_aluminium_24x1.5", label: "Aluminium 24x1.5 mm (I* = 0.169)", group: "design", diameter_mm: 24.0, thickness_mm: 1.5, L: 0.024, h: 0.0015, rho_s: 2700.0, material: "aluminium", enabled: true },
+      { id: "design_brass_24x3.0", label: "Brass 24x3.0 mm (I* = 1.065)", group: "design", diameter_mm: 24.0, thickness_mm: 3.0, L: 0.024, h: 0.0030, rho_s: 8500.0, material: "brass", enabled: true },
+      { id: "design_brass_24x3.5", label: "Brass 24x3.5 mm (I* = 1.242)", group: "design", diameter_mm: 24.0, thickness_mm: 3.5, L: 0.024, h: 0.0035, rho_s: 8500.0, material: "brass", enabled: true },
+      { id: "design_steel_24x4.5", label: "Steel 24x4.5 mm (I* = 1.475)", group: "design", diameter_mm: 24.0, thickness_mm: 4.5, L: 0.024, h: 0.0045, rho_s: 7850.0, material: "steel", enabled: true },
+      { id: "design_lead_24x3.5", label: "Lead 24x3.5 mm (I* = 1.657)", group: "design", diameter_mm: 24.0, thickness_mm: 3.5, L: 0.024, h: 0.0035, rho_s: 11340.0, material: "lead", enabled: true },
+      { id: "design_tungsten_24x3.0", label: "Tungsten 24x3.0 mm (I* = 2.411)", group: "design", diameter_mm: 24.0, thickness_mm: 3.0, L: 0.024, h: 0.0030, rho_s: 19250.0, material: "tungsten", enabled: true }
+    ];
 
-    // -------------------------------------------------------------------------
-    // Mode A: 6-State Quasi-Steady Andersen ODE Simulator
-    // -------------------------------------------------------------------------
     class ODESimulator {
-      constructor(I_val, th0_rad) {
-        this.L = L;
-        this.h = h;
-        this.a = L * 0.5;
-        this.b = h * 0.5;
-        this.rho_f = rho_f;
-        this.g = g;
-        this.setIStar(I_val);
+      constructor(plate, th0_rad = 0.0, u0 = 0.0, v0 = 0.0, om0 = 0.0, mu_1 = 0.20, coeffs = COEFFS) {
+        this.plate = plate;
+        this.coeffs = coeffs;
+        this.L = plate.L;
+        this.h = plate.h;
+        this.a = plate.L * 0.5;
+        this.b = plate.h * 0.5;
+        this.rho_s = plate.rho_s;
+        this.rho_f = coeffs.rho_f;
+        this.g = coeffs.g;
+        this.mu_1 = mu_1;
 
-        this.X = 0.0;
-        this.Y = 0.0;
-        this.theta = th0_rad;
-        this.u = 0.0;
-        this.v = 0.0;
-        this.omega = 0.0;
-        this.time = 0.0;
+        this.I_star = (this.rho_s * this.h) / (this.rho_f * this.L);
+        this.U_t = compute_U_t(this.rho_s, this.rho_f, this.g, this.h);
+        this.U_0 = compute_U_0(this.rho_s, this.rho_f, this.g, this.b);
+        this.t_unit = this.a / (this.U_0 > 1e-9 ? this.U_0 : 0.01);
+        this.H_fall = 80.0 * this.L;
 
-        // Force outputs
-        this.FLx = 0; this.FLy = 0;
-        this.FDx = 0; this.FDy = 0;
-      }
-
-      setIStar(I_val) {
-        this.I_star = I_val;
         const geom = (this.a * this.a + this.b * this.b);
-        this.rho_s = I_val * this.rho_f * geom / (this.a * this.b);
         this.mass = this.rho_s * Math.PI * this.a * this.b;
         this.mass_f = this.rho_f * Math.PI * this.a * this.b;
         this.I_solid = 0.25 * this.mass * geom;
@@ -567,6 +811,19 @@
         this.Mu = this.mass + this.m11;
         this.Mv = this.mass + this.m22;
         this.Itot = this.I_solid + this.I_a;
+
+        this.X = 0.0;
+        this.Y = 0.0;
+        this.theta = th0_rad;
+        this.u = u0;
+        this.v = v0;
+        this.omega = om0;
+        this.time = 0.0;
+        this.reached_depth = false;
+
+        // Diagnostic force components
+        this.FLx = 0; this.FLy = 0;
+        this.FDx = 0; this.FDy = 0;
       }
 
       derivatives(X, Y, th, u, v, om) {
@@ -578,18 +835,18 @@
         const dth = om;
 
         const speed = Math.hypot(u, v);
-        const trans = (speed < 1e-6) ? 0.0 : -1.2 * this.L * (u * v / speed);
-        const rot = 0.5 * 1.6 * (this.L * this.L) * om;
+        const trans = (speed < this.coeffs.eps_V) ? 0.0 : -this.coeffs.C_T * this.L * (u * v / speed);
+        const rot = 0.5 * this.coeffs.C_R * (this.L * this.L) * om;
         const gamma = trans + rot;
 
         const alpha = Math.atan2(-v, u);
-        const c_d = 1.4 - 1.0 * Math.cos(2.0 * alpha);
-        const f_u = 0.5 * this.rho_f * this.L * c_d * speed * u;
-        const f_v = 0.5 * this.rho_f * this.L * c_d * speed * v;
+        const c_d = this.coeffs.C_D0 - this.coeffs.C_D1 * Math.cos(2.0 * alpha);
+        const f_u = (speed < this.coeffs.eps_V) ? 0.0 : 0.5 * this.rho_f * this.L * c_d * speed * u;
+        const f_v = (speed < this.coeffs.eps_V) ? 0.0 : 0.5 * this.rho_f * this.L * c_d * speed * v;
 
         const u_char = Math.sqrt(Math.max(this.rho_s / this.rho_f - 1.0, 0.0) * this.g * (this.h * 0.5));
-        const c_lin_phys = (Math.PI / 8.0) * this.rho_f * (this.L ** 3) * u_char * 0.2;
-        const tau = 0.5 * 0.075 * this.rho_f * (this.L ** 4) * Math.abs(om) * om + c_lin_phys * om;
+        const c_lin_phys = (Math.PI / 8.0) * this.rho_f * (this.L ** 3) * u_char * this.mu_1;
+        const tau = 0.5 * this.coeffs.C_tau * this.rho_f * (this.L ** 4) * Math.abs(om) * om + c_lin_phys * om;
 
         const buoy = (this.mass - this.mass_f) * this.g;
         const g_u = buoy * sin_th;
@@ -602,7 +859,6 @@
         const dv = (-this.Mu * u * om + lift_v - f_v - g_v) / this.Mv;
         const dom = ((this.m11 - this.m22) * u * v - tau) / this.Itot;
 
-        // Force vectors for visualizer
         const flx = -this.rho_f * gamma * dY;
         const fly =  this.rho_f * gamma * dX;
         const fdx = -0.5 * this.rho_f * this.L * c_d * speed * dX;
@@ -611,8 +867,7 @@
         return { dX, dY, dth, du, dv, dom, flx, fly, fdx, fdy };
       }
 
-      step(dt) {
-        // RK4 integrator
+      step(dt, tank = null) {
         const k1 = this.derivatives(this.X, this.Y, this.theta, this.u, this.v, this.omega);
         const k2 = this.derivatives(this.X + 0.5*dt*k1.dX, this.Y + 0.5*dt*k1.dY, this.theta + 0.5*dt*k1.dth,
                                   this.u + 0.5*dt*k1.du, this.v + 0.5*dt*k1.dv, this.omega + 0.5*dt*k1.dom);
@@ -632,64 +887,228 @@
         this.FLx = k1.flx; this.FLy = k1.fly;
         this.FDx = k1.fdx; this.FDy = k1.fdy;
 
-        // Collision with bottom floor and side walls
-        if (this.Y <= -TANK_H) {
-          this.Y = -TANK_H;
-          this.u = 0; this.v = 0; this.omega = 0;
+        if (this.Y <= -this.H_fall) {
+          this.reached_depth = true;
         }
-        if (Math.abs(this.X) >= TANK_W * 0.5 - this.a) {
-          this.X = Math.sign(this.X) * (TANK_W * 0.5 - this.a);
-          this.u = 0; this.v = 0; this.omega = 0;
+
+        // Tank boundary collisions (null = wide tank)
+        if (tank !== null) {
+          if (this.Y <= -tank.h) {
+            this.Y = -tank.h;
+            this.u = 0; this.v = 0; this.omega = 0;
+          }
+          if (Math.abs(this.X) >= tank.w * 0.5 - this.a) {
+            this.X = Math.sign(this.X) * (tank.w * 0.5 - this.a);
+            this.u = 0; this.v = 0; this.omega = 0;
+          }
         }
       }
     }
 
-    // -------------------------------------------------------------------------
-    // Mode B: Interactive 2D Weakly Compressible SPH Fluid Tank
-    // -------------------------------------------------------------------------
+    function classifyRegime(times, Ys, thetas, omegas, H_fall, customParams = null) {
+      const p = Object.assign({
+        transient_fraction: 0.20,
+        transient_t_min: 1.0,
+        theta_std_steady_deg: 1.0,
+        theta_ptp_steady_deg: 2.0,
+        theta_ptp_flutter_max_deg: 300.0,
+        min_flips_tumble: 2,
+        max_reversal_tumble_deg: 180.0,
+        min_spin_ratio_tumble: 0.70
+      }, customParams || {});
+
+      if (!times || times.length < 2) return "fluttering";
+
+      const t_end = times[times.length - 1];
+      const t_transient = Math.max(p.transient_fraction * t_end, p.transient_t_min);
+      const y0 = Ys[0];
+      const transient_depth = p.transient_fraction * H_fall;
+
+      let valid_indices = [];
+      for (let i = 0; i < times.length; ++i) {
+        if (times[i] >= t_transient && Ys[i] <= (y0 - transient_depth)) {
+          valid_indices.push(i);
+        }
+      }
+
+      if (valid_indices.length < 10) {
+        valid_indices = [];
+        for (let i = 0; i < times.length; ++i) {
+          if (times[i] >= 0.5 * t_end) valid_indices.push(i);
+        }
+        if (valid_indices.length < 5) {
+          valid_indices = times.map((_, idx) => idx);
+        }
+      }
+
+      const th_crop = valid_indices.map(i => thetas[i]);
+      const om_crop = valid_indices.map(i => omegas[i]);
+
+      let min_th = th_crop[0], max_th = th_crop[0];
+      let sum_th = 0;
+      for (let th of th_crop) {
+        if (th < min_th) min_th = th;
+        if (th > max_th) max_th = th;
+        sum_th += th;
+      }
+      const ptp_theta = max_th - min_th;
+      const mean_th = sum_th / th_crop.length;
+      let var_th = 0;
+      for (let th of th_crop) {
+        var_th += (th - mean_th) ** 2;
+      }
+      const std_theta = Math.sqrt(var_th / th_crop.length);
+
+      const delta_th_net = th_crop[th_crop.length - 1] - th_crop[0];
+      const net_rotation = Math.abs(delta_th_net);
+
+      let max_backward_excursion = 0.0;
+      if (delta_th_net >= 0) {
+        let run_max = th_crop[0];
+        for (let th of th_crop) {
+          if (th > run_max) run_max = th;
+          const back = run_max - th;
+          if (back > max_backward_excursion) max_backward_excursion = back;
+        }
+      } else {
+        let run_min = th_crop[0];
+        for (let th of th_crop) {
+          if (th < run_min) run_min = th;
+          const back = th - run_min;
+          if (back > max_backward_excursion) max_backward_excursion = back;
+        }
+      }
+
+      let sum_abs_om = 0, sum_om = 0;
+      for (let om of om_crop) {
+        sum_abs_om += Math.abs(om);
+        sum_om += om;
+      }
+      const mean_abs_om = sum_abs_om / om_crop.length;
+      const mean_om = sum_om / om_crop.length;
+      const spin_ratio = Math.abs(mean_om) / (mean_abs_om + 1e-9);
+
+      const std_deg = std_theta * 180 / Math.PI;
+      const ptp_deg = ptp_theta * 180 / Math.PI;
+      const back_deg = max_backward_excursion * 180 / Math.PI;
+
+      // 1. Steady
+      if ((std_deg < p.theta_std_steady_deg || ptp_deg < p.theta_ptp_steady_deg) && ptp_deg < 360.0) {
+        return "steady";
+      }
+      // 2. Tumbling
+      if ((net_rotation >= p.min_flips_tumble * 2.0 * Math.PI) && (back_deg < p.max_reversal_tumble_deg || spin_ratio >= p.min_spin_ratio_tumble)) {
+        return "tumbling";
+      }
+      // 3. Fluttering
+      if ((ptp_deg < p.theta_ptp_flutter_max_deg) && (net_rotation < 2.0 * Math.PI) && (spin_ratio < p.min_spin_ratio_tumble)) {
+        return "fluttering";
+      }
+      // 4. Mixed
+      return "mixed";
+    }
+
+    // =========================================================================
+    // </CORE>
+    // End of pure mathematical core
+    // =========================================================================
+
+    // Viewport & canvas references
+    const canvas = document.getElementById("simCanvas");
+    const ctx = canvas.getContext("2d");
+    const chartTheta = document.getElementById("chartTheta");
+    const ctxTheta = chartTheta.getContext("2d");
+    const chartSpeed = document.getElementById("chartSpeed");
+    const ctxSpeed = chartSpeed.getContext("2d");
+    const chartTraj = document.getElementById("chartTraj");
+    const ctxTraj = chartTraj.getContext("2d");
+
+    // UI state
+    let currentMode = 0; // 0 = Mode A (ODE), 1 = Mode B (Illustration)
+    let isPaused = false;
+    let playbackSpeed = 0.30;
+    let isWideTank = true;
+    let startMode = "rest"; // "rest" or "ref"
+    let theta0_deg = 5.0;
+    let perturb_deg = 0.0;
+    let mu_1_val = 0.20;
+    let mu_visc = 0.001; // water (Pa*s)
+    let ppm = 1600.0;
+    let camX = 0.0;
+    let camY = 0.0;
+
+    // Visibility toggles
+    let showVectors = true;
+    let showForces = true;
+    let showVelocity = true;
+    let showChord = true;
+    let showTrail = true;
+    let showVortices = true;
+    let showGhosts = true;
+    let ensembleMode = false;
+    let sphColorMode = 0;
+    let trajFitAll = true; // true = fit all history, false = last 60 time units
+
+    // Active coin configuration
+    let activeCoin = COINS.find(c => c.id === "design_aluminium_24x1.5") || COINS[0];
+    let customCoin = { id: "custom_coin", label: "Custom Coin", L: 0.024, h: 0.002, rho_s: 3000.0, enabled: true };
+    let freePlate = { id: "free_istar", label: "Free I* Plate", L: 0.024, h: 0.0018, rho_s: 2700.0, enabled: true };
+
+    // Tank geometry (meters)
+    const TANK_W = 0.38;
+    const TANK_H = 0.45;
+
+    // Simulation instances
+    let odeSim = null;
+    let ensembleCoins = [];
+    let sphSim = null;
+
+    // Trajectory histories
+    let pathTrail = [];
+    let shedVortices = [];
+    let ghostOutlines = [];
+    let historyTime = [];
+    let historyTheta = [];
+    let historySpeed = [];
+    let historyVy = [];
+    let prevOmega = 0.0;
+    let lastGhostTime = -1e9;
+
+    // Trajectory plot sample buffer (X/a, Y/a, theta) with adaptive decimation
+    let trajBuffer = [];
+    let ensembleTrajBuffers = [];
+    let trajSampleInterval = 0.05; // in units of a/U_0
+    let lastTrajSampleTime = -1e9;
+    let trajBounds = { minX: -5.0, maxX: 5.0, minY: -10.0, maxY: 0.0 };
+
+    // SPH illustrative class
     class SPHFluidSim {
       constructor() {
         this.particles = [];
         this.coinX = 0.0;
         this.coinY = 0.20;
         this.coinTheta = theta0_deg * Math.PI / 180;
-        this.coinU = 0.0;
-        this.coinV = 0.0;
-        this.coinOmega = 0.0;
         this.time = 0.0;
         this.initParticles();
       }
-
       initParticles() {
         this.particles = [];
-        const dx = 0.0035; // particle spacing for fast 60fps browser rendering
+        const dx = 0.0035;
         for (let x = -0.12; x <= 0.12; x += dx) {
           for (let y = -0.35; y <= 0.35; y += dx) {
-            // carve out ellipse interior
             const lx = x - this.coinX;
             const ly = y - this.coinY;
             if ((lx * lx) / (0.012 * 0.012) + (ly * ly) / (0.001 * 0.001) > 1.2) {
-              this.particles.push({
-                x: x, y: y,
-                vx: 0.0, vy: 0.0,
-                vort: 0.0, p: 998.0 * 9.81 * (0.35 - y)
-              });
+              this.particles.push({ x, y, vx: 0.0, vy: 0.0, vort: 0.0, p: 998.0 * 9.81 * (0.35 - y) });
             }
           }
         }
       }
-
       step(dt) {
-        // Fluid-coin coupled step
         this.time += dt;
-        // update coin kinematics
-        const cos_th = Math.cos(this.coinTheta);
-        const sin_th = Math.sin(this.coinTheta);
-        this.coinY -= 0.18 * dt; // steady descent in tank
+        this.coinY -= 0.18 * dt;
         this.coinX += 0.06 * Math.sin(this.time * 7.0) * dt;
         this.coinTheta = 0.5 * Math.sin(this.time * 7.0);
-
-        // Perturb particles around coin and advect
         for (let p of this.particles) {
           const dx = p.x - this.coinX;
           const dy = p.y - this.coinY;
@@ -700,7 +1119,6 @@
             p.vy += (dx / (r + 0.001)) * 0.2 * factor;
             p.vort = (dx * p.vy - dy * p.vx) * 80.0;
           }
-          // Viscous damping
           p.vx *= 0.985;
           p.vy *= 0.985;
           p.x += p.vx * dt;
@@ -710,41 +1128,86 @@
       }
     }
 
-    // Instances
-    let odeSim = new ODESimulator(I_star, theta0_deg * Math.PI / 180);
-    let ensembleCoins = [];
-    let sphSim = new SPHFluidSim();
-
-    // History for strip charts and ribbon
-    let pathTrail = [];
-    let shedVortices = [];
-    let historyTime = [];
-    let historyTheta = [];
-    let historySpeed = [];
-    let historyVy = [];
-    let prevOmega = 0.0;
-
-    function initEnsemble() {
-      ensembleCoins = [];
-      if (!ensembleMode) return;
-      for (let k = -7; k <= 7; ++k) {
-        const perturbed_th = (theta0_deg + k * 0.15) * Math.PI / 180;
-        const sim = new ODESimulator(I_star, perturbed_th);
-        ensembleCoins.push(sim);
+    function createSimulator(plate, angleDeg, velMode, perturbRad = 0.0) {
+      let th0 = angleDeg * Math.PI / 180.0 + perturbRad;
+      let u0 = 0.0;
+      let v0 = 0.0;
+      if (velMode === "ref") {
+        th0 = 0.1; // reference release is 0.1 rad exactly
+        const b = plate.h * 0.5;
+        const u0_scale = compute_U_0(plate.rho_s, COEFFS.rho_f, COEFFS.g, b);
+        v0 = -u0_scale;
       }
+      return new ODESimulator(plate, th0, u0, v0, 0.0, mu_1_val);
     }
 
     function resetDrop() {
-      odeSim = new ODESimulator(I_star, theta0_deg * Math.PI / 180);
+      const p_rad = (perturb_deg * Math.PI / 180.0) * (Math.random() * 2.0 - 1.0);
+      odeSim = createSimulator(activeCoin, theta0_deg, startMode, p_rad);
       sphSim = new SPHFluidSim();
+
       pathTrail = [];
       shedVortices = [];
+      ghostOutlines = [];
       historyTime = [];
       historyTheta = [];
       historySpeed = [];
       historyVy = [];
       prevOmega = 0.0;
+      lastGhostTime = -1e9;
+
+      trajBuffer = [];
+      ensembleTrajBuffers = [];
+      trajSampleInterval = 0.05;
+      lastTrajSampleTime = -1e9;
+      trajBounds = { minX: -5.0, maxX: 5.0, minY: -10.0, maxY: 0.0 };
+
       initEnsemble();
+      updateInfoCard();
+      checkSymmetryWarning();
+    }
+
+    function initEnsemble() {
+      ensembleCoins = [];
+      ensembleTrajBuffers = [];
+      if (!ensembleMode) return;
+      for (let k = -7; k <= 7; ++k) {
+        const offset = k * 0.15;
+        const sim = createSimulator(activeCoin, theta0_deg + offset, startMode, 0.0);
+        ensembleCoins.push(sim);
+        ensembleTrajBuffers.push([]);
+      }
+    }
+
+    function updateInfoCard() {
+      const p = activeCoin;
+      const rho_s = p.rho_s;
+      const rho_ratio = rho_s / COEFFS.rho_f;
+      const aspect = p.h / p.L;
+      const i_star = (rho_s * p.h) / (COEFFS.rho_f * p.L);
+      const u_t = compute_U_t(rho_s, COEFFS.rho_f, COEFFS.g, p.h);
+      const u_0 = compute_U_0(rho_s, COEFFS.rho_f, COEFFS.g, p.h * 0.5);
+
+      document.getElementById("infoRhoS").innerText = rho_s.toFixed(1) + " kg/m³";
+      document.getElementById("infoRhoRatio").innerText = rho_ratio.toFixed(2);
+      document.getElementById("infoAspect").innerText = aspect.toFixed(4);
+      document.getElementById("infoIStar").innerText = i_star.toFixed(3);
+      document.getElementById("infoUt").innerText = u_t.toFixed(3) + " m/s";
+      document.getElementById("infoU0").innerText = u_0.toFixed(3) + " m/s";
+
+      const re_in = (COEFFS.rho_f * u_t * p.L) / mu_visc;
+      document.getElementById("valReIn").innerText = Math.round(re_in);
+      document.getElementById("valIStar").innerText = i_star.toFixed(3);
+    }
+
+    function checkSymmetryWarning() {
+      const rad = theta0_deg * Math.PI / 180.0;
+      const warnEl = document.getElementById("symmWarning");
+      if (Math.abs(Math.sin(rad)) < 1e-6 && Math.abs(perturb_deg) < 1e-6 && startMode === "rest") {
+        warnEl.style.display = "block";
+      } else {
+        warnEl.style.display = "none";
+      }
     }
 
     // -------------------------------------------------------------------------
@@ -755,48 +1218,135 @@
       document.getElementById("btnModeA").className = (m === 0 ? "active" : "");
       document.getElementById("btnModeB").className = (m === 1 ? "active" : "");
       document.getElementById("bannerText").innerText = (m === 0)
-        ? "MODE A: 2D Quasi-Steady ODE Numerical Simulation (Andersen 2005b)"
-        : "MODE B: 2D WCSPH-FSI Numerical Simulation (Wendland C2 + Akinci Coupling)";
+        ? "MODE A: 2D Quasi-Steady ODE Numerical Simulation"
+        : "MODE B: 2D SPH Fluid Tank (Illustrative Animation)";
       document.getElementById("vectorLegend").style.display = (m === 0 ? "flex" : "none");
+      document.getElementById("sphDisclaimer").style.display = (m === 1 ? "block" : "none");
+    }
+
+    function onCoinSelect(id) {
+      if (id === "custom_coin") {
+        document.getElementById("customCoinInputs").style.display = "block";
+        document.getElementById("freeIStarRow").style.display = "none";
+        onCustomCoinChange();
+        return;
+      } else {
+        document.getElementById("customCoinInputs").style.display = "none";
+      }
+
+      if (id === "free_istar") {
+        document.getElementById("freeIStarRow").style.display = "block";
+        onFreeIStarChange(document.getElementById("sliderFreeIStar").value);
+        return;
+      } else {
+        document.getElementById("freeIStarRow").style.display = "none";
+      }
+
+      const found = COINS.find(c => c.id === id);
+      if (found) {
+        activeCoin = found;
+        if (found.is_reference) {
+          // Switch to reference start mode
+          startMode = "ref";
+          const radios = document.getElementsByName("startMode");
+          for (let r of radios) r.checked = (r.value === "ref");
+          theta0_deg = 5.73; // 0.1 rad in degrees for display
+          document.getElementById("sliderTheta0").value = Math.round(theta0_deg);
+          document.getElementById("labelTheta0").innerText = "0.1 rad (5.7°)";
+        }
+        resetDrop();
+      }
+    }
+
+    function onCustomCoinChange() {
+      const mass_g = parseFloat(document.getElementById("custMass").value) || 6.0;
+      const diam_mm = parseFloat(document.getElementById("custDiam").value) || 24.0;
+      const thick_mm = parseFloat(document.getElementById("custThick").value) || 2.0;
+      const L = diam_mm * 1e-3;
+      const h = thick_mm * 1e-3;
+      const vol = Math.PI * (0.5 * L) ** 2 * h;
+      const rho_s = (mass_g * 1e-3) / vol;
+
+      customCoin = { id: "custom_coin", label: `Custom ${diam_mm}x${thick_mm} mm (${mass_g}g)`, L, h, rho_s, enabled: true };
+      activeCoin = customCoin;
+      resetDrop();
+    }
+
+    function onFreeIStarChange(v) {
+      const i_star = parseFloat(v);
+      document.getElementById("labelFreeIStar").innerText = i_star.toFixed(2);
+      const L = 0.024;
+      const aspect = compute_aspect_ratio(i_star);
+      const h = L * aspect;
+      const rho_s = COEFFS.rho_f * i_star / aspect;
+
+      freePlate = { id: "free_istar", label: `Free Plate I* = ${i_star.toFixed(2)}`, L, h, rho_s, enabled: true };
+      activeCoin = freePlate;
+      resetDrop();
     }
 
     function applyPreset(p) {
       document.querySelectorAll(".preset-btn").forEach((b, idx) => {
-        b.className = "preset-btn" + (idx + 1 === p ? " active" : "");
+        if (!b.disabled) b.className = "preset-btn" + (idx + 1 === p ? " active" : "");
       });
 
-      if (p === 1) { // Steady
-        I_star = 0.06; theta0_deg = 5.0;
-      } else if (p === 2) { // Flutter
-        I_star = 0.68; theta0_deg = 5.0;
-      } else if (p === 3) { // Tumble
-        I_star = 1.20; theta0_deg = 15.0;
-      } else if (p === 4) { // Mixed
-        I_star = 3.50; theta0_deg = 45.0;
+      if (p === 1) {
+        // Disabled per Amendment 3
+        return;
+      } else if (p === 2) {
+        // Flutter
+        onCoinSelect("design_aluminium_24x1.5");
+        document.getElementById("selCoin").value = "design_aluminium_24x1.5";
+      } else if (p === 3) {
+        // Tumble
+        onCoinSelect("design_brass_24x3.5");
+        document.getElementById("selCoin").value = "design_brass_24x3.5";
+      } else if (p === 4) {
+        // Mixed
+        onCoinSelect("design_steel_24x4.5");
+        document.getElementById("selCoin").value = "design_steel_24x4.5";
       }
-
-      document.getElementById("sliderIStar").value = I_star;
-      document.getElementById("labelIStar").innerText = I_star.toFixed(2);
-      document.getElementById("sliderTheta0").value = theta0_deg;
-      document.getElementById("labelTheta0").innerText = theta0_deg.toFixed(1) + "°";
-      resetDrop();
-    }
-
-    function onIStarChange(v) {
-      I_star = parseFloat(v);
-      document.getElementById("labelIStar").innerText = I_star.toFixed(2);
-      odeSim.setIStar(I_star);
-      for (let s of ensembleCoins) s.setIStar(I_star);
     }
 
     function onTheta0Change(v) {
       theta0_deg = parseFloat(v);
       document.getElementById("labelTheta0").innerText = theta0_deg.toFixed(1) + "°";
+      checkSymmetryWarning();
+      resetDrop();
+    }
+
+    function onPerturbChange(v) {
+      perturb_deg = parseFloat(v);
+      document.getElementById("labelPerturb").innerText = "±" + perturb_deg.toFixed(1) + "°";
+      checkSymmetryWarning();
+      resetDrop();
+    }
+
+    function onStartModeChange(v) {
+      startMode = v;
+      resetDrop();
+    }
+
+    function onMu1Change(v) {
+      mu_1_val = parseFloat(v);
+      const isLit = Math.abs(mu_1_val - 0.20) < 1e-4;
+      document.getElementById("labelMu1").innerText = mu_1_val.toFixed(2) + (isLit ? " (Literature Baseline)" : "");
+      resetDrop();
     }
 
     function onMuChange(v) {
       mu_visc = parseFloat(v);
       document.getElementById("labelMu").innerText = mu_visc.toFixed(4);
+      updateInfoCard();
+    }
+
+    function onZoomChange(v) {
+      ppm = parseFloat(v);
+      document.getElementById("labelZoom").innerText = Math.round(ppm);
+    }
+
+    function onWideTankChange(v) {
+      isWideTank = v;
     }
 
     function setSpeed(v) {
@@ -822,8 +1372,6 @@
         btnSloMo.className = isSlow ? "active" : "";
         btnSloMo.innerText = isSlow ? `⏱️ Slo-Mo (${playbackSpeed.toFixed(2)}x)` : "⏱️ Slo-Mo (OFF)";
       }
-
-      // Highlight preset buttons
       const presets = [0.10, 0.30, 0.50, 1.00];
       const ids = ["", "spdBtn03", "spdBtn05", "spdBtn10"];
       for (let i = 1; i < presets.length; ++i) {
@@ -835,11 +1383,7 @@
     }
 
     function toggleSloMo() {
-      if (playbackSpeed > 0.45) {
-        setSpeed(0.30); // switch to slow motion
-      } else {
-        setSpeed(1.00); // switch to real time
-      }
+      setSpeed(playbackSpeed > 0.45 ? 0.30 : 1.00);
     }
 
     function togglePause() {
@@ -847,75 +1391,62 @@
       document.getElementById("btnPlay").innerText = isPaused ? "[Space] Play" : "[Space] Pause";
     }
 
-    // -------------------------------------------------------------------------
-    // Visibility & Line Options
-    // -------------------------------------------------------------------------
+    function toggleTrajFitMode() {
+      trajFitAll = !trajFitAll;
+      document.getElementById("btnTrajFit").innerText = trajFitAll ? "Fit: All" : "Fit: Last 60 a/U";
+    }
+
+    // Visibility toggles
     function setForcesVisible(v) {
       showForces = v;
-      const chk = document.getElementById("chkForces");
-      if (chk) chk.checked = v;
-      const legLift = document.getElementById("legLift");
-      if (legLift) legLift.classList.toggle("dimmed", !v);
-      const legDrag = document.getElementById("legDrag");
-      if (legDrag) legDrag.classList.toggle("dimmed", !v);
+      document.getElementById("chkForces").checked = v;
+      document.getElementById("legLift").classList.toggle("dimmed", !v);
+      document.getElementById("legDrag").classList.toggle("dimmed", !v);
       updateMasterButton();
     }
-
     function setVelocityVisible(v) {
       showVelocity = v;
-      const chk = document.getElementById("chkVelocity");
-      if (chk) chk.checked = v;
-      const legVel = document.getElementById("legVel");
-      if (legVel) legVel.classList.toggle("dimmed", !v);
+      document.getElementById("chkVelocity").checked = v;
+      document.getElementById("legVel").classList.toggle("dimmed", !v);
       updateMasterButton();
     }
-
     function setChordVisible(v) {
       showChord = v;
-      const chk = document.getElementById("chkChord");
-      if (chk) chk.checked = v;
-      const legChord = document.getElementById("legChord");
-      if (legChord) legChord.classList.toggle("dimmed", !v);
+      document.getElementById("chkChord").checked = v;
+      document.getElementById("legChord").classList.toggle("dimmed", !v);
       updateMasterButton();
     }
-
     function setTrailVisible(v) {
       showTrail = v;
-      const chk = document.getElementById("chkTrail");
-      if (chk) chk.checked = v;
-      const legTrail = document.getElementById("legTrail");
-      if (legTrail) legTrail.classList.toggle("dimmed", !v);
+      document.getElementById("chkTrail").checked = v;
+      document.getElementById("legTrail").classList.toggle("dimmed", !v);
       updateMasterButton();
     }
-
     function setVorticesVisible(v) {
       showVortices = v;
-      const chk = document.getElementById("chkVortices");
-      if (chk) chk.checked = v;
-      const legVort = document.getElementById("legVort");
-      if (legVort) legVort.classList.toggle("dimmed", !v);
+      document.getElementById("chkVortices").checked = v;
+      document.getElementById("legVort").classList.toggle("dimmed", !v);
       updateMasterButton();
     }
-
+    function setGhostsVisible(v) {
+      showGhosts = v;
+      document.getElementById("chkGhosts").checked = v;
+    }
     function toggleVelocity() { setVelocityVisible(!showVelocity); }
     function toggleLift() { setForcesVisible(!showForces); }
     function toggleDrag() { setForcesVisible(!showForces); }
     function toggleChord() { setChordVisible(!showChord); }
     function toggleTrail() { setTrailVisible(!showTrail); }
     function toggleVortices() { setVorticesVisible(!showVortices); }
-
     function toggleVectors() {
-      // Toggle all vector arrows (V, L, D, chord)
       const anyOn = showForces || showVelocity || showChord;
       const target = !anyOn;
       showVectors = target;
       setForcesVisible(target);
       setVelocityVisible(target);
       setChordVisible(target);
-      const btn = document.getElementById("btnVectors");
-      if (btn) btn.innerText = "Vectors: " + (target ? "ON [V]" : "OFF [V]");
+      document.getElementById("btnVectors").innerText = "Vectors: " + (target ? "ON [V]" : "OFF [V]");
     }
-
     function toggleAllLines() {
       const anyVisible = showForces || showVelocity || showChord || showTrail || showVortices;
       const target = !anyVisible;
@@ -927,7 +1458,6 @@
       setVorticesVisible(target);
       updateMasterButton();
     }
-
     function updateMasterButton() {
       const anyVisible = showForces || showVelocity || showChord || showTrail || showVortices;
       const btn = document.getElementById("btnToggleAllLines");
@@ -942,13 +1472,11 @@
         btnVec.innerText = "Vectors: " + (vecOn ? "ON [V]" : "OFF [V]");
       }
     }
-
     function toggleEnsemble() {
       ensembleMode = !ensembleMode;
       document.getElementById("btnEnsemble").className = ensembleMode ? "active" : "";
       initEnsemble();
     }
-
     function cycleColorMode() {
       sphColorMode = (sphColorMode + 1) % 3;
       const names = ["Color: Speed [C]", "Color: Vorticity [C]", "Color: Pressure [C]"];
@@ -957,23 +1485,24 @@
 
     function saveScreenshot() {
       const dataURL = canvas.toDataURL("image/png");
-      fetch("/api/save_screenshot", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: dataURL, mode: currentMode, I_star: I_star })
-      }).then(r => r.json()).then(data => {
-        alert("Screenshot successfully saved to: " + data.filename);
-      }).catch(err => {
-        // Fallback: download directly in browser
-        const a = document.createElement("a");
-        a.href = dataURL;
-        a.download = `autumn_coin_${currentMode === 0 ? "ode" : "sph"}_I${I_star.toFixed(2)}.png`;
-        a.click();
-      });
+      const a = document.createElement("a");
+      a.href = dataURL;
+      const prefix = currentMode === 0 ? "autumn_coin_ode" : "autumn_coin_illustration";
+      a.download = `${prefix}_I${odeSim.I_star.toFixed(2)}.png`;
+      a.click();
+    }
+
+    function saveTrajPNG() {
+      const dataURL = chartTraj.toDataURL("image/png");
+      const a = document.createElement("a");
+      a.href = dataURL;
+      a.download = `trajectory_${activeCoin.id}_I${odeSim.I_star.toFixed(2)}.png`;
+      a.click();
     }
 
     // Keyboard hotkeys
     window.addEventListener("keydown", (e) => {
+      if (e.target.tagName === "INPUT" || e.target.tagName === "SELECT") return;
       if (e.key === "Tab") { e.preventDefault(); switchMode(currentMode === 0 ? 1 : 0); }
       else if (e.key === "1") applyPreset(1);
       else if (e.key === "2") applyPreset(2);
@@ -987,46 +1516,109 @@
       else if (e.key === "]") setSpeed(Math.min(2.0, playbackSpeed + 0.05));
       else if (e.key === "e" || e.key === "E") toggleEnsemble();
       else if (e.key === "c" || e.key === "C") cycleColorMode();
+      else if (e.key === "g" || e.key === "G") openCompareModal();
       else if (e.key === "p" || e.key === "P") saveScreenshot();
       else if (e.key === "s" || e.key === "S") {
         if (isPaused) {
-          if (currentMode === 0) odeSim.step(0.016);
-          else sphSim.step(0.016);
+          stepPhysicsFrame();
         }
       }
     });
 
     // -------------------------------------------------------------------------
-    // Colormap Utilities
+    // Physics Sub-Stepping Loop (Amendment 1: dt <= 0.02 * t_unit)
     // -------------------------------------------------------------------------
-    function getSpeedColor(spd, maxSpd = 0.5) {
-      const t = Math.min(Math.max(spd / maxSpd, 0.0), 1.0);
-      // Seb Lague ramp: Deep Blue -> Cyan -> Yellow -> Coral
-      if (t < 0.33) {
-        const f = t / 0.33;
-        return `rgb(${Math.round(20 + f * 20)}, ${Math.round(60 + f * 120)}, ${Math.round(180 + f * 40)})`;
-      } else if (t < 0.66) {
-        const f = (t - 0.33) / 0.33;
-        return `rgb(${Math.round(40 + f * 190)}, ${Math.round(180 + f * 40)}, ${Math.round(220 - f * 170)})`;
+    function stepPhysicsFrame() {
+      if (currentMode === 0) {
+        const frameDt = (1.0 / 60.0) * playbackSpeed;
+        const dt_target = 0.02 * odeSim.t_unit;
+        const n_sub = Math.min(2000, Math.max(1, Math.ceil(frameDt / dt_target)));
+        const dt = frameDt / n_sub;
+        const tankArg = isWideTank ? null : { w: TANK_W, h: TANK_H };
+
+        for (let sub = 0; sub < n_sub; ++sub) {
+          odeSim.step(dt, tankArg);
+          if (ensembleMode) {
+            for (let s of ensembleCoins) s.step(dt, tankArg);
+          }
+
+          // Check wide tank auto-pause at 80 L depth
+          if (isWideTank && odeSim.reached_depth) {
+            isPaused = true;
+            document.getElementById("btnPlay").innerText = "[Space] Play";
+            break;
+          }
+        }
+
+        // Turning cusp vortex shedding
+        if ((prevOmega > 0 && odeSim.omega <= 0) || (prevOmega < 0 && odeSim.omega >= 0)) {
+          shedVortices.push({ x: odeSim.X, y: odeSim.Y, sign: (prevOmega > 0 ? 1 : -1), life: 2.5 });
+        }
+        prevOmega = odeSim.omega;
+
+        // Age shed vortices
+        for (let v of shedVortices) v.life -= (1.0 / 60.0);
+        shedVortices = shedVortices.filter(v => v.life > 0);
+
+        // Ghost snapshots every 1.0 t_unit (a / U_0) per Amendment 10
+        if (odeSim.time - lastGhostTime >= odeSim.t_unit) {
+          ghostOutlines.push({ x: odeSim.X, y: odeSim.Y, theta: odeSim.theta, a: odeSim.a, b: odeSim.b });
+          if (ghostOutlines.length > 80) ghostOutlines.shift();
+          lastGhostTime = odeSim.time;
+        }
+
+        // Fading trail (Amendment 5: length > 8000)
+        pathTrail.push({ x: odeSim.X, y: odeSim.Y, spd: Math.hypot(odeSim.u, odeSim.v) });
+        if (pathTrail.length > 8000) pathTrail.shift();
+
+        // Strip chart histories
+        historyTime.push(odeSim.time);
+        historyTheta.push(odeSim.theta * 180 / Math.PI);
+        historySpeed.push(Math.hypot(odeSim.u, odeSim.v));
+        const vy = Math.abs(odeSim.u * Math.sin(odeSim.theta) + odeSim.v * Math.cos(odeSim.theta));
+        historyVy.push(vy);
+        if (historyTime.length > 400) {
+          historyTime.shift(); historyTheta.shift(); historySpeed.shift(); historyVy.shift();
+        }
+
+        // Trajectory space buffer (X/a, Y/a, theta) with adaptive decimation
+        if (odeSim.time - lastTrajSampleTime >= trajSampleInterval * odeSim.t_unit) {
+          const pt = { x_a: odeSim.X / odeSim.a, y_a: odeSim.Y / odeSim.a, theta: odeSim.theta, t: odeSim.time };
+          trajBuffer.push(pt);
+          lastTrajSampleTime = odeSim.time;
+
+          // Adaptive decimation when full (halve points, double interval)
+          if (trajBuffer.length >= 6000) {
+            trajBuffer = trajBuffer.filter((_, idx) => idx % 2 === 0);
+            trajSampleInterval *= 2.0;
+          }
+
+          if (ensembleMode) {
+            for (let i = 0; i < ensembleCoins.length; ++i) {
+              const ec = ensembleCoins[i];
+              ensembleTrajBuffers[i].push({ x_a: ec.X / ec.a, y_a: ec.Y / ec.a });
+              if (ensembleTrajBuffers[i].length >= 6000) {
+                ensembleTrajBuffers[i] = ensembleTrajBuffers[i].filter((_, idx) => idx % 2 === 0);
+              }
+            }
+          }
+        }
+
+        // Smooth camera follow
+        camX += (odeSim.X - camX) * 0.1;
+        camY += (odeSim.Y - camY) * 0.1;
       } else {
-        const f = (t - 0.66) / 0.34;
-        return `rgb(${Math.round(230 + f * 25)}, ${Math.round(220 - f * 130)}, ${Math.round(50 - f * 20)})`;
+        // Mode B: SPH illustration
+        for (let sub = 0; sub < 2; ++sub) {
+          sphSim.step((1.0 / 120.0) * playbackSpeed);
+        }
+        camX += (sphSim.coinX - camX) * 0.1;
+        camY += (sphSim.coinY - camY) * 0.1;
       }
     }
 
-    function getVorticityColor(vort, maxV = 40.0) {
-      const norm = Math.min(Math.max(vort / maxV, -1.0), 1.0);
-      if (norm < 0) {
-        const f = -norm;
-        return `rgb(${Math.round(250 - f * 20)}, ${Math.round(250 - f * 200)}, ${Math.round(250 - f * 180)})`;
-      } else {
-        const f = norm;
-        return `rgb(${Math.round(250 - f * 210)}, ${Math.round(250 - f * 160)}, ${Math.round(250 - f * 70)})`;
-      }
-    }
-
     // -------------------------------------------------------------------------
-    // Main Simulation & Rendering Loop (60 FPS)
+    // Main Animation & Rendering Loop (60 FPS)
     // -------------------------------------------------------------------------
     function resizeCanvas() {
       const parent = document.getElementById("viewport-container");
@@ -1036,17 +1628,15 @@
       chartTheta.height = chartTheta.clientHeight;
       chartSpeed.width = chartSpeed.clientWidth;
       chartSpeed.height = chartSpeed.clientHeight;
+      chartTraj.width = chartTraj.clientWidth;
+      chartTraj.height = chartTraj.clientHeight;
     }
     window.addEventListener("resize", resizeCanvas);
-    resizeCanvas();
 
     function worldToScreen(wx, wy) {
       const cx = canvas.width * 0.5;
-      const cy = canvas.height * 0.45;
-      return {
-        x: cx + (wx - camX) * ppm,
-        y: cy - (wy - camY) * ppm
-      };
+      const cy = canvas.height * 0.40;
+      return { x: cx + (wx - camX) * ppm, y: cy - (wy - camY) * ppm };
     }
 
     function drawArrow(x0, y0, vx, vy, scale, col) {
@@ -1075,128 +1665,65 @@
     function animate() {
       requestAnimationFrame(animate);
 
-      // 1. Advance Physics
       if (!isPaused) {
-        if (currentMode === 0) {
-          // Sub-step ODE for ultra-smooth trajectory
-          for (let sub = 0; sub < 4; ++sub) {
-            const dt = (1.0 / 240.0) * playbackSpeed;
-            odeSim.step(dt);
-            if (ensembleMode) {
-              for (let s of ensembleCoins) s.step(dt);
-            }
-          }
-
-          // Vortex shedding on turning cusps
-          if ((prevOmega > 0 && odeSim.omega <= 0) || (prevOmega < 0 && odeSim.omega >= 0)) {
-            shedVortices.push({
-              x: odeSim.X, y: odeSim.Y,
-              sign: (prevOmega > 0 ? 1 : -1),
-              life: 2.5
-            });
-          }
-          prevOmega = odeSim.omega;
-
-          // Age shed vortices
-          for (let v of shedVortices) v.life -= (1.0 / 60.0);
-          shedVortices = shedVortices.filter(v => v.life > 0);
-
-          // Update histories
-          pathTrail.push({ x: odeSim.X, y: odeSim.Y, spd: Math.hypot(odeSim.u, odeSim.v) });
-          if (pathTrail.size > 500) pathTrail.shift();
-
-          historyTime.push(odeSim.time);
-          historyTheta.push(odeSim.theta * 180 / Math.PI);
-          historySpeed.push(Math.hypot(odeSim.u, odeSim.v));
-          const vy = Math.abs(odeSim.u * Math.sin(odeSim.theta) + odeSim.v * Math.cos(odeSim.theta));
-          historyVy.push(vy);
-
-          if (historyTime.length > 300) {
-            historyTime.shift(); historyTheta.shift(); historySpeed.shift(); historyVy.shift();
-          }
-
-          // Camera smoothly tracks coin
-          camX += (odeSim.X - camX) * 0.1;
-          camY += (odeSim.Y - camY) * 0.1;
-        } else {
-          // Mode B: SPH
-          for (let sub = 0; sub < 2; ++sub) {
-            sphSim.step((1.0 / 120.0) * playbackSpeed);
-          }
-          camX += (sphSim.coinX - camX) * 0.1;
-          camY += (sphSim.coinY - camY) * 0.1;
-        }
+        stepPhysicsFrame();
       }
 
-      // 2. Render Simulation Viewport
+      // Render Viewport
       ctx.fillStyle = "#FFFFFF";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Tank boundary geometry
       const pTopLeft = worldToScreen(-TANK_W * 0.5, 0.0);
       const pBottomRight = worldToScreen(TANK_W * 0.5, -TANK_H);
       const tankScreenW = pBottomRight.x - pTopLeft.x;
       const tankScreenH = pBottomRight.y - pTopLeft.y;
 
-      // 1. Water Fill inside tank (Vibrant aquatic gradient)
-      const grad = ctx.createLinearGradient(0, pTopLeft.y, 0, pBottomRight.y);
-      grad.addColorStop(0, "rgba(186, 230, 253, 0.80)"); // Sky cyan
-      grad.addColorStop(1, "rgba(96, 165, 250, 0.88)");  // Ocean blue
-      ctx.fillStyle = grad;
-      ctx.fillRect(pTopLeft.x, pTopLeft.y, tankScreenW, tankScreenH);
+      // Draw tank if wide tank is OFF or draw faint guide
+      if (!isWideTank) {
+        const grad = ctx.createLinearGradient(0, pTopLeft.y, 0, pBottomRight.y);
+        grad.addColorStop(0, "rgba(186, 230, 253, 0.70)");
+        grad.addColorStop(1, "rgba(96, 165, 250, 0.80)");
+        ctx.fillStyle = grad;
+        ctx.fillRect(pTopLeft.x, pTopLeft.y, tankScreenW, tankScreenH);
 
-      // Water surface line (y = 0)
-      ctx.strokeStyle = "#0284C7";
-      ctx.lineWidth = 3.0;
-      ctx.beginPath();
-      ctx.moveTo(pTopLeft.x, pTopLeft.y);
-      ctx.lineTo(pBottomRight.x, pTopLeft.y);
-      ctx.stroke();
-
-      ctx.fillStyle = "#0369A1";
-      ctx.font = "bold 12px sans-serif";
-      ctx.fillText("Water Surface (Y = 0)", pTopLeft.x + 10, pTopLeft.y - 8);
-
-      // Glass walls and floor (rendered with thickness and highlight)
-      const glassThick = 12;
-      ctx.fillStyle = "rgba(190, 225, 238, 0.65)";
-      ctx.strokeStyle = "#38728C";
-      ctx.lineWidth = 2.0;
-
-      // Left glass wall
-      ctx.fillRect(pTopLeft.x - glassThick, pTopLeft.y - 12, glassThick, tankScreenH + 24);
-      ctx.strokeRect(pTopLeft.x - glassThick, pTopLeft.y - 12, glassThick, tankScreenH + 24);
-
-      // Right glass wall
-      ctx.fillRect(pBottomRight.x, pTopLeft.y - 12, glassThick, tankScreenH + 24);
-      ctx.strokeRect(pBottomRight.x, pTopLeft.y - 12, glassThick, tankScreenH + 24);
-
-      // Bottom floor
-      ctx.fillRect(pTopLeft.x - glassThick, pBottomRight.y, tankScreenW + 2 * glassThick, glassThick);
-      ctx.strokeRect(pTopLeft.x - glassThick, pBottomRight.y, tankScreenW + 2 * glassThick, glassThick);
-
-      // Ruler ticks on left wall
-      ctx.strokeStyle = "#1E3A5F";
-      ctx.fillStyle = "#1E3A5F";
-      ctx.font = "10px sans-serif";
-      for (let ym = 0.0; ym >= -TANK_H; ym -= 0.01) {
-        const pt = worldToScreen(-TANK_W * 0.5, ym);
-        const cm = Math.round(-ym * 100);
-        const major = (cm % 5 === 0);
-        const tickLen = major ? 10 : 4;
-        ctx.lineWidth = major ? 1.5 : 1.0;
+        ctx.strokeStyle = "#0284C7";
+        ctx.lineWidth = 3.0;
         ctx.beginPath();
-        ctx.moveTo(pt.x - tickLen, pt.y);
-        ctx.lineTo(pt.x, pt.y);
+        ctx.moveTo(pTopLeft.x, pTopLeft.y);
+        ctx.lineTo(pBottomRight.x, pTopLeft.y);
         ctx.stroke();
-        if (major && cm > 0) {
-          ctx.fillText(cm.toString(), pt.x - tickLen - 18, pt.y + 3);
-        }
+
+        const glassThick = 10;
+        ctx.fillStyle = "rgba(190, 225, 238, 0.65)";
+        ctx.strokeStyle = "#38728C";
+        ctx.lineWidth = 2.0;
+        ctx.fillRect(pTopLeft.x - glassThick, pTopLeft.y - 10, glassThick, tankScreenH + 20);
+        ctx.strokeRect(pTopLeft.x - glassThick, pTopLeft.y - 10, glassThick, tankScreenH + 20);
+        ctx.fillRect(pBottomRight.x, pTopLeft.y - 10, glassThick, tankScreenH + 20);
+        ctx.strokeRect(pBottomRight.x, pTopLeft.y - 10, glassThick, tankScreenH + 20);
+        ctx.fillRect(pTopLeft.x - glassThick, pBottomRight.y, tankScreenW + 2 * glassThick, glassThick);
+        ctx.strokeRect(pTopLeft.x - glassThick, pBottomRight.y, tankScreenW + 2 * glassThick, glassThick);
+      } else {
+        // Wide Tank watermark / infinite water guide
+        ctx.strokeStyle = "rgba(2, 132, 199, 0.4)";
+        ctx.lineWidth = 2.0;
+        ctx.setLineDash([6, 6]);
+        const surf = worldToScreen(-5.0, 0.0);
+        const surf2 = worldToScreen(5.0, 0.0);
+        ctx.beginPath();
+        ctx.moveTo(surf.x, surf.y);
+        ctx.lineTo(surf2.x, surf2.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = "rgba(2, 132, 199, 0.75)";
+        ctx.font = "bold 11px sans-serif";
+        ctx.fillText("Water Surface (Y = 0) — Wide Tank Mode Active", 20, surf.y - 6);
       }
 
       if (currentMode === 0) {
-        // --- MODE A RENDERING ---
-        // Draw shed vortices
+        // --- MODE A ---
+        // Shed vortices
         if (showVortices) {
           for (let vort of shedVortices) {
             const pt = worldToScreen(vort.x, vort.y);
@@ -1204,19 +1731,35 @@
             ctx.strokeStyle = vort.sign > 0 ? `rgba(37, 99, 235, ${alpha})` : `rgba(220, 38, 38, ${alpha})`;
             ctx.lineWidth = 1.5;
             ctx.beginPath();
-            ctx.arc(pt.x, pt.y, 8, 0, Math.PI * 2);
+            ctx.arc(pt.x, pt.y, 7, 0, Math.PI * 2);
             ctx.stroke();
           }
         }
 
-        // Draw Fading Wake Ribbon (Path Trail)
+        // Ghost snapshots every 1.0 a/U0
+        if (showGhosts) {
+          ctx.strokeStyle = "rgba(100, 116, 139, 0.28)";
+          ctx.lineWidth = 1.0;
+          for (let g of ghostOutlines) {
+            const pt = worldToScreen(g.x, g.y);
+            ctx.save();
+            ctx.translate(pt.x, pt.y);
+            ctx.rotate(-g.theta);
+            ctx.beginPath();
+            ctx.ellipse(0, 0, g.a * ppm, g.b * ppm, 0, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+          }
+        }
+
+        // Fading path trail
         if (showTrail && pathTrail.length >= 2) {
+          ctx.lineWidth = 2.0;
           for (let i = 1; i < pathTrail.length; ++i) {
             const p0 = worldToScreen(pathTrail[i - 1].x, pathTrail[i - 1].y);
             const p1 = worldToScreen(pathTrail[i].x, pathTrail[i].y);
-            const alpha = (i / pathTrail.length) * 0.65;
+            const alpha = (i / pathTrail.length) * 0.75;
             ctx.strokeStyle = `rgba(59, 130, 246, ${alpha})`;
-            ctx.lineWidth = 2.5;
             ctx.beginPath();
             ctx.moveTo(p0.x, p0.y);
             ctx.lineTo(p1.x, p1.y);
@@ -1224,15 +1767,15 @@
           }
         }
 
-        // Draw Ensemble Coins
+        // Ensemble coins
         if (ensembleMode) {
           for (let ec of ensembleCoins) {
             const pt = worldToScreen(ec.X, ec.Y);
             ctx.save();
             ctx.translate(pt.x, pt.y);
             ctx.rotate(-ec.theta);
-            ctx.fillStyle = "rgba(100, 150, 210, 0.25)";
-            ctx.strokeStyle = "rgba(70, 120, 180, 0.6)";
+            ctx.fillStyle = "rgba(100, 150, 210, 0.20)";
+            ctx.strokeStyle = "rgba(70, 120, 180, 0.5)";
             ctx.lineWidth = 1.0;
             ctx.beginPath();
             ctx.ellipse(0, 0, ec.a * ppm, ec.b * ppm, 0, 0, Math.PI * 2);
@@ -1242,7 +1785,7 @@
           }
         }
 
-        // Draw Primary Elliptical Coin
+        // Primary Coin
         const coinPt = worldToScreen(odeSim.X, odeSim.Y);
         ctx.save();
         ctx.translate(coinPt.x, coinPt.y);
@@ -1256,54 +1799,35 @@
         ctx.stroke();
         ctx.restore();
 
-        // Draw Live Force and Velocity Vectors
+        // Vector arrows
         if (showVectors) {
           const cos_th = Math.cos(odeSim.theta);
           const sin_th = Math.sin(odeSim.theta);
           const lab_vx = odeSim.u * cos_th - odeSim.v * sin_th;
           const lab_vy = odeSim.u * sin_th + odeSim.v * cos_th;
 
-          // 1. Velocity vector (teal)
           if (showVelocity) {
             drawArrow(coinPt.x, coinPt.y, lab_vx, lab_vy, 140.0, "#06B6D4");
           }
-          // 2. Circulation Lift vector (blue, perpendicular to V)
           if (showForces) {
             drawArrow(coinPt.x, coinPt.y, odeSim.FLx, odeSim.FLy, 380.0, "#2563EB");
-          }
-          // 3. Drag vector (red, opposing V)
-          if (showForces) {
             drawArrow(coinPt.x, coinPt.y, odeSim.FDx, odeSim.FDy, 380.0, "#DC2626");
           }
-          // 4. Orientation director (dark slate)
           if (showChord) {
             drawArrow(coinPt.x, coinPt.y, cos_th * 0.02, sin_th * 0.02, 1200.0, "#475569");
           }
         }
       } else {
-        // --- MODE B SPH RENDERING ---
+        // --- MODE B ILLUSTRATION ---
         for (let p of sphSim.particles) {
           const pt = worldToScreen(p.x, p.y);
           if (pt.x < -20 || pt.x > canvas.width + 20 || pt.y < -20 || pt.y > canvas.height + 20) continue;
-
-          let col = "#3B82F6";
-          if (sphColorMode === 1) {
-            col = getVorticityColor(p.vort, 40.0);
-          } else if (sphColorMode === 2) {
-            const pNorm = Math.min(Math.max((p.p - 1000) / 400.0, -1.0), 1.0);
-            col = pNorm > 0 ? `rgb(255, ${Math.round(255 - pNorm * 180)}, ${Math.round(255 - pNorm * 180)})`
-                            : `rgb(${Math.round(255 + pNorm * 180)}, ${Math.round(255 + pNorm * 180)}, 255)`;
-          } else {
-            col = getSpeedColor(Math.hypot(p.vx, p.vy), 0.5);
-          }
-
-          ctx.fillStyle = col;
+          ctx.fillStyle = "#3B82F6";
           ctx.beginPath();
-          ctx.arc(pt.x, pt.y, 4.0, 0, Math.PI * 2);
+          ctx.arc(pt.x, pt.y, 3.5, 0, Math.PI * 2);
           ctx.fill();
         }
 
-        // Draw rigid coin
         const coinPt = worldToScreen(sphSim.coinX, sphSim.coinY);
         ctx.save();
         ctx.translate(coinPt.x, coinPt.y);
@@ -1318,67 +1842,72 @@
         ctx.restore();
       }
 
-      // Full Tank Mini-Map on Upper Right
-      const mmW = 70;
-      const mmH = 140;
-      const mmX = canvas.width - mmW - 20;
-      const mmY = 20;
-      ctx.fillStyle = "rgba(248, 250, 252, 0.9)";
-      ctx.strokeStyle = "#CBD5E1";
-      ctx.lineWidth = 1.0;
-      ctx.fillRect(mmX, mmY, mmW, mmH);
-      ctx.strokeRect(mmX, mmY, mmW, mmH);
+      // Update Telemetry & Live Regime Badge
+      updateTelemetryAndBadge();
 
-      // Mini-map coin marker
-      const curCoinX = (currentMode === 0 ? odeSim.X : sphSim.coinX);
-      const curCoinY = (currentMode === 0 ? odeSim.Y : sphSim.coinY);
-      const mmCoinX = mmX + mmW * 0.5 + (curCoinX / (TANK_W * 0.5)) * (mmW * 0.4);
-      const mmCoinY = mmY + 10 + Math.min(Math.max((-curCoinY / 2.0) * (mmH - 20), 0), mmH - 20);
-      ctx.fillStyle = "#DC2626";
-      ctx.beginPath();
-      ctx.arc(mmCoinX, mmCoinY, 3.5, 0, Math.PI * 2);
-      ctx.fill();
+      // Render Strip Charts & Trajectory Chart
+      renderStripCharts();
+      renderTrajChart();
+    }
 
-      // 3. Update Telemetry Numbers & Badge
+    function updateTelemetryAndBadge() {
       const curT = (currentMode === 0 ? odeSim.time : sphSim.time);
       const curThetaDeg = (currentMode === 0 ? odeSim.theta * 180 / Math.PI : sphSim.coinTheta * 180 / Math.PI);
       const curOmega = (currentMode === 0 ? odeSim.omega : 0.0);
       const curSpeed = (currentMode === 0 ? Math.hypot(odeSim.u, odeSim.v) : 0.18);
       const curVy = (currentMode === 0 ? Math.abs(odeSim.u * Math.sin(odeSim.theta) + odeSim.v * Math.cos(odeSim.theta)) : 0.18);
-      const curReIn = (rho_f * Math.sqrt(Math.max(odeSim.rho_s / rho_f - 1.0, 0.0) * g * h) * L / mu_visc);
+      const curCoinX = (currentMode === 0 ? odeSim.X : sphSim.coinX);
+      const curCoinY = (currentMode === 0 ? odeSim.Y : sphSim.coinY);
 
       document.getElementById("valTime").innerText = curT.toFixed(2) + " s";
-      document.getElementById("valIStar").innerText = I_star.toFixed(2);
       document.getElementById("valX").innerText = (curCoinX * 1000).toFixed(1) + " mm";
       document.getElementById("valY").innerText = (curCoinY * 1000).toFixed(1) + " mm";
       document.getElementById("valTheta").innerText = curThetaDeg.toFixed(1) + "°";
       document.getElementById("valOmega").innerText = curOmega.toFixed(2) + " rad/s";
       document.getElementById("valSpeed").innerText = curSpeed.toFixed(3) + " m/s";
       document.getElementById("valVy").innerText = curVy.toFixed(3) + " m/s";
-      document.getElementById("valReIn").innerText = Math.round(curReIn);
       document.getElementById("valMu").innerText = mu_visc.toFixed(4) + " Pa·s";
 
+      // Live Classifier (Amendment 2: Analysing < 10 a/U0, then Provisional until termination)
       const badge = document.getElementById("regimeBadge");
-      if (I_star <= 0.08) {
-        badge.className = "regime-badge badge-steady";
-        badge.innerText = "STEADY";
-      } else if (I_star <= 1.0) {
-        badge.className = "regime-badge badge-flutter";
-        badge.innerText = "FLUTTERING";
-      } else if (I_star <= 1.8) {
-        badge.className = "regime-badge badge-tumble";
-        badge.innerText = "TUMBLING";
-      } else {
-        badge.className = "regime-badge badge-mixed";
-        badge.innerText = "MIXED / CHAOTIC";
-      }
+      const elapsed_t_units = odeSim ? (odeSim.time / odeSim.t_unit) : 0.0;
 
-      // 4. Draw Scrolling Strip Charts
-      renderStripCharts();
+      if (elapsed_t_units < 10.0) {
+        badge.className = "regime-badge badge-analyzing";
+        badge.innerText = "ANALYSING...";
+      } else {
+        // Collect arrays from trajectory buffer
+        const times = trajBuffer.map(p => p.t);
+        const Ys = trajBuffer.map(p => p.y_a * odeSim.a);
+        const thetas = trajBuffer.map(p => p.theta);
+        const omegas = [];
+        for (let i = 0; i < thetas.length; ++i) {
+          if (i === 0) omegas.push(0);
+          else omegas.push((thetas[i] - thetas[i - 1]) / Math.max(times[i] - times[i - 1], 1e-4));
+        }
+
+        const detected = classifyRegime(times, Ys, thetas, omegas, odeSim.H_fall);
+        const isFinal = odeSim.reached_depth || (odeSim.time >= 60.0);
+        const prefix = isFinal ? "" : "PROVISIONAL: ";
+
+        if (detected === "steady") {
+          badge.className = "regime-badge badge-steady";
+        } else if (detected === "fluttering") {
+          badge.className = "regime-badge badge-flutter";
+        } else if (detected === "tumbling") {
+          badge.className = "regime-badge badge-tumble";
+        } else {
+          badge.className = "regime-badge badge-mixed";
+        }
+        badge.innerText = (prefix + detected).toUpperCase();
+      }
     }
 
+    // -------------------------------------------------------------------------
+    // Strip Charts & Real-Time Trajectory Space Plot (Task 9 & Amendment 5)
+    // -------------------------------------------------------------------------
     function renderStripCharts() {
-      // Top Chart: Theta(t)
+      // 1. Theta Strip Chart
       ctxTheta.fillStyle = "#F8FAFC";
       ctxTheta.fillRect(0, 0, chartTheta.width, chartTheta.height);
       ctxTheta.strokeStyle = "#E2E8F0";
@@ -1401,12 +1930,10 @@
         ctxTheta.stroke();
       }
 
-      // Bottom Chart: Speed |V(t)| and |Vy(t)|
+      // 2. Speed Strip Chart
       ctxSpeed.fillStyle = "#F8FAFC";
       ctxSpeed.fillRect(0, 0, chartSpeed.width, chartSpeed.height);
-
       if (historySpeed.length >= 2) {
-        // Speed (Red)
         ctxSpeed.strokeStyle = "#DC2626";
         ctxSpeed.lineWidth = 1.8;
         ctxSpeed.beginPath();
@@ -1418,7 +1945,6 @@
         }
         ctxSpeed.stroke();
 
-        // Vy (Green)
         ctxSpeed.strokeStyle = "#16A34A";
         ctxSpeed.lineWidth = 1.2;
         ctxSpeed.beginPath();
@@ -1432,7 +1958,275 @@
       }
     }
 
-    // Start 60 FPS animation loop
+    function renderTrajChart() {
+      const W = chartTraj.width;
+      const H = chartTraj.height;
+      ctxTraj.fillStyle = "#FFFFFF";
+      ctxTraj.fillRect(0, 0, W, H);
+
+      let pts = trajBuffer;
+      if (!trajFitAll && pts.length > 0) {
+        const lastT = pts[pts.length - 1].t;
+        const windowT = 60.0 * odeSim.t_unit;
+        pts = pts.filter(p => p.t >= (lastT - windowT));
+      }
+
+      // Compute or update auto-expanding limits (never shrink)
+      if (pts.length > 0) {
+        for (let p of pts) {
+          if (p.x_a < trajBounds.minX) trajBounds.minX = p.x_a;
+          if (p.x_a > trajBounds.maxX) trajBounds.maxX = p.x_a;
+          if (p.y_a < trajBounds.minY) trajBounds.minY = p.y_a;
+          if (p.y_a > trajBounds.maxY) trajBounds.maxY = p.y_a;
+        }
+      }
+
+      // Minimum width 10 a, equal aspect ratio with 15% padding
+      let spanX = Math.max(trajBounds.maxX - trajBounds.minX, 10.0);
+      let spanY = Math.max(trajBounds.maxY - trajBounds.minY, 10.0);
+      let midX = 0.5 * (trajBounds.minX + trajBounds.maxX);
+      let midY = 0.5 * (trajBounds.minY + trajBounds.maxY);
+
+      // Enforce equal aspect ratio: width / height on screen
+      const aspectScreen = W / H;
+      if (spanX / spanY > aspectScreen) {
+        spanY = spanX / aspectScreen;
+      } else {
+        spanX = spanY * aspectScreen;
+      }
+      spanX *= 1.15;
+      spanY *= 1.15;
+
+      const viewMinX = midX - 0.5 * spanX;
+      const viewMaxX = midX + 0.5 * spanX;
+      const viewMinY = midY - 0.5 * spanY;
+      const viewMaxY = midY + 0.5 * spanY;
+
+      function toScreen(xa, ya) {
+        const sx = ((xa - viewMinX) / spanX) * W;
+        const sy = ((viewMaxY - ya) / spanY) * H;
+        return { x: sx, y: sy };
+      }
+
+      // Grid lines
+      ctxTraj.strokeStyle = "#E2E8F0";
+      ctxTraj.lineWidth = 1.0;
+      const step = 5.0;
+      const startX = Math.floor(viewMinX / step) * step;
+      for (let gx = startX; gx <= viewMaxX; gx += step) {
+        const pt = toScreen(gx, 0);
+        ctxTraj.beginPath();
+        ctxTraj.moveTo(pt.x, 0);
+        ctxTraj.lineTo(pt.x, H);
+        ctxTraj.stroke();
+      }
+      const startY = Math.floor(viewMinY / step) * step;
+      for (let gy = startY; gy <= viewMaxY; gy += step) {
+        const pt = toScreen(0, gy);
+        ctxTraj.beginPath();
+        ctxTraj.moveTo(0, pt.y);
+        ctxTraj.lineTo(W, pt.y);
+        ctxTraj.stroke();
+      }
+
+      // Ensemble faint paths
+      if (ensembleMode && ensembleTrajBuffers.length > 0) {
+        const colors = ["#93C5FD", "#FCA5A5", "#FDE68A", "#A7F3D0", "#DDD6FE", "#FBCFE8", "#C7D2FE"];
+        for (let i = 0; i < ensembleTrajBuffers.length; ++i) {
+          const epts = ensembleTrajBuffers[i];
+          if (epts.length >= 2) {
+            ctxTraj.strokeStyle = colors[i % colors.length];
+            ctxTraj.lineWidth = 1.0;
+            ctxTraj.beginPath();
+            for (let j = 0; j < epts.length; ++j) {
+              const sp = toScreen(epts[j].x_a, epts[j].y_a);
+              if (j === 0) ctxTraj.moveTo(sp.x, sp.y);
+              else ctxTraj.lineTo(sp.x, sp.y);
+            }
+            ctxTraj.stroke();
+          }
+        }
+      }
+
+      // Draw primary red trajectory curve
+      if (pts.length >= 2) {
+        ctxTraj.strokeStyle = "#DC2626";
+        ctxTraj.lineWidth = 2.0;
+        ctxTraj.beginPath();
+        for (let i = 0; i < pts.length; ++i) {
+          const sp = toScreen(pts[i].x_a, pts[i].y_a);
+          if (i === 0) ctxTraj.moveTo(sp.x, sp.y);
+          else ctxTraj.lineTo(sp.x, sp.y);
+        }
+        ctxTraj.stroke();
+      }
+
+      // Ghost chord directors of length 2a at theta every 1.0 a/U0
+      ctxTraj.strokeStyle = "rgba(71, 85, 105, 0.45)";
+      ctxTraj.lineWidth = 1.2;
+      for (let p of pts) {
+        if (Math.abs(p.t % odeSim.t_unit) < (trajSampleInterval * odeSim.t_unit * 0.9)) {
+          const center = toScreen(p.x_a, p.y_a);
+          const dx = Math.cos(p.theta);
+          const dy = Math.sin(p.theta);
+          const p1 = toScreen(p.x_a - dx, p.y_a - dy);
+          const p2 = toScreen(p.x_a + dx, p.y_a + dy);
+          ctxTraj.beginPath();
+          ctxTraj.moveTo(p1.x, p1.y);
+          ctxTraj.lineTo(p2.x, p2.y);
+          ctxTraj.stroke();
+        }
+      }
+
+      // Green start dot at (0, 0)
+      const startPt = toScreen(0, 0);
+      ctxTraj.fillStyle = "#16A34A";
+      ctxTraj.beginPath();
+      ctxTraj.arc(startPt.x, startPt.y, 4.0, 0, Math.PI * 2);
+      ctxTraj.fill();
+
+      // Red current-position marker
+      if (pts.length > 0) {
+        const curPt = toScreen(pts[pts.length - 1].x_a, pts[pts.length - 1].y_a);
+        ctxTraj.fillStyle = "#DC2626";
+        ctxTraj.beginPath();
+        ctxTraj.arc(curPt.x, curPt.y, 4.5, 0, Math.PI * 2);
+        ctxTraj.fill();
+        ctxTraj.strokeStyle = "#FFFFFF";
+        ctxTraj.lineWidth = 1.5;
+        ctxTraj.stroke();
+      }
+
+      // Title & labels
+      ctxTraj.fillStyle = "#0F172A";
+      ctxTraj.font = "bold 11px sans-serif";
+      ctxTraj.fillText(`${activeCoin.label} | I* = ${odeSim.I_star.toFixed(3)}`, 10, 16);
+      ctxTraj.font = "10px sans-serif";
+      ctxTraj.fillStyle = "#64748B";
+      ctxTraj.fillText("x / a", W - 32, H - 6);
+      ctxTraj.fillText("y / a", 8, 28);
+    }
+
+    // -------------------------------------------------------------------------
+    // Headless Multi-Coin Comparison Modal (Task 6 & Amendments 2, 7)
+    // -------------------------------------------------------------------------
+    function openCompareModal() {
+      const modal = document.getElementById("modalCompare");
+      modal.style.display = "flex";
+
+      const cCanvas = document.getElementById("compareCanvas");
+      const cCtx = cCanvas.getContext("2d");
+      const W = cCanvas.width;
+      const H = cCanvas.height;
+
+      cCtx.fillStyle = "#FFFFFF";
+      cCtx.fillRect(0, 0, W, H);
+
+      // Run every enabled catalog coin
+      const enabledCoins = COINS.filter(c => c.enabled && !c.is_reference);
+      const cols = 3;
+      const rows = 3;
+      const cellW = W / cols;
+      const cellH = H / rows;
+
+      enabledCoins.forEach((coin, idx) => {
+        const cRow = Math.floor(idx / cols);
+        const cCol = idx % cols;
+        const ox = cCol * cellW;
+        const oy = cRow * cellH;
+
+        // Simulate headless to 80 L depth
+        const sim = new ODESimulator(coin, 5.0 * Math.PI / 180.0, 0.0, 0.0, 0.0, 0.20);
+        const H_fall = 80.0 * coin.L;
+        const dt = 0.001;
+        const times = [], Ys = [], thetas = [], omegas = [], Xs = [];
+
+        while (sim.Y > -H_fall && sim.time < 50.0) {
+          sim.step(dt, null);
+          times.push(sim.time);
+          Xs.push(sim.X);
+          Ys.push(sim.Y);
+          thetas.push(sim.theta);
+          omegas.push(sim.omega);
+        }
+
+        // Classify from full 80 L run
+        const regime = classifyRegime(times, Ys, thetas, omegas, H_fall);
+
+        // Filter to first 60 time units (a / U_0) for drawing
+        const t_max_draw = 60.0 * sim.t_unit;
+        const drawIndices = times.map((t, i) => t <= t_max_draw ? i : -1).filter(i => i >= 0);
+
+        // Normalize coordinates (x / L, y / L)
+        const normX = drawIndices.map(i => Xs[i] / coin.L);
+        const normY = drawIndices.map(i => Ys[i] / coin.L);
+
+        // Draw panel background and border
+        cCtx.strokeStyle = "#CBD5E1";
+        cCtx.lineWidth = 1.0;
+        cCtx.strokeRect(ox + 4, oy + 4, cellW - 8, cellH - 8);
+
+        // Auto bounds for this panel
+        let minX = -10, maxX = 10, minY = -40, maxY = 0;
+        if (normX.length > 0) {
+          minX = Math.min(...normX, -5);
+          maxX = Math.max(...normX, 5);
+          minY = Math.min(...normY, -10);
+        }
+        const spanX = Math.max(maxX - minX, 10);
+        const spanY = Math.max(maxY - minY, 10);
+
+        function pToScreen(x, y) {
+          const px = ox + 10 + ((x - minX) / spanX) * (cellW - 20);
+          const py = oy + 26 + ((maxY - y) / spanY) * (cellH - 36);
+          return { x: px, y: py };
+        }
+
+        // Draw trajectory
+        if (normX.length >= 2) {
+          cCtx.strokeStyle = "#DC2626";
+          cCtx.lineWidth = 1.8;
+          cCtx.beginPath();
+          for (let i = 0; i < normX.length; ++i) {
+            const pt = pToScreen(normX[i], normY[i]);
+            if (i === 0) cCtx.moveTo(pt.x, pt.y);
+            else cCtx.lineTo(pt.x, pt.y);
+          }
+          cCtx.stroke();
+        }
+
+        // Start dot
+        const pStart = pToScreen(0, 0);
+        cCtx.fillStyle = "#16A34A";
+        cCtx.beginPath();
+        cCtx.arc(pStart.x, pStart.y, 3.0, 0, Math.PI * 2);
+        cCtx.fill();
+
+        // Panel header
+        cCtx.fillStyle = "#0F172A";
+        cCtx.font = "bold 11px sans-serif";
+        cCtx.fillText(coin.id, ox + 10, oy + 18);
+        cCtx.font = "10px sans-serif";
+        cCtx.fillStyle = "#475569";
+        cCtx.fillText(`I*=${sim.I_star.toFixed(3)} | ${regime.toUpperCase()}`, ox + cellW - 130, oy + 18);
+      });
+    }
+
+    function closeCompareModal() {
+      document.getElementById("modalCompare").style.display = "none";
+    }
+
+    function saveComparePNG() {
+      const cCanvas = document.getElementById("compareCanvas");
+      const a = document.createElement("a");
+      a.href = cCanvas.toDataURL("image/png");
+      a.download = "autumn_coin_comparison_grid.png";
+      a.click();
+    }
+
+    // Initialize simulation
+    resizeCanvas();
+    resetDrop();
     requestAnimationFrame(animate);
   </script>
 </body>

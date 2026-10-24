@@ -1,16 +1,17 @@
 # Autumn Coin: Fluid Dynamics of Falling Disks & Plates
 
-[![Python Tests](https://img.shields.io/badge/pytest-16%20passed-brightgreen.svg)]()
-[![C++ Core Tests](https://img.shields.io/badge/catch2-9%20passed%20(631%20checks)-brightgreen.svg)]()
+[![Python Tests](https://img.shields.io/badge/pytest-18%20passed-brightgreen.svg)]()
+[![C++ Core Tests](https://img.shields.io/badge/catch2-10%20passed-brightgreen.svg)]()
 [![SPH Validation](https://img.shields.io/badge/sph_tests-7%2F7%20passed-brightgreen.svg)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 An end-to-end computational and theoretical investigation of **IYPT 2026 Problem 12: Autumn Coin**, investigating the complex trajectory bifurcation (steady descent, periodic fluttering, chaotic tumble-glide, and autorotation) of coins and planar plates falling through viscous fluids.
 
-The project combines three synchronized computational solvers:
+The project combines four synchronized computational tools:
 1. **2D Quasi-Steady Kirchhoff ODE Model (Python)**: High-precision adaptive Runge-Kutta integrator (`DOP853`) capturing translational/rotational added mass, Kutta-Joukowski circulation, angle-of-attack dependent drag, and nonlinear damping.
 2. **High-Performance C++ Desktop Visualizer (`autumn-coin-cpp/`)**: Real-time simulation and visualization using Raylib, Dear ImGui, and ImPlot with interactive parameter tuning and headless CI support.
 3. **2D Weakly Compressible Smoothed Particle Hydrodynamics Solver (`cpp_sph/`)**: Direct Navier-Stokes fluid-structure interaction (FSI) solver coupling weakly compressible SPH (Wendland $C_2$ kernel) with moving rigid body boundaries.
+4. **Single-File Modern Web Visualizer (`visualizer.html`)**: Interactive browser simulator featuring dual-mode physics (Mode A: 2D ODE, Mode B: 2D SPH-FSI numerical illustration), responsive layout, and real-time trajectory analytics.
 
 ---
 
@@ -33,8 +34,8 @@ Autumn-coin/
 ├── scripts/                     # Production scripts for scientific studies & presentation
 │   ├── make_bisection_study.py  # High-precision bisection for critical I*_c vs literature
 │   ├── make_regime_map.py       # 60-point (I*, Re) phase space regime map
-│   ├── make_presentation.py     # Generates the complete 22-slide IYPT deck
-│   └── check_slide_numbers.py   # Automated consistency audit for presentation slides
+│   ├── make_presentation.py     # Generates the complete 24-slide IYPT deck
+│   └── check_slide_numbers.py   # Automated consistency audit for presentation slides (9/9 audits passed)
 ├── autumn-coin-cpp/             # Native C++ port & interactive visualizer
 │   ├── src/                     # C++ model, integrator, and Raylib/ImGui visualizer
 │   ├── include/autumn/          # C++ header definitions
@@ -123,8 +124,8 @@ Executes 9 Catch2 test cases (631 assertions) validating C++ ODE rhs evaluation,
 ./autumn-coin-cpp/build/autumn_tests
 ```
 
-### 3. SPH FSI Solver Validation Suite
-Runs the 7 formal fluid mechanics validation cases (spatial partition-of-unity, gradient exactness, hydrostatic pressure, Taylor-Green vortex decay, cylinder drag scaling, boundary penetration resistance, and spatial grid resolution convergence):
+### 3. SPH FSI Solver Verification & Validation Suite
+Runs the formal 7-test suite split into Verification (analytical Navier-Stokes solutions: partition of unity, hydrostatic buoyancy, viscous Couette / Taylor-Green decay) and Validation (2D dam-break benchmark, cylinder drag scaling, added-mass stability, and multi-grid developed descent convergence with $\epsilon_{23} \le 5\%$ threshold):
 
 ```bash
 ./cpp_sph/bin/sph_runner.exe --all-tests

@@ -537,10 +537,67 @@ void SPHSolver::step_kdk(double dt) {
         rb.update_particles(true);
     }
 
-    compute_vorticity();
+    if (sph_cfg.compute_vorticity) {
+        compute_vorticity();
+    }
 
     sim_time += dt;
     step_count++;
+}
+
+EquilibrationResult SPHSolver::equilibrate(int n_steps, double dt) {
+    EquilibrationResult res;
+    if (rigid_bodies.empty()) return res;
+
+    auto& rb = rigid_bodies[0];
+    rb.config.fixed = true;
+    rb.vel = {0.0, 0.0};
+    rb.vel_half = {0.0, 0.0};
+    rb.omega = 0.0;
+    rb.omega_half = 0.0;
+    rb.acc = {0.0, 0.0};
+    rb.alpha = 0.0;
+
+    for (int s = 0; s < n_steps; ++s) {
+        step_kdk(dt);
+    }
+
+    // Release plate into free flight at t = 0
+    rb.config.fixed = false;
+    rb.vel = {0.0, 0.0};
+    rb.vel_half = {0.0, 0.0};
+    rb.omega = 0.0;
+    rb.omega_half = 0.0;
+    sim_time = 0.0;
+    step_count = 0;
+
+    // Evaluate acceleration upon release
+    Vec2 f_plate; double t_plate;
+    extrapolate_boundary_pressures();
+    compute_accelerations_and_fsi(f_plate, t_plate);
+
+    res.initial_ay_measured = rb.acc.y;
+    res.initial_alpha = rb.alpha;
+
+    // Theoretical added-mass acceleration for an ellipse broadside to vertical acceleration:
+    // a_0 = - (rho_s - rho_f) / (rho_s + rho_f * (L/h)) * g
+    double rho_s = rb.config.rho_s;
+    double rho_f = fluid_cfg.rho0;
+    double L = rb.config.L;
+    double h = rb.config.h;
+    double g = std::abs(fluid_cfg.gravity.y);
+    double m_added_ratio = (h > 1e-12) ? (L / h) : 1.0;
+    double a0_theory = -((rho_s - rho_f) / (rho_s + rho_f * m_added_ratio)) * g;
+
+    res.initial_ay_theoretical = a0_theory;
+    if (std::abs(a0_theory) > 1e-6) {
+        res.rel_error = std::abs(res.initial_ay_measured - a0_theory) / std::abs(a0_theory);
+    }
+    // Check that acoustic shock is suppressed: initial acceleration within reasonable bounds
+    // of theoretical (e.g. not -190 m/s^2) and initial angular acceleration is not violent (< 50 rad/s^2)
+    res.shock_suppressed = (std::abs(res.initial_ay_measured) < 2.0 * g) && 
+                           (std::abs(res.initial_alpha) < 50.0);
+    return res;
 }
 
 } // namespace sph

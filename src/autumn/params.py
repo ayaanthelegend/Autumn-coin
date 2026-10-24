@@ -14,7 +14,7 @@ def warn_verify_coefficients_once() -> None:
     """Print confirmation on first use for hydrodynamic coefficients."""
     global _VERIFY_WARNED
     if not _VERIFY_WARNED:
-        print("[Autumn Info] Hydrodynamic coefficients: C_T=1.2, C_R=pi, C_D0=1.4, C_D1=1.0, C_tau=0.075, baseline mu_1=0.2 (literature value; mu_1=0.01 is an alternative tuned setting).")
+        print("[Autumn Info] Hydrodynamic coefficients: C_T=1.2, C_R=pi, C_D0=1.4, C_D1=1.0, C_tau=pi*mu_2/8=0.07854, mu_1=0.2, mu_2=0.2 (baseline literature values from Andersen et al. 2005b as used in ondrej-cloud implementation (equation number unchecked); mu_1=0.01 is tuned, not from the paper).")
         _VERIFY_WARNED = True
 
 
@@ -56,9 +56,10 @@ class Coefficients:
     C_R: float = math.pi
     C_D0: float = 1.4
     C_D1: float = 1.0
-    C_tau: float = 0.075
-    c_lin: float = 0.0
     mu_1: float = 0.2
+    mu_2: float = 0.2
+    C_tau: float = math.pi * 0.2 / 8.0  # 0.0785398... derived from pi*mu_2/8; 0.075 strip theory is a documented alternative
+    c_lin: float = 0.0
     eps_V: float = 1.0e-7
 
 
@@ -76,6 +77,17 @@ class NumericsParams:
     perturbation_rad: float = 0.0
     tank_depth_m: Optional[float] = 0.38
 
+    @classmethod
+    def from_config(cls, path: str = "config/base.yaml") -> NumericsParams:
+        """Explicitly construct NumericsParams from YAML configuration."""
+        p = Path(path)
+        if not p.exists():
+            return cls()
+        with open(p, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+        num_data = data.get("numerics", {})
+        return cls(**num_data)
+
 
 @dataclass(frozen=True)
 class RegimeClassifierParams:
@@ -87,7 +99,6 @@ class RegimeClassifierParams:
     theta_ptp_flutter_max_deg: float = 300.0
     min_flips_tumble: int = 2
     max_reversal_tumble_deg: float = 180.0
-    min_reversal_mixed_deg: float = 90.0
     min_spin_ratio_tumble: float = 0.70
 
 
@@ -241,3 +252,46 @@ def load_all_coin_sets(config_path: Optional[str | Path] = None) -> Dict[str, Pl
             notes=str(entry.get("notes", ""))
         )
     return coin_sets
+
+
+def load_coins_yaml(config_path: Optional[str | Path] = None) -> List[PlateParams]:
+    """Load enabled coins and design discs from coins.yaml."""
+    if config_path is None:
+        config_path = get_default_config_path("coins.yaml")
+    p = Path(config_path)
+    with open(p, "r", encoding="utf-8") as f:
+        data = yaml.safe_load(f) or {}
+
+    plates = []
+    for item in data.get("coins", []):
+        if not item.get("enabled", True):
+            continue
+        if item.get("kind") == "washer":
+            continue
+        if item.get("thickness_mm") is None:
+            continue
+
+        name = item.get("id", "")
+        label = item.get("label", name)
+        diameter_mm = float(item["diameter_mm"])
+        thickness_mm = float(item["thickness_mm"])
+        L = diameter_mm * 1e-3
+        h = thickness_mm * 1e-3
+
+        if "rho_s_kgm3" in item and item["rho_s_kgm3"] is not None:
+            rho_s = float(item["rho_s_kgm3"])
+        elif "mass_g" in item and item["mass_g"] is not None:
+            mass_kg = float(item["mass_g"]) * 1e-3
+            vol_3d = math.pi * (0.5 * L) ** 2 * h
+            rho_s = mass_kg / vol_3d
+        else:
+            continue
+
+        plates.append(PlateParams(
+            name=name,
+            rho_s=rho_s,
+            L=L,
+            h=h,
+            notes=label
+        ))
+    return plates

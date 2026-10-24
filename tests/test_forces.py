@@ -217,3 +217,12 @@ def test_sign_check_and_symmetry():
     # Plate must fall downward: Y(t) must decrease, v < 0
     assert y_vals[-1] < -0.05, f"Plate did not fall down: Y_end = {y_vals[-1]}"
     assert v_vals[-1] < 0.0, f"Vertical velocity should be negative, got {v_vals[-1]}"
+
+    # 180-degree physical invariance: releasing at theta0 vs theta0 + pi
+    th0 = 0.35  # arbitrary non-zero initial angle [rad]
+    sol1 = solve_ivp(model.rhs, (0.0, 1.0), [0.0, 0.0, th0, 0.0, 0.0, 0.0], method="DOP853", rtol=1e-10, atol=1e-12)
+    sol2 = solve_ivp(model.rhs, (0.0, 1.0), [0.0, 0.0, th0 + math.pi, 0.0, 0.0, 0.0], method="DOP853", rtol=1e-10, atol=1e-12)
+    assert sol1.success and sol2.success
+    assert abs(sol1.y[0, -1] - sol2.y[0, -1]) < 1e-9, "180-deg symmetry broken in X"
+    assert abs(sol1.y[1, -1] - sol2.y[1, -1]) < 1e-9, "180-deg symmetry broken in Y"
+    assert abs(sol1.y[2, -1] - (sol2.y[2, -1] - math.pi)) < 1e-8, "180-deg symmetry broken in theta"

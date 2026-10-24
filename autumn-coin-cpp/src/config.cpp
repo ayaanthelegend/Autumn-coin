@@ -28,6 +28,7 @@ bool load_base_config(const std::string& filepath,
             coeffs.C_tau = c["C_tau"].as<double>(coeffs.C_tau);
             coeffs.c_lin = c["c_lin"].as<double>(coeffs.c_lin);
             coeffs.mu_1 = c["mu_1"].as<double>(coeffs.mu_1);
+            if (c["mu_2"]) coeffs.mu_2 = c["mu_2"].as<double>(coeffs.mu_2);
             coeffs.eps_V = c["eps_V"].as<double>(coeffs.eps_V);
         }
 
@@ -99,6 +100,10 @@ std::vector<PlateConfig> load_coins_yaml(const std::string& filepath) {
                     p.mass_g = item["mass_g"].as<double>(0.0);
                 }
 
+                if (item["rho_s_kgm3"]) {
+                    p.rho_s = item["rho_s_kgm3"].as<double>(p.rho_s);
+                }
+
                 if (item["diameter_mm"]) {
                     p.L = item["diameter_mm"].as<double>(25.0) * 1e-3;
                 }
@@ -122,9 +127,13 @@ std::vector<PlateConfig> load_coins_yaml(const std::string& filepath) {
                     p.source = item["source"].as<std::string>();
                 }
 
-                // Compute effective solid density from mass and volume
+                // Compute effective solid density from mass and cylinder volume, or mass from density
                 if (p.mass_g > 0.0 && p.L > 0.0 && p.h > 0.0) {
-                    p.rho_s = (p.mass_g * 1e-3) / (M_PI * (0.5 * p.L) * (0.5 * p.h));
+                    double vol_3d = M_PI * (0.5 * p.L) * (0.5 * p.L) * p.h;
+                    p.rho_s = (p.mass_g * 1e-3) / vol_3d;
+                } else if (p.rho_s > 0.0 && p.L > 0.0 && p.h > 0.0) {
+                    double vol_3d = M_PI * (0.5 * p.L) * (0.5 * p.L) * p.h;
+                    p.mass_g = p.rho_s * vol_3d * 1e3;
                 }
 
                 plates.push_back(p);

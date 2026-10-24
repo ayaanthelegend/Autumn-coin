@@ -23,9 +23,10 @@ struct CoeffsConfig {
     double C_R = M_PI;
     double C_D0 = 1.4;
     double C_D1 = 1.0;
-    double C_tau = 0.075;
+    double mu_1 = 0.2; // Baseline literature value; 0.01 is tuned, not from paper
+    double mu_2 = 0.2; // Baseline literature value
+    double C_tau = M_PI * 0.2 / 8.0; // 0.0785398... derived from pi*mu_2/8; 0.075 strip theory is alternative
     double c_lin = 0.0;
-    double mu_1 = 0.2; // Literature baseline (Andersen 2005b Eq. 3.9); 0.01 is tuned alternative
     double eps_V = 1e-7;
 };
 

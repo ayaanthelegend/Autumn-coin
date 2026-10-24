@@ -125,6 +125,7 @@ struct SPHConfig {
     double omega_relax = 0.5;     // Picard relaxation parameter
     bool use_shepard_density = false; // Optional Shepard normalization for quiescent submerged bodies
     bool compute_pressure = true; // Set to false to isolate pure viscous Laplacian operator
+    bool compute_vorticity = false; // Set to true when rendering or analyzing wake vorticity
 
     double h_sml() const { return h_factor * dx; }
     double r_cutoff() const { return 2.0 * h_sml(); }

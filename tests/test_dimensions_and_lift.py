@@ -102,20 +102,9 @@ def test_equations_of_motion_dimensional_consistency():
 
     assert math.isfinite(du_dt) and math.isfinite(dv_dt) and math.isfinite(domega_dt)
 
-
-def test_velocity_scales_froude_and_andersen():
-    r"""Verify relationship between Froude velocity scale U_t (full thickness h) and Andersen scale U_0 (semi-thickness b)."""
+    # Velocity scale verification: Froude scale U_t vs Andersen characteristic scale U_0
     from autumn.dimensionless import compute_andersen_velocity_scale, compute_froude_velocity_scale
-
-    rho_s = 2700.0
-    rho_f = 998.0
-    g = 9.81
-    h = 0.0018
-    b = h / 2.0
-
-    u_t = compute_froude_velocity_scale(rho_s, rho_f, g, h)
-    u_0 = compute_andersen_velocity_scale(rho_s, rho_f, g, b)
-
+    u_t = compute_froude_velocity_scale(plate.rho_s, fluid.rho_f, fluid.g, plate.h)
+    u_0 = compute_andersen_velocity_scale(plate.rho_s, fluid.rho_f, fluid.g, plate.b)
     assert u_t > 0.0 and u_0 > 0.0
-    # U_t = sqrt(2) * U_0
     assert math.isclose(u_t, math.sqrt(2.0) * u_0, rel_tol=1e-9)

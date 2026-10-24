@@ -1,4 +1,4 @@
-resolution_label,dx_m,h_sml_m,N_h,F_drag_mN,F_lift_mN,F_total_mN,rel_change_pct
-Coarse (L/12),0.002,0.0026,0.9,0.673074,-5.79954e-10,0.673074,0
-Medium (L/16),0.0015,0.00195,1.2,0.936626,2.51949e-10,0.936626,28.1384
-Fine (L/20),0.0012,0.00156,1.5,1.25622,-6.03895e-10,1.25622,25.4408
+grid_label,dx_m,h_sml_m,N_h,U_mean_m_s,theta_amp_deg,rel_change_pct,observed_order_p,status
+Coarse (L/12),0.002,0.0026,0.9,0.690108,36.6889,0,2.53433,N/A
+Medium (L/16),0.0015,0.00195,1.2,0.878329,92.3711,21.4295,2.53433,N/A
+Fine (L/20),0.0012,0.00156,1.5,0.779933,108.474,12.6159,2.53433,FAIL

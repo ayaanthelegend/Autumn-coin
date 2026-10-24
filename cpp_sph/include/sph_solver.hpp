@@ -11,6 +11,14 @@
 
 namespace sph {
 
+struct EquilibrationResult {
+    double initial_ay_measured = 0.0;
+    double initial_ay_theoretical = 0.0;
+    double rel_error = 0.0;
+    double initial_alpha = 0.0;
+    bool shock_suppressed = false;
+};
+
 class SPHSolver {
 public:
     FluidConfig fluid_cfg;
@@ -43,6 +51,9 @@ public:
 
     // Synchronous Kick-Drift-Kick (KDK) step
     void step_kdk(double dt);
+
+    // Fluid-Structure Equilibration phase: relaxes acoustic pressure before free release
+    EquilibrationResult equilibrate(int n_steps, double dt);
 
     // Helpers
     bool is_inside_solid(double x, double y) const;

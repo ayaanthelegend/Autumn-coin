@@ -1,0 +1,3 @@
+case,I_star,ODE_regime,SPH_regime,U_mean_ODE_m_s,U_mean_SPH_m_s,diff_U_pct,freq_ODE_Hz,freq_SPH_Hz,diff_freq_pct,theta_amp_ODE_deg,theta_amp_SPH_deg,diff_theta_amp_pct
+flutter_I068,0.68,Fluttering,Fluttering,0.2123,0.1665,21.58,1.33,3.98,199.2,73.3,38.7,47.18
+tumble_I135,1.35,Tumbling,Mixed,0.2955,0.2722,7.88,1.33,3.98,199.2,302.0,105.2,65.17

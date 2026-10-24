@@ -8,6 +8,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 from typing import Optional, Sequence
+import warnings
 import numpy as np
 from scipy.integrate import solve_ivp
 
@@ -49,7 +50,8 @@ class TrajectoryResult:
             "omega": self.omega,
             "v_X": self.v_X,
             "v_Y": self.v_Y,
-            "speed": self.speed
+            "speed": self.speed,
+            "perturbation_rad": np.full_like(self.t, self.numerics.perturbation_rad)
         }
 
 
@@ -86,6 +88,15 @@ def simulate_drop(
     if initial_state is not None:
         y0 = list(initial_state)
     else:
+        # Check for exact symmetric drop without perturbation
+        if abs(math.sin(theta0)) < 1e-9 and abs(numerics.perturbation_rad) < 1e-12 and u0 == 0.0 and v0 == 0.0 and omega0 == 0.0:
+            warnings.warn(
+                f"[Autumn Warning] Symmetrically exact vertical drop (theta0={theta0} rad) with zero perturbation: "
+                "trajectory direction is determined purely by floating-point roundoff.",
+                UserWarning,
+                stacklevel=2
+            )
+
         # Controlled symmetry-breaking perturbation to avoid compiler/OS-dependent floating-point roundoff
         theta_init = theta0
         if abs(theta0) < 1e-12 and u0 == 0.0 and v0 == 0.0 and omega0 == 0.0 and numerics.perturbation_rad != 0.0:

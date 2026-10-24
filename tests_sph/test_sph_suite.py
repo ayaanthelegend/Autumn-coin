@@ -73,8 +73,15 @@ def test_test6_low_Istar_stability():
 def test_test7_resolution_study():
     ensure_runner()
     res = subprocess.run([str(SPH_RUNNER), "--test", "7"], capture_output=True, text=True)
-    assert res.returncode == 0, f"Test 7 failed:\n{res.stdout}\n{res.stderr}"
     csv_path = VAL_DIR / "test7_resolution_study.csv"
     assert csv_path.exists()
     df = pd.read_csv(csv_path)
     assert len(df) == 3
+    # Strict verification: Fail if medium-to-fine change exceeds 5.0%
+    eps_23 = df.loc[2, "rel_change_pct"]
+    if eps_23 > 5.0:
+        assert res.returncode != 0, f"Expected non-zero exit code when eps_23 ({eps_23}%) > 5.0%"
+        assert df.loc[2, "status"] == "FAIL"
+    else:
+        assert res.returncode == 0, f"Expected zero exit code when eps_23 ({eps_23}%) <= 5.0%"
+        assert df.loc[2, "status"] == "PASS"

@@ -14,18 +14,19 @@ numerics:
   t_max_factor: 5.0    # Adaptive t_max factor: t_max = max(t_max_min, t_max_factor * H_fall / U_t)
   t_max_min: 80.0      # Minimum t_max [s]
   seed: 42             # Global default random seed
-  perturbation_rad: 0.0 # Symmetry-breaking perturbation [rad] (0.0 for exact symmetric release)
+  perturbation_rad: 0.0 # Symmetry-breaking perturbation [rad] (0.0 for exact release)
   tank_depth_m: 0.38   # Physical experiment water tank depth [m]
 
 
 coefficients:
-  C_T: 1.2             # Translational circulation coefficient (Andersen et al. 2005b Eq. 3.7)
-  C_R: 3.141592653589793 # Rotational circulation coefficient pi (Andersen et al. 2005b Eq. 3.7)
-  C_D0: 1.4            # Viscous drag constant term (Andersen et al. 2005b Eq. 3.8)
-  C_D1: 1.0            # Viscous drag angle dependence term (Andersen et al. 2005b Eq. 3.8)
-  C_tau: 0.075         # Rotational damping torque coefficient (Andersen 2005b Eq. 3.9: pi*mu_2/8 = 0.0785 for mu_2=0.2)
-  c_lin: 0.0           # Optional linear rotational damping [N*m*s/rad]
-  mu_1: 0.2            # Dimensionless linear rotational damping coefficient (Literature baseline: Andersen 2005b Eq. 3.9; 0.01 is tuned alternative)
+  C_T: 1.2             # Translational circulation coefficient (Andersen et al. 2005b as used in ondrej-cloud implementation (equation number unchecked))
+  C_R: 3.141592653589793 # Rotational circulation coefficient pi (Andersen et al. 2005b as used in ondrej-cloud)
+  C_D0: 1.4            # Viscous drag constant term
+  C_D1: 1.0            # Viscous drag angle dependence term
+  mu_1: 0.2            # Dimensionless linear damping (baseline literature value; 0.01 is tuned, not from the paper)
+  mu_2: 0.2            # Dimensionless quadratic damping (baseline literature value)
+  C_tau: 0.07853981633974483 # Rotational damping coefficient C_tau = pi*mu_2/8 = 0.07854; strip-theory 0.075 is a documented alternative
+  c_lin: 0.0           # Optional manual linear rotational damping [N*m*s/rad]
   eps_V: 1.0e-7        # Velocity regularization threshold [m/s]
 
 regime_classifier:
@@ -36,5 +37,4 @@ regime_classifier:
   theta_ptp_flutter_max_deg: 300.0 # Upper bound on peak-to-peak angle for pure flutter vs heteroclinic mixed [deg]
   min_flips_tumble: 2      # Minimum net 2*pi rotations in post-transient window
   max_reversal_tumble_deg: 180.0 # Maximum allowed backward excursion for unidirectional tumbling [deg]
-  min_reversal_mixed_deg: 90.0   # Minimum excursion reversal defining chaotic mixed tumbling [deg]
   min_spin_ratio_tumble: 0.70    # Minimum |<omega>| / <|omega|> spin consistency for tumbling

@@ -7,8 +7,8 @@ References:
 
     Andersen, A., Pesavento, U., & Wang, Z. J. (2005b).
     Analysis of transitions between fluttering, tumbling and steady descent of falling cards.
-    Journal of Fluid Mechanics, 541, 91-104. DOI: 10.1017/S0022112005005847.
-    Eqs. (3.1)-(3.9): circulation Eq. 3.7, drag Eq. 3.8, torque Eq. 3.9.
+    Journal of Fluid Mechanics, 541, 91-104.
+    (Model formulation as used in the ondrej-cloud implementation; equation numbers unchecked in primary text).
 """
 
 from __future__ import annotations
@@ -109,13 +109,13 @@ def compute_viscous_forces_and_torque(
         \tau = 0.5 C_\tau \rho_f L^4 |\omega| \omega + c_{\text{lin}} \omega
 
     Reference:
-        Andersen, Pesavento & Wang (2005b), eqs. (3.8)-(3.9).
-        In eq. (3.9):
+        Andersen, Pesavento & Wang (2005b) as used in the ondrej-cloud implementation.
+        Rotational damping torque formulation:
             \tau_\nu = \pi \rho_f a^4 ( (U / a) \mu_1 + \mu_2 |\omega| ) \omega
         where a = L / 2 and characteristic velocity U = \sqrt{\max(\rho_s / \rho_f - 1.0, 0.0) g (h / 2)}.
         In terms of full chord L = 2a:
-            \tau_{\text{quad}} = 0.5 C_\tau \rho_f L^4 |\omega| \omega  with C_\tau = \pi \mu_2 / 8 \approx 0.075 - 0.0785
-            \tau_{\text{lin}} = c_{\text{lin}} \omega  with c_{\text{lin}} = (\pi / 8) \rho_f L^3 U \mu_1
+            \tau_{\text{quad}} = 0.5 C_\tau \rho_f L^4 |\omega| \omega  with C_\tau = \pi \mu_2 / 8 \approx 0.07854 for \mu_2 = 0.2 (0.075 strip theory is alternative)
+            \tau_{\text{lin}} = c_{\text{lin}} \omega  with c_{\text{lin}} = (\pi / 8) \rho_f L^3 U \mu_1  (baseline \mu_1 = 0.2; 0.01 is tuned, not from the paper)
 
     Args:
         u: Body velocity along chord [m/s].
