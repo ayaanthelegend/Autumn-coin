@@ -37,6 +37,8 @@ class TrajectoryResult:
     timed_out: bool           # True if run terminated due to t_max before reaching bottom
     H_fall: float             # Target fall depth [m]
     t_max: float              # Cutoff time used [s]
+    symmetric_start: bool = False # True if exact symmetric release with zero perturbation
+    actual_theta0_rad: float = 0.0 # Effective initial orientation theta0 + perturbation_rad
 
     def to_csv_dict(self) -> dict:
         """Return dict of trajectory arrays for CSV export."""
@@ -51,7 +53,9 @@ class TrajectoryResult:
             "v_X": self.v_X,
             "v_Y": self.v_Y,
             "speed": self.speed,
-            "perturbation_rad": np.full_like(self.t, self.numerics.perturbation_rad)
+            "perturbation_rad": np.full_like(self.t, self.numerics.perturbation_rad),
+            "actual_theta0_rad": np.full_like(self.t, self.actual_theta0_rad),
+            "symmetric_start": np.full_like(self.t, self.symmetric_start)
         }
 
 
@@ -85,40 +89,54 @@ def simulate_drop(
     """
     model = AutumnModel(plate=plate, fluid=fluid, coeffs=coeffs)
 
+    is_symmetric = False
     if initial_state is not None:
         y0 = list(initial_state)
+        actual_theta0 = y0[2]
     else:
-        # Check for exact symmetric drop without perturbation
-        if abs(math.sin(theta0)) < 1e-9 and abs(numerics.perturbation_rad) < 1e-12 and u0 == 0.0 and v0 == 0.0 and omega0 == 0.0:
+        # Check for exact symmetric drop without perturbation (broadside theta0=0,180 or edge-on theta0=90,270)
+        is_symmetric = (abs(math.sin(theta0)) < 1e-9 or abs(math.cos(theta0)) < 1e-9) and abs(numerics.perturbation_rad) < 1e-12 and u0 == 0.0 and v0 == 0.0 and omega0 == 0.0
+        if is_symmetric:
             warnings.warn(
-                f"[Autumn Warning] Symmetrically exact vertical drop (theta0={theta0} rad) with zero perturbation: "
+                f"[Autumn Warning] Symmetrically exact release (theta0={theta0} rad) with zero perturbation: "
                 "trajectory direction is determined purely by floating-point roundoff.",
                 UserWarning,
                 stacklevel=2
             )
 
-        # Controlled symmetry-breaking perturbation to avoid compiler/OS-dependent floating-point roundoff
-        theta_init = theta0
-        if abs(theta0) < 1e-12 and u0 == 0.0 and v0 == 0.0 and omega0 == 0.0 and numerics.perturbation_rad != 0.0:
-            theta_init = numerics.perturbation_rad
+        # Controlled symmetry-breaking perturbation applied at ANY angle
+        theta_init = theta0 + numerics.perturbation_rad
+        actual_theta0 = theta_init
         y0 = [X0, Y0, theta_init, u0, v0, omega0]
 
     h_fall = numerics.H_fall_factor * plate.L
 
+    # Compute characteristic timescale tau_0 = a / U_0
+    buoyant_ratio = (plate.rho_s / fluid.rho_f) - 1.0
+    if buoyant_ratio > 0.0 and plate.b > 0.0:
+        u0_scale = math.sqrt(buoyant_ratio * fluid.g * plate.b)
+        tau_0 = plate.a / u0_scale if u0_scale > 1e-6 else 0.05
+    else:
+        tau_0 = 0.05
+
+    min_horizon_time_units = getattr(numerics, "min_horizon_time_units", 80.0)
+    t_min_horizon = min_horizon_time_units * tau_0 if min_horizon_time_units > 0.0 else 0.0
+
     # Adaptive cutoff time to prevent premature termination during slow falls
     if t_max_override is not None:
-        t_max = t_max_override
+        t_max = max(t_max_override, t_min_horizon * 1.05)
     else:
-        t_max = plate.adaptive_t_max(fluid, coeffs, numerics)
+        t_max = max(plate.adaptive_t_max(fluid, coeffs, numerics), t_min_horizon * 1.5)
 
-    # Termination event when plate reaches target fall depth: Y(t) <= Y0 - H_fall
+    # Termination event when plate reaches target fall depth AND minimum horizon:
+    # f(t, state) = max(Y(t) - target_y, t_min_horizon - t) <= 0
     target_y = y0[1] - h_fall
 
-    def bottom_hit_event(t: float, state: np.ndarray) -> float:
-        return state[1] - target_y
+    def dual_termination_event(t: float, state: np.ndarray) -> float:
+        return max(state[1] - target_y, t_min_horizon - t)
 
-    bottom_hit_event.terminal = True
-    bottom_hit_event.direction = -1
+    dual_termination_event.terminal = True
+    dual_termination_event.direction = -1
 
     sol = solve_ivp(
         fun=model.rhs,
@@ -127,7 +145,7 @@ def simulate_drop(
         method=numerics.integrator,
         rtol=numerics.rtol,
         atol=numerics.atol,
-        events=[bottom_hit_event],
+        events=[dual_termination_event],
         dense_output=True
     )
 
@@ -174,5 +192,7 @@ def simulate_drop(
         reached_bottom=reached_bottom,
         timed_out=timed_out,
         H_fall=h_fall,
-        t_max=t_max
+        t_max=t_max,
+        symmetric_start=is_symmetric,
+        actual_theta0_rad=actual_theta0
     )

@@ -24,7 +24,7 @@ import numpy as np
 
 from autumn.dimensionless import classify_regime
 from autumn.integrate import simulate_drop
-from autumn.params import Coefficients, FluidParams, NumericsParams, PlateParams, RegimeClassifierParams, load_coins_yaml
+from autumn.params import Coefficients, FluidParams, NumericsParams, PlateParams, RegimeClassifierParams, load_coins_yaml, get_labelling_numerics
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 RESULTS_DIR = ROOT_DIR / "results"
@@ -44,7 +44,8 @@ def get_plate_for_istar(i_star: float, L: float = 0.024, rho_f: float = 998.0) -
 def run_coin_suite() -> List[Dict[str, object]]:
     """Simulate and classify all enabled coins across angles and mu_1 values."""
     fluid = FluidParams(rho_f=998.0, g=9.81)
-    num = NumericsParams(H_fall_factor=80.0, perturbation_rad=0.0)
+    base_num = NumericsParams(H_fall_factor=80.0, min_horizon_time_units=80.0)
+    num = get_labelling_numerics(base_num, perturbation_rad=0.001)
     cla = RegimeClassifierParams()
 
     coins_file = ROOT_DIR / "config" / "coins.yaml"
@@ -62,6 +63,9 @@ def run_coin_suite() -> List[Dict[str, object]]:
     for plate in plates:
         i_star = plate.I_star(fluid.rho_f)
         rho_ratio = plate.rho_s / fluid.rho_f
+        u0_scale = math.sqrt(max(0.0, rho_ratio - 1.0) * fluid.g * plate.b)
+        tau_0 = plate.a / u0_scale if u0_scale > 1e-6 else 0.05
+
         for th0_deg in theta0_list:
             for mu1 in mu1_list:
                 c_tau = math.pi * 0.20 / 8.0
@@ -82,7 +86,8 @@ def run_coin_suite() -> List[Dict[str, object]]:
                     theta=res.theta,
                     omega=res.omega,
                     H_fall=res.H_fall,
-                    params=cla
+                    params=cla,
+                    tau_0=tau_0
                 )
                 net_turns = abs(metrics.get("delta_theta_net_rad", 0.0)) / (2.0 * math.pi)
                 ptp_deg = metrics.get("theta_range_deg", 0.0)
@@ -98,6 +103,10 @@ def run_coin_suite() -> List[Dict[str, object]]:
                     "net_turns": round(net_turns, 2),
                     "ptp_deg": round(ptp_deg, 1),
                     "x_end_over_L": round(x_end_over_L, 3),
+                    "perturbation_rad": res.numerics.perturbation_rad,
+                    "theta_actual_deg": round(math.degrees(res.actual_theta0_rad), 4),
+                    "window_time_units": round(metrics.get("window_time_units", 0.0), 2),
+                    "symmetric_start": res.symmetric_start,
                 }
                 rows.append(row)
                 if th0_deg == 5.0 and mu1 == 0.20:
@@ -109,7 +118,8 @@ def run_coin_suite() -> List[Dict[str, object]]:
 def make_trajectories_plot(plates: List[PlateParams]) -> None:
     """Generate 3x3 trajectory panels (x/L vs y/L) for all 9 coins."""
     fluid = FluidParams(rho_f=998.0, g=9.81)
-    num = NumericsParams(H_fall_factor=80.0, perturbation_rad=0.0)
+    base_num = NumericsParams(H_fall_factor=80.0, min_horizon_time_units=80.0)
+    num = get_labelling_numerics(base_num, perturbation_rad=0.001)
     cla = RegimeClassifierParams()
 
     n_coins = len(plates)
@@ -123,16 +133,18 @@ def make_trajectories_plot(plates: List[PlateParams]) -> None:
         ax = axes[idx]
         ax.set_facecolor("white")
         i_star = plate.I_star(fluid.rho_f)
+        u0_scale = math.sqrt(max(0.0, (plate.rho_s / fluid.rho_f) - 1.0) * fluid.g * plate.b)
+        tau_0 = plate.a / u0_scale if u0_scale > 1e-6 else 0.05
 
         # Baseline: mu_1 = 0.20, theta0 = 5 deg
         coeffs_base = Coefficients(mu_1=0.20, mu_2=0.20, C_tau=math.pi * 0.20 / 8.0)
         res_base = simulate_drop(plate, fluid, coeffs_base, num, theta0=math.radians(5.0))
-        reg_base, _ = classify_regime(res_base.t, res_base.Y, res_base.theta, res_base.omega, res_base.H_fall, cla)
+        reg_base, _ = classify_regime(res_base.t, res_base.Y, res_base.theta, res_base.omega, res_base.H_fall, cla, tau_0=tau_0)
 
         # Comparison: mu_1 = 0.01, theta0 = 5 deg
         coeffs_tuned = Coefficients(mu_1=0.01, mu_2=0.20, C_tau=math.pi * 0.20 / 8.0)
         res_tuned = simulate_drop(plate, fluid, coeffs_tuned, num, theta0=math.radians(5.0))
-        reg_tuned, _ = classify_regime(res_tuned.t, res_tuned.Y, res_tuned.theta, res_tuned.omega, res_tuned.H_fall, cla)
+        reg_tuned, _ = classify_regime(res_tuned.t, res_tuned.Y, res_tuned.theta, res_tuned.omega, res_tuned.H_fall, cla, tau_0=tau_0)
 
         # Plot trajectories normalized by chord L
         x_base = res_base.X / plate.L
@@ -163,7 +175,8 @@ def make_trajectories_plot(plates: List[PlateParams]) -> None:
 def make_regime_vs_istar_plot() -> None:
     """Evaluate 40 I* points from 0.05 to 3.0 comparing mu_1=0.20 vs mu_1=0.01."""
     fluid = FluidParams(rho_f=998.0, g=9.81)
-    num = NumericsParams(H_fall_factor=80.0, perturbation_rad=0.0)
+    base_num = NumericsParams(H_fall_factor=80.0, min_horizon_time_units=80.0)
+    num = get_labelling_numerics(base_num, perturbation_rad=0.001)
     cla = RegimeClassifierParams()
     L = 0.024
 
@@ -174,16 +187,20 @@ def make_regime_vs_istar_plot() -> None:
     print("\nScanning 40 I* points from 0.05 to 3.0 comparing mu_1=0.20 vs 0.01...")
     for i_s in i_stars:
         p = get_plate_for_istar(i_s, L=L, rho_f=fluid.rho_f)
+        u0_scale = math.sqrt(max(0.0, (p.rho_s / fluid.rho_f) - 1.0) * fluid.g * p.b)
+        tau_0 = p.a / u0_scale if u0_scale > 1e-6 else 0.05
 
         # Baseline mu_1 = 0.20
         c_base = Coefficients(mu_1=0.20, mu_2=0.20, C_tau=math.pi * 0.20 / 8.0)
         r_b = simulate_drop(p, fluid, c_base, num, theta0=math.radians(5.0))
-        reg_b, _ = classify_regime(r_b.t, r_b.Y, r_b.theta, r_b.omega, r_b.H_fall, cla)
+        reg_b, _ = classify_regime(r_b.t, r_b.Y, r_b.theta, r_b.omega, r_b.H_fall, cla, tau_0=tau_0)
         regimes_base.append(reg_b)
 
         # Tuned mu_1 = 0.01
         c_tuned = Coefficients(mu_1=0.01, mu_2=0.20, C_tau=math.pi * 0.20 / 8.0)
         r_t = simulate_drop(p, fluid, c_tuned, num, theta0=math.radians(5.0))
+        reg_t, _ = classify_regime(r_t.t, r_t.Y, r_t.theta, r_t.omega, r_t.H_fall, cla, tau_0=tau_0)
+        regimes_tuned.append(reg_t)
         reg_t, _ = classify_regime(r_t.t, r_t.Y, r_t.theta, r_t.omega, r_t.H_fall, cla)
         regimes_tuned.append(reg_t)
 
@@ -192,7 +209,8 @@ def make_regime_vs_istar_plot() -> None:
         "steady": "#2ca02c",      # green
         "fluttering": "#1f77b4",   # blue
         "tumbling": "#d62728",     # red
-        "mixed": "#ff7f0e"         # orange
+        "mixed": "#ff7f0e",        # orange
+        "undetermined": "#7f7f7f"  # gray
     }
 
     fig, ax = plt.subplots(figsize=(12, 5), facecolor="white")
@@ -243,7 +261,8 @@ def search_steady_regime() -> None:
     """Search for steady regime in I* in [0.02, 0.10] with rho_s/rho_f >= 1.2."""
     fluid = FluidParams(rho_f=998.0, g=9.81)
     coeffs = Coefficients(mu_1=0.20, mu_2=0.20, C_tau=math.pi * 0.20 / 8.0)
-    num = NumericsParams(H_fall_factor=80.0, perturbation_rad=0.0)
+    base_num = NumericsParams(H_fall_factor=80.0, min_horizon_time_units=80.0)
+    num = get_labelling_numerics(base_num, perturbation_rad=0.001)
     cla = RegimeClassifierParams()
     L = 0.024
 
@@ -258,8 +277,10 @@ def search_steady_regime() -> None:
             h = L * hol
             rho_s = r_ratio * fluid.rho_f
             plate = PlateParams(f"search_steady_{i_s:.3f}", rho_s, L, h)
+            u0_scale = math.sqrt(max(0.0, (rho_s / fluid.rho_f) - 1.0) * fluid.g * plate.b)
+            tau_0 = plate.a / u0_scale if u0_scale > 1e-6 else 0.05
             res = simulate_drop(plate, fluid, coeffs, num, theta0=math.radians(5.0))
-            reg, met = classify_regime(res.t, res.Y, res.theta, res.omega, res.H_fall, cla)
+            reg, met = classify_regime(res.t, res.Y, res.theta, res.omega, res.H_fall, cla, tau_0=tau_0)
             if reg == "steady":
                 found_steady = True
                 print(f"  Steady found at I*={i_s:.3f}, rho_s/rho_f={r_ratio:.1f}: ptp={met['theta_range_deg']:.2f} deg")
@@ -285,7 +306,11 @@ def main() -> None:
         "regime",
         "net_turns",
         "ptp_deg",
-        "x_end_over_L"
+        "x_end_over_L",
+        "perturbation_rad",
+        "theta_actual_deg",
+        "window_time_units",
+        "symmetric_start"
     ]
     with open(out_csv, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)

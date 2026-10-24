@@ -9,6 +9,7 @@ Re = rho_f * U_mean * L / mu a posteriori.
 from __future__ import annotations
 
 import argparse
+import math
 import time
 from pathlib import Path
 import numpy as np
@@ -16,7 +17,7 @@ import yaml
 
 from autumn.dimensionless import classify_regime, compute_reynolds_number
 from autumn.integrate import simulate_drop
-from autumn.params import NumericsParams, PlateParams, SimulationConfig, get_default_config_path
+from autumn.params import NumericsParams, PlateParams, SimulationConfig, get_default_config_path, get_labelling_numerics
 from autumn.plotting import plot_regime_map
 
 
@@ -35,16 +36,20 @@ def generate_regime_map(
     out_path = Path(out_dir)
     out_path.mkdir(parents=True, exist_ok=True)
 
-    i_star_grid = np.geomspace(i_star_min, i_star_max, n_i_star)
-    numerics_map = NumericsParams(
-        integrator=config.numerics.integrator,
-        rtol=config.numerics.rtol,
-        atol=config.numerics.atol,
-        dt_out=config.numerics.dt_out,
+    # Grid: preserve low-I* geomspace points and add 0.05 steps in [1.0, 1.8], step 0.25 up to 3.5
+    geom_low = np.geomspace(i_star_min, i_star_max, n_i_star)
+    low_pts = [float(x) for x in geom_low if x < 1.0]
+    mid_pts = [round(float(x), 4) for x in np.arange(1.0, 1.801, 0.05)]
+    high_pts = [round(float(x), 4) for x in np.arange(2.0, 3.501, 0.25)]
+    i_star_grid = sorted(list(set(low_pts + mid_pts + high_pts)))
+
+    # Use unified labelling helper for explicit 1e-3 rad perturbation
+    base_num = get_labelling_numerics(config.numerics, perturbation_rad=0.001)
+    from dataclasses import replace
+    numerics_map = replace(
+        base_num,
         H_fall_factor=100.0,
-        t_max_factor=config.numerics.t_max_factor,
-        t_max_min=config.numerics.t_max_min,
-        seed=config.numerics.seed,
+        min_horizon_time_units=config.numerics.min_horizon_time_units
     )
 
     all_i_stars = []
@@ -56,23 +61,28 @@ def generate_regime_map(
     all_L = []
     all_h = []
     all_rho_s = []
+    all_perturbations = []
+    all_actual_angles = []
+    all_window_tu = []
+    all_symmetric = []
 
     print(f"Generating regime map across {len(i_star_grid)} I* values and {len(L_values)} plate chords (fitted Re range [200, 5000]: L in 8-20 mm, I* in 0.05-3.5)...")
 
     for L in L_values:
         for i_s in i_star_grid:
-            # Physical aspect ratio scaling keeping h/L in [0.035, 0.14] and rho_s > rho_f
-            aspect = float(np.clip(0.045 + 0.05 * np.sqrt(i_s), 0.035, 0.14))
+            # Physical aspect ratio scaling keeping h/L in [0.035, 0.25] and enforcing rho_s/rho_f <= 20
+            aspect = float(np.clip(0.045 + 0.05 * np.sqrt(i_s), 0.035, 0.25))
             if i_s <= 0.08:
                 aspect = min(aspect, i_s / 1.25)
+            aspect = max(aspect, i_s / 20.0)
             h = L * aspect
             rho_s = float(i_s * config.fluid.rho_f / aspect)
             if rho_s <= config.fluid.rho_f:
                 continue
 
             plate = PlateParams(f"map_L{int(L*1000)}_I{i_s:.2f}", rho_s, L, h)
-            # Probe steady descent for low I* (I* <= 0.08), and post-transient attractor for flutter/tumble
-            th0 = 0.0 if i_s <= 0.08 else np.radians(theta0_deg)
+            # Physical perturbed release angle across all points
+            th0 = np.radians(theta0_deg)
 
             res = simulate_drop(
                 plate=plate,
@@ -82,12 +92,15 @@ def generate_regime_map(
                 theta0=th0
             )
 
+            u0_scale = np.sqrt(max(0.0, (rho_s / config.fluid.rho_f - 1.0)) * config.fluid.g * (h / 4.0))
+            tau_0 = (L / 2.0) / (u0_scale if u0_scale > 1e-6 else 1.0)
+
             regime, metrics = classify_regime(
-                res.t, res.Y, res.theta, res.omega, res.H_fall, config.regime_classifier
+                res.t, res.Y, res.theta, res.omega, res.H_fall, config.regime_classifier, tau_0=tau_0
             )
 
             # Compute mean descent speed discarding initial transient window
-            t_transient = max(config.regime_classifier.transient_fraction * res.t[-1], config.regime_classifier.transient_t_min)
+            t_transient = max(20.0 * tau_0, config.regime_classifier.transient_fraction * res.t[-1])
             transient_depth = config.regime_classifier.transient_fraction * res.H_fall
             valid_mask = (res.t >= t_transient) & (res.Y <= (res.Y[0] - transient_depth))
             if np.sum(valid_mask) < 10:
@@ -111,6 +124,10 @@ def generate_regime_map(
             all_L.append(L * 1000.0)
             all_h.append(h * 1000.0)
             all_rho_s.append(rho_s)
+            all_perturbations.append(res.numerics.perturbation_rad)
+            all_actual_angles.append(round(math.degrees(res.actual_theta0_rad), 4))
+            all_window_tu.append(round(metrics.get("window_time_units", 0.0), 2))
+            all_symmetric.append(res.symmetric_start)
 
     all_i_stars_arr = np.array(all_i_stars)
     all_res_in_arr = np.array(all_res_in)
@@ -121,7 +138,11 @@ def generate_regime_map(
         "U_t_ms": all_u_t,
         "L_mm": all_L,
         "h_mm": all_h,
-        "rho_s": all_rho_s
+        "rho_s": all_rho_s,
+        "perturbation_rad": all_perturbations,
+        "theta_actual_deg": all_actual_angles,
+        "window_time_units": all_window_tu,
+        "symmetric_start": all_symmetric
     }
 
     plot_regime_map(

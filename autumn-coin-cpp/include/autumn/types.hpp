@@ -30,7 +30,8 @@ enum class Regime {
     Steady,
     Fluttering,
     Tumbling,
-    Mixed
+    Mixed,
+    Undetermined
 };
 
 struct Sample {

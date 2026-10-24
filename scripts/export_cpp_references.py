@@ -24,7 +24,7 @@ def rk4_step(model, t, state, dt):
     return state + (dt / 6.0) * (k1 + 2.0 * k2 + 2.0 * k3 + k4)
 
 
-def export_case(preset_name, theta0_deg, t_max=1.0, dt_phys=1e-4, dt_sample=0.01):
+def export_case(preset_name, theta0_deg, t_max=1.0, dt_phys=1e-4, dt_sample=0.01, perturbation_rad=0.0):
     with open(BASE_CFG, "r") as f:
         base_data = yaml.safe_load(f)
     with open(COIN_SETS, "r") as f:

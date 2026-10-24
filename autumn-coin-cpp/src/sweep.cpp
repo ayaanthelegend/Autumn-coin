@@ -102,7 +102,9 @@ std::vector<SweepRow> run_angle_sweep(const Model& model,
 
         // Post-transient metrics
         RegimeMetrics rm;
-        row.regime = classify_regime(samples, tank.water_height, classifier, &rm);
+        double u0 = std::sqrt(std::max(0.0, ((model.plate().rho_s / model.fluid().rho_f) - 1.0)) * model.fluid().g * (model.plate().h / 4.0));
+        double tau_0 = (model.plate().L * 0.5) / (u0 > 1e-6 ? u0 : 1.0);
+        row.regime = classify_regime(samples, tank.water_height, classifier, &rm, tau_0);
         row.n_flips = rm.n_flips;
 
         double sum_spd = 0.0;

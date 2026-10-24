@@ -98,9 +98,9 @@ target_link_libraries(autumn_core PUBLIC
 
 if(MSVC)
     target_compile_definitions(autumn_core PUBLIC NOMINMAX _USE_MATH_DEFINES _CRT_SECURE_NO_WARNINGS)
-    target_compile_options(autumn_core PUBLIC /W3 /permissive-)
+    target_compile_options(autumn_core PUBLIC /W3 /permissive- /we4062)
 else()
-    target_compile_options(autumn_core PUBLIC -Wall -Wextra)
+    target_compile_options(autumn_core PUBLIC -Wall -Wextra -Wswitch -Werror)
 endif()
 
 # -------------------------------------------------------------

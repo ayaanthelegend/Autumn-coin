@@ -18,7 +18,7 @@ import pandas as pd
 
 from autumn.dimensionless import classify_regime
 from autumn.integrate import simulate_drop
-from autumn.params import PlateParams, FluidParams, Coefficients, NumericsParams, RegimeClassifierParams
+from autumn.params import PlateParams, FluidParams, Coefficients, NumericsParams, RegimeClassifierParams, get_labelling_numerics
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 RESULTS_DIR = ROOT_DIR / "results"
@@ -33,15 +33,18 @@ def bisect_istar_c(
 ) -> dict:
     fluid = FluidParams(rho_f=998.0, g=9.81)
     coeffs = Coefficients(mu_1=mu1)
-    num = NumericsParams(t_max_min=40.0, t_max_factor=4.0)
+    base_num = NumericsParams(t_max_min=40.0, t_max_factor=4.0, H_fall_factor=80.0, min_horizon_time_units=80.0)
+    num = get_labelling_numerics(base_num, perturbation_rad=0.001)
     cla = RegimeClassifierParams()
     h = L * aspect
 
     def evaluate(i_star: float) -> tuple[bool, str, float]:
         rho_s = i_star * fluid.rho_f / aspect
         p = PlateParams("bisect_card", rho_s, L, h)
+        u0_scale = math.sqrt(max(0.0, (rho_s / fluid.rho_f) - 1.0) * fluid.g * p.b)
+        tau_0 = p.a / u0_scale if u0_scale > 1e-6 else 0.05
         res = simulate_drop(p, fluid, coeffs, num, theta0=np.radians(theta0_deg))
-        reg, met = classify_regime(res.t, res.Y, res.theta, res.omega, res.H_fall, cla)
+        reg, met = classify_regime(res.t, res.Y, res.theta, res.omega, res.H_fall, cla, tau_0=tau_0)
         net_turns = abs(met.get("delta_theta_net_rad", 0.0)) / (2.0 * math.pi)
         # Onset of tumbling / departure from pure fluttering:
         is_onset = (reg != "fluttering")

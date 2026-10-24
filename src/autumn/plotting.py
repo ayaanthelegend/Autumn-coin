@@ -363,13 +363,15 @@ def plot_regime_map(
         "steady": "#1f77b4",
         "fluttering": "#2ca02c",
         "mixed": "#ff7f0e",
-        "tumbling": "#d62728"
+        "tumbling": "#d62728",
+        "undetermined": "#7f7f7f"
     }
     marker_map = {
         "steady": "o",
         "fluttering": "^",
         "mixed": "s",
-        "tumbling": "D"
+        "tumbling": "D",
+        "undetermined": "X"
     }
 
     # Shade the extrapolation zone Re > 5000 beyond the fitted quasi-steady coefficient range
@@ -377,7 +379,7 @@ def plot_regime_map(
     ax.axvspan(5000.0, max_re_plot, color="gray", alpha=0.14, label="Extrapolated (Re > 5000)", zorder=1)
     ax.axvline(5000.0, color="#b22222", ls="--", lw=1.5, alpha=0.85, label="Fitted Re Limit (Re = 5000)", zorder=2)
 
-    unique_regimes = ["steady", "fluttering", "mixed", "tumbling"]
+    unique_regimes = ["steady", "fluttering", "mixed", "tumbling", "undetermined"]
     for reg in unique_regimes:
         idx = [i for i, r in enumerate(regimes) if r == reg]
         if idx:

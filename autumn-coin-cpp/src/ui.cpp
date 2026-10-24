@@ -385,7 +385,8 @@ void UIController::render_controls(UIState& ui,
                     if (row.regime == Regime::Steady) ImGui::TextColored(ImVec4(0.1f, 0.6f, 0.2f, 1.0f), "%s", r_str.c_str());
                     else if (row.regime == Regime::Fluttering) ImGui::TextColored(ImVec4(0.1f, 0.4f, 0.8f, 1.0f), "%s", r_str.c_str());
                     else if (row.regime == Regime::Tumbling) ImGui::TextColored(ImVec4(0.85f, 0.45f, 0.1f, 1.0f), "%s", r_str.c_str());
-                    else ImGui::TextColored(ImVec4(0.6f, 0.2f, 0.7f, 1.0f), "%s", r_str.c_str());
+                    else if (row.regime == Regime::Mixed) ImGui::TextColored(ImVec4(0.6f, 0.2f, 0.7f, 1.0f), "%s", r_str.c_str());
+                    else ImGui::TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), "%s", r_str.c_str());
                 }
                 ImGui::EndTable();
             }
@@ -447,8 +448,10 @@ void UIController::render_status_bar(const PlateConfig& plate,
         ImGui::TextColored(ImVec4(0.15f, 0.45f, 0.85f, 1.0f), "[ Fluttering ]");
     } else if (current_regime == Regime::Tumbling) {
         ImGui::TextColored(ImVec4(0.85f, 0.45f, 0.10f, 1.0f), "[ Tumbling ]");
-    } else {
+    } else if (current_regime == Regime::Mixed) {
         ImGui::TextColored(ImVec4(0.65f, 0.25f, 0.75f, 1.0f), "[ Chaotic / Mixed ]");
+    } else {
+        ImGui::TextColored(ImVec4(0.50f, 0.50f, 0.50f, 1.0f), "[ Undetermined ]");
     }
 
     ImGui::SameLine();

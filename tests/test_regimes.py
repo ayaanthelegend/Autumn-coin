@@ -25,7 +25,7 @@ def load_sensitivity_istar_c(mu_1: float = 0.20, theta0_deg: float = 20.0) -> fl
     """Load critical I*_c from results/mu1_sensitivity.csv."""
     csv_file = RESULTS_DIR / "mu1_sensitivity.csv"
     if not csv_file.exists():
-        pytest.skip("results/mu1_sensitivity.csv not yet generated.")
+        raise FileNotFoundError(f"Required benchmark file {csv_file} does not exist. Run scripts/run_mu1_sensitivity.py first.")
     with open(csv_file, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
@@ -38,7 +38,7 @@ def load_coin_regime_row(coin_id: str, theta0_deg: float = 5.0, mu_1: float = 0.
     """Load row for given coin from results/coin_regimes.csv."""
     csv_file = RESULTS_DIR / "coin_regimes.csv"
     if not csv_file.exists():
-        pytest.skip("results/coin_regimes.csv not yet generated.")
+        raise FileNotFoundError(f"Required benchmark file {csv_file} does not exist. Run scripts/run_coin_regimes.py first.")
     with open(csv_file, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
@@ -171,3 +171,116 @@ def test_regime_threshold_sensitivity():
         assert reg_f == "fluttering", f"Fluttering classification flipped to {reg_f} at factor {factor}"
         assert reg_t == "tumbling", f"Tumbling classification flipped to {reg_t} at factor {factor}"
         assert reg_m == "mixed", f"Mixed classification flipped to {reg_m} at factor {factor}"
+
+
+def test_edge_on_release_not_steady():
+    """Verify that theta0 = 90 deg + 1e-3 rad is never classified as 'steady'."""
+    cfg = SimulationConfig.from_yaml("config/base.yaml")
+    L = 0.024
+    for rho_s, h in [(1180.0, 0.0012), (2700.0, 0.0015), (8500.0, 0.0035)]:
+        plate = PlateParams("edge_test", rho_s, L, h)
+        u0_scale = math.sqrt(max(0.0, (rho_s / cfg.fluid.rho_f) - 1.0) * cfg.fluid.g * plate.b)
+        tau_0 = plate.a / u0_scale if u0_scale > 1e-6 else 0.05
+        num = NumericsParams(H_fall_factor=80.0, perturbation_rad=0.001)
+        res = simulate_drop(plate, cfg.fluid, cfg.coefficients, num, theta0=math.radians(90.0))
+        reg, met = classify_regime(res.t, res.Y, res.theta, res.omega, res.H_fall, cfg.regime_classifier, tau_0=tau_0)
+        assert reg != "steady", f"Expected edge-on release with 1e-3 rad perturbation not to be steady, got {reg}"
+
+
+def test_perturbation_applied_at_all_angles():
+    """Verify perturbation_rad is applied at 90 and 180 deg, and zero perturbation triggers symmetric warning."""
+    cfg = SimulationConfig.from_yaml("config/base.yaml")
+    plate = PlateParams("p_test", 2700.0, 0.024, 0.0015)
+
+    # 1. Perturbation at 90 deg
+    num_pert = NumericsParams(H_fall_factor=40.0, perturbation_rad=0.001)
+    res_90 = simulate_drop(plate, cfg.fluid, cfg.coefficients, num_pert, theta0=math.radians(90.0))
+    assert math.isclose(res_90.actual_theta0_rad, math.radians(90.0) + 0.001, rel_tol=1e-7)
+    assert not res_90.symmetric_start
+
+    # 2. Perturbation at 180 deg
+    res_180 = simulate_drop(plate, cfg.fluid, cfg.coefficients, num_pert, theta0=math.radians(180.0))
+    assert math.isclose(res_180.actual_theta0_rad, math.radians(180.0) + 0.001, rel_tol=1e-7)
+    assert not res_180.symmetric_start
+
+    # 3. Zero perturbation at 90 and 180 deg warns and flags symmetric_start = True
+    num_zero = NumericsParams(H_fall_factor=40.0, perturbation_rad=0.0)
+    with pytest.warns(UserWarning, match="Symmetrically exact release"):
+        res_sym90 = simulate_drop(plate, cfg.fluid, cfg.coefficients, num_zero, theta0=math.radians(90.0))
+        assert res_sym90.symmetric_start
+
+    with pytest.warns(UserWarning, match="Symmetrically exact release"):
+        res_sym180 = simulate_drop(plate, cfg.fluid, cfg.coefficients, num_zero, theta0=math.radians(180.0))
+        assert res_sym180.symmetric_start
+
+
+def test_horizon_doubling_extended_points():
+    """Verify N=80 vs N=160 horizon doubling invariance across tungsten, I*=2.0, 3.0, 3.5,
+    and boundary points 1.2, 1.25, 1.3, 1.5 at delta_theta = 1e-3 and 1e-2.
+    Also explicitly assert that I* >= 3.0 points classify as fluttering.
+    """
+    cfg = SimulationConfig.from_yaml("config/base.yaml")
+    L = 0.024
+    test_i_stars = [1.20, 1.25, 1.30, 1.50, 2.00, 2.41, 3.00, 3.50]
+
+    for dt_val in [0.001, 0.01]:
+        for i_s in test_i_stars:
+            aspect = float(np.clip(0.045 + 0.05 * np.sqrt(i_s), 0.035, 0.25))
+            aspect = max(aspect, i_s / 20.0)
+            h = L * aspect
+            rho_s = float(i_s * cfg.fluid.rho_f / aspect)
+            plate = PlateParams(f"conv_{i_s}", rho_s, L, h)
+            u0_scale = math.sqrt(max(0.0, (rho_s / cfg.fluid.rho_f) - 1.0) * cfg.fluid.g * plate.b)
+            tau_0 = plate.a / u0_scale if u0_scale > 1e-6 else 0.05
+
+            num80 = NumericsParams(H_fall_factor=80.0, min_horizon_time_units=80.0, perturbation_rad=dt_val)
+            num160 = NumericsParams(H_fall_factor=160.0, min_horizon_time_units=160.0, perturbation_rad=dt_val)
+
+            r80 = simulate_drop(plate, cfg.fluid, cfg.coefficients, num80, theta0=np.radians(20.0))
+            r160 = simulate_drop(plate, cfg.fluid, cfg.coefficients, num160, theta0=np.radians(20.0))
+
+            reg80, _ = classify_regime(r80.t, r80.Y, r80.theta, r80.omega, r80.H_fall, cfg.regime_classifier, tau_0=tau_0)
+            reg160, _ = classify_regime(r160.t, r160.Y, r160.theta, r160.omega, r160.H_fall, cfg.regime_classifier, tau_0=tau_0)
+
+            assert reg80 == reg160, f"Horizon doubling mismatch for I*={i_s} at dt={dt_val}: {reg80} vs {reg160}"
+            if i_s >= 3.00:
+                assert reg80 == "fluttering", f"Expected fluttering for I*={i_s} >= 3.0, got {reg80}"
+
+
+def test_angle_180_parity():
+    """Verify theta0 and theta0 + 180 deg parity over short horizon (approx 10 tau0) within tolerance."""
+    cfg = SimulationConfig.from_yaml("config/base.yaml")
+    plate = PlateParams("sym_test", 2700.0, 0.024, 0.0015)
+    u0_scale = math.sqrt(max(0.0, (plate.rho_s / cfg.fluid.rho_f) - 1.0) * cfg.fluid.g * plate.b)
+    tau_0 = plate.a / u0_scale
+    t_10 = 10.0 * tau_0
+
+    num = NumericsParams(H_fall_factor=40.0, perturbation_rad=0.001)
+    res1 = simulate_drop(plate, cfg.fluid, cfg.coefficients, num, theta0=math.radians(20.0))
+    res2 = simulate_drop(plate, cfg.fluid, cfg.coefficients, num, theta0=math.radians(200.0))
+
+    m1 = res1.t <= t_10
+    m2 = res2.t <= t_10
+    max_y_diff = float(np.max(np.abs(res1.Y[m1] - res2.Y[m2])))
+    assert max_y_diff < 1e-4, f"180-degree parity trajectory deviation {max_y_diff:.2e} m exceeds tolerance 1e-4 m"
+
+
+def test_chord_scale_invariance():
+    """Verify that regime classifications are identical across chord lengths at fixed I* and h/L."""
+    cfg = SimulationConfig.from_yaml("config/base.yaml")
+    i_s = 1.40
+    aspect = 0.05
+    rho_s = i_s * cfg.fluid.rho_f / aspect
+
+    detected_regimes = []
+    for L in [0.008, 0.012, 0.016, 0.024]:
+        h = L * aspect
+        plate = PlateParams(f"scale_L{int(L*1000)}", rho_s, L, h)
+        u0_scale = math.sqrt(max(0.0, (rho_s / cfg.fluid.rho_f) - 1.0) * cfg.fluid.g * plate.b)
+        tau_0 = plate.a / u0_scale
+        num = NumericsParams(H_fall_factor=80.0, min_horizon_time_units=80.0, perturbation_rad=0.001)
+        res = simulate_drop(plate, cfg.fluid, cfg.coefficients, num, theta0=math.radians(20.0))
+        reg, _ = classify_regime(res.t, res.Y, res.theta, res.omega, res.H_fall, cfg.regime_classifier, tau_0=tau_0)
+        detected_regimes.append(reg)
+
+    assert len(set(detected_regimes)) == 1, f"Expected scale invariance across chords, got {detected_regimes}"

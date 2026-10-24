@@ -21,7 +21,7 @@ import numpy as np
 
 from autumn.dimensionless import classify_regime
 from autumn.integrate import simulate_drop
-from autumn.params import Coefficients, FluidParams, NumericsParams, PlateParams, RegimeClassifierParams
+from autumn.params import Coefficients, FluidParams, NumericsParams, PlateParams, RegimeClassifierParams, get_labelling_numerics
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 RESULTS_DIR = ROOT_DIR / "results"
@@ -63,13 +63,16 @@ def evaluate_drop(
         v0=0.0,
         omega0=0.0
     )
+    u0_scale = math.sqrt(max(0.0, (plate.rho_s / fluid.rho_f) - 1.0) * fluid.g * plate.b)
+    tau_0 = plate.a / u0_scale if u0_scale > 1e-6 else 0.05
     regime, metrics = classify_regime(
         t=res.t,
         Y=res.Y,
         theta=res.theta,
         omega=res.omega,
         H_fall=res.H_fall,
-        params=classifier_params
+        params=classifier_params,
+        tau_0=tau_0
     )
     return regime, metrics
 
@@ -161,7 +164,8 @@ def main() -> None:
     out_csv = RESULTS_DIR / "mu1_sensitivity.csv"
 
     fluid = FluidParams(rho_f=998.0, g=9.81)
-    numerics = NumericsParams(H_fall_factor=80.0, perturbation_rad=0.0)
+    base_num = NumericsParams(H_fall_factor=80.0, min_horizon_time_units=80.0)
+    numerics = get_labelling_numerics(base_num, perturbation_rad=0.001)
     cla = RegimeClassifierParams()
 
     mu_1_values = [0.0, 0.01, 0.05, 0.10, 0.20]

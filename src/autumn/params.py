@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any, Dict, Optional
 import yaml
@@ -75,6 +75,7 @@ class NumericsParams:
     t_max_min: float = 80.0
     seed: int = 42
     perturbation_rad: float = 0.0
+    min_horizon_time_units: float = 80.0
     tank_depth_m: Optional[float] = 0.38
 
     @classmethod
@@ -89,11 +90,20 @@ class NumericsParams:
         return cls(**num_data)
 
 
+def get_labelling_numerics(base: NumericsParams, perturbation_rad: float = 1e-3) -> NumericsParams:
+    """Return a copy of NumericsParams with explicit labelling perturbation applied."""
+    return replace(base, perturbation_rad=perturbation_rad)
+
+
 @dataclass(frozen=True)
 class RegimeClassifierParams:
     """Thresholds for post-processing classification of trajectory regimes."""
     transient_fraction: float = 0.20
     transient_t_min: float = 1.0
+    transient_time_units: float = 20.0
+    min_window_time_units: float = 30.0
+    min_cycles: float = 2.0
+    stationarity_tolerance: float = 0.15
     theta_std_steady_deg: float = 1.0
     theta_ptp_steady_deg: float = 2.0
     theta_ptp_flutter_max_deg: float = 300.0

@@ -1,6 +1,6 @@
 # Autumn Coin: Fluid Dynamics of Falling Disks & Plates
 
-[![Python Tests](https://img.shields.io/badge/pytest-18%20passed-brightgreen.svg)]()
+[![Python Tests](https://img.shields.io/badge/pytest-23%20passed-brightgreen.svg)]()
 [![C++ Core Tests](https://img.shields.io/badge/catch2-10%20passed-brightgreen.svg)]()
 [![SPH Validation](https://img.shields.io/badge/sph_tests-7%2F7%20passed-brightgreen.svg)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -111,14 +111,14 @@ python cpp_sph/build.py
 ## Verification & Testing
 
 ### 1. Python Acceptance Test Suite
-Runs the 16 full unit and acceptance tests covering added-mass limits, Kirchhoff momentum conservation, broadside terminal velocity, energy budget closure to $< 10^{-4}\%$, regime classifier sensitivity, and dimensional consistency:
+Runs the 23 full unit and acceptance tests covering added-mass limits, Kirchhoff momentum conservation, broadside terminal velocity, energy budget closure to $< 10^{-4}\%$, universal perturbation at all angles, symmetry-breaking warnings, edge-on instability, 180° parity, chord scale invariance, and extended horizon-doubling convergence ($N=80$ vs $160$ across $I^*=1.2, 1.25, 1.3, 1.5, 2.0, 2.41, 3.0, 3.5$):
 
 ```bash
 python -m pytest
 ```
 
 ### 2. C++ Parity & Unit Tests
-Executes 9 Catch2 test cases (631 assertions) validating C++ ODE rhs evaluation, cross-compiler compatibility, coordinate symmetries, and exact numeric parity against Python DOP853 outputs:
+Executes 10 Catch2/doctest test cases (641 assertions) compiled with `/we4062` / `-Wswitch -Werror`, validating C++ ODE rhs evaluation, cross-compiler compatibility, coordinate symmetries, `Regime::Undetermined` handling, and exact numeric parity against Python DOP853 outputs:
 
 ```bash
 ./autumn-coin-cpp/build/autumn_tests
@@ -131,20 +131,27 @@ Runs the formal 7-test suite split into Verification (analytical Navier-Stokes s
 ./cpp_sph/bin/sph_runner.exe --all-tests
 ```
 
+### 4. Browser Visualizer Core Parity Tests
+Validates the pure-JS ODE solver, RK4 substep integrator, and regime classifier in `visualizer.html` against Python reference outputs:
+
+```bash
+node --test tests_js/test_core.mjs
+```
+
 ---
 
 ## Reproducing Key Results
 
 ### 1. Critical $I^*_c$ Bisection Study
-Determines the flutter-to-tumble bifurcation boundary across damping values $\mu_1 \in \{0, 0.01, 0.05, 0.1, 0.2\}$:
+Determines the flutter-to-tumble bifurcation boundary across damping values $\mu_1 \in \{0, 0.01, 0.05, 0.1, 0.2\}$ and release angles $\theta_0 \in \{5^\circ, 20^\circ, 45^\circ\}$:
 
 ```bash
 python scripts/make_bisection_study.py
 ```
-*Results*: Baseline $\mu_1 = 0.20$ gives $I^*_c = 1.2063$ ($[1.2047, 1.2080]$), within **+0.5%** of Andersen et al. (2005b) Table 1 experimental card transition midpoint ($1.20$, band $[1.10, 1.30]$).
+*Results*: Baseline $\mu_1 = 0.20$ gives $I^*_c = 1.213$ ($[1.2113, 1.2146]$), within **+1.1%** of Andersen et al. (2005b) experimental card transition midpoint ($1.20$, band $[1.10, 1.30]$).
 
 ### 2. 2D Regime Map in $(I^*, \text{Re})$ Space
-Generates the 60-point phase diagram with post-transient classifier evaluations:
+Generates the 136-point phase diagram with physical thickness rule $h/L(I^*)$ capping $\rho_s/\rho_f \le 20.0$, dimensionless transient discard $t_\text{transient} = \max(20\tau_0, 0.2 t_\text{end})$, post-transient stationarity checks, and dual stopping criteria ($N \ge 80\tau_0$ and $Y \le -H_\text{fall}$):
 
 ```bash
 python scripts/make_regime_map.py
@@ -162,10 +169,12 @@ python scripts/check_slide_numbers.py  # Runs automated audit across all 22 slid
 
 ## Key Findings & Highlights
 
-1. **Literature Baseline Alignment**: Using the un-tuned literature damping parameter $\mu_1 = 0.20$ from Andersen et al. (2005b) yields $I^*_c = 1.206$, achieving $+0.5\%$ agreement with empirical falling card transitions without parameter fitting.
-2. **Energy Conservation**: Numerical energy accounting tracks kinetic, potential, and cumulative viscous dissipation, demonstrating energy closure within $< 0.001\%$ across entire drops.
-3. **Decoupled Physics**: Demonstrates that the 2D ODE depends strictly on $I^*$ and hydrodynamic coefficients; Reynolds number effects are isolated and evaluated directly in Navier-Stokes SPH simulations.
-4. **SPH Shock Mitigation**: Eliminating impulsive particle initialization shocks via geometric solid pre-carving and initial relaxation enables smooth gravitational start-up from rest ($|V|(1\,\text{ms}) \le 0.006\,\text{m/s}$).
+1. **Literature Baseline Alignment**: Using the literature damping parameter $\mu_1 = 0.20$ from Andersen et al. (2005b) yields $I^*_c = 1.213$, achieving $+1.1\%$ agreement with empirical falling card transitions without artificial tuning.
+2. **Instability of Symmetric Starts**: Both broadside ($\theta_0 = 0^\circ, 180^\circ$) and edge-on ($\theta_0 = 90^\circ, 270^\circ$) releases represent exact mathematical saddle points. Under physical perturbation ($\delta\theta = 10^{-3}\text{ rad}$), zero steady descent states survive across the tested catalog ($I^* \in [0.02, 3.50]$); all low-$I^*$ drops develop periodic limit-cycle flutter ($> 30^\circ$ amplitude).
+3. **Refined Tumbling & Flutter Attractors**: Tumbling occurs within $I^* \in [1.25, 1.45]$ for $\mu_1 = 0.20$. For $I^* \ge 3.0$ with physical thickness $h/L = I^*/20.0$ ($\rho_s/\rho_f \le 20.0$), plates settle into a stable periodic limit-cycle flutter (15+ cycles, stationarity variation $< 0.3\%$).
+4. **Dimensionless Horizon & Stationarity**: Integrating for $N \ge 80\tau_0$ with transient discard $\max(20\tau_0, 0.2 t_\text{end})$ and stationarity tolerance ($15\%$) eliminates truncation artifacts and guarantees scale invariance across chord lengths.
+5. **Energy Conservation**: Numerical energy accounting tracks kinetic, potential, and cumulative viscous dissipation, demonstrating energy closure within $< 0.001\%$ across entire drops.
+6. **SPH Shock Mitigation**: Eliminating impulsive particle initialization shocks via geometric solid pre-carving and initial relaxation enables smooth gravitational start-up from rest ($|V|(1\,\text{ms}) \le 0.006\,\text{m/s}$).
 
 ---
 

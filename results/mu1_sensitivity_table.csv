@@ -1,6 +1,6 @@
 mu_1,theta0_deg,aspect_h_L,I_star_lower,I_star_upper,I_star_c,bracket_width,regime_below,regime_above,diff_vs_110_pct,diff_vs_130_pct,diff_vs_120_mid_pct,note
-0.0,20.0,0.075,0.9391,0.9424,0.9407,0.0033,fluttering,tumbling/mixed,-14.5,-27.6,-21.6,Sensitivity point
-0.01,20.0,0.075,0.9557,0.959,0.9573,0.0033,fluttering,tumbling/mixed,-13.0,-26.4,-20.2,Tuned alternative
-0.05,20.0,0.075,1.0121,1.0154,1.0138,0.0033,fluttering,tumbling/mixed,-7.8,-22.0,-15.5,Sensitivity point
-0.1,20.0,0.075,1.0785,1.0818,1.0802,0.0033,fluttering,tumbling/mixed,-1.8,-16.9,-10.0,Sensitivity point
-0.2,20.0,0.075,1.2047,1.208,1.2063,0.0033,fluttering,tumbling/mixed,9.7,-7.2,0.5,Literature baseline
+0.0,20.0,0.075,0.949,0.9523,0.9507,0.0033,fluttering,tumbling/mixed,-13.6,-26.9,-20.8,Sensitivity point
+0.01,20.0,0.075,0.9656,0.9689,0.9673,0.0033,fluttering,tumbling/mixed,-12.1,-25.6,-19.4,Tuned alternative
+0.05,20.0,0.075,1.0188,1.0221,1.0204,0.0033,fluttering,tumbling/mixed,-7.2,-21.5,-15.0,Sensitivity point
+0.1,20.0,0.075,1.0885,1.0918,1.0901,0.0033,fluttering,tumbling/mixed,-0.9,-16.1,-9.2,Sensitivity point
+0.2,20.0,0.075,1.2113,1.2146,1.213,0.0033,fluttering,tumbling/mixed,10.3,-6.7,1.1,Literature baseline

@@ -8,23 +8,29 @@ namespace autumn {
 Regime classify_regime(const std::vector<Sample>& samples,
                        double H_fall,
                        const RegimeClassifierConfig& cfg,
-                       RegimeMetrics* out_metrics) {
+                       RegimeMetrics* out_metrics,
+                       double tau_0) {
     if (samples.empty()) return Regime::Steady;
 
     const double t_end = samples.back().t;
-    const double t_transient = std::max(cfg.transient_fraction * t_end, cfg.transient_t_min);
+    const double eff_tau0 = (tau_0 > 0.0) ? tau_0 : 0.05;
+    const double t_trans_thresh = (tau_0 > 0.0) ? (cfg.transient_time_units * eff_tau0) : cfg.transient_t_min;
+    const double t_transient = std::max(cfg.transient_fraction * t_end, t_trans_thresh);
     const double y0 = samples.front().Y;
     const double transient_depth = cfg.transient_fraction * H_fall;
 
     std::vector<double> th_crop;
     std::vector<double> om_crop;
+    std::vector<double> t_crop;
     th_crop.reserve(samples.size());
     om_crop.reserve(samples.size());
+    t_crop.reserve(samples.size());
 
     for (const auto& s : samples) {
         if (s.t >= t_transient && s.Y <= (y0 - transient_depth)) {
             th_crop.push_back(s.theta);
             om_crop.push_back(s.omega);
+            t_crop.push_back(s.t);
         }
     }
 
@@ -32,18 +38,22 @@ Regime classify_regime(const std::vector<Sample>& samples,
     if (th_crop.size() < 10) {
         th_crop.clear();
         om_crop.clear();
+        t_crop.clear();
         for (const auto& s : samples) {
             if (s.t >= 0.5 * t_end) {
                 th_crop.push_back(s.theta);
                 om_crop.push_back(s.omega);
+                t_crop.push_back(s.t);
             }
         }
         if (th_crop.size() < 5) {
             th_crop.clear();
             om_crop.clear();
+            t_crop.clear();
             for (const auto& s : samples) {
                 th_crop.push_back(s.theta);
                 om_crop.push_back(s.omega);
+                t_crop.push_back(s.t);
             }
         }
     }
@@ -96,6 +106,18 @@ Regime classify_regime(const std::vector<Sample>& samples,
     const double ptp_deg = ptp_theta * (180.0 / M_PI);
     const double back_deg = max_backward_excursion * (180.0 / M_PI);
 
+    const double dt_win = t_crop.empty() ? 0.0 : (t_crop.back() - t_crop.front());
+    const double win_tu = dt_win / eff_tau0;
+
+    int zc = 0;
+    for (size_t i = 1; i < om_crop.size(); ++i) {
+        if ((om_crop[i - 1] < 0.0 && om_crop[i] > 0.0) || (om_crop[i - 1] > 0.0 && om_crop[i] < 0.0)) {
+            zc++;
+        }
+    }
+    const double net_turns = net_rotation / (2.0 * M_PI);
+    const double n_cycles = std::max(net_turns, static_cast<double>(zc) / 2.0);
+
     if (out_metrics) {
         out_metrics->theta_range_deg = ptp_deg;
         out_metrics->std_theta_deg = std_deg;
@@ -104,25 +126,72 @@ Regime classify_regime(const std::vector<Sample>& samples,
         out_metrics->max_backward_excursion_deg = back_deg;
         out_metrics->spin_ratio = spin_ratio;
         out_metrics->mean_abs_omega = mean_abs_om;
+        out_metrics->window_duration_s = dt_win;
+        out_metrics->window_time_units = win_tu;
+        out_metrics->n_cycles = n_cycles;
+        out_metrics->stationarity_err = 0.0;
     }
 
     // 1. Steady
     if ((std_deg < cfg.theta_std_steady_deg || ptp_deg < cfg.theta_ptp_steady_deg) && ptp_deg < 360.0) {
-        return Regime::Steady;
+        const size_t n3 = th_crop.size() / 3;
+        if (n3 >= 2) {
+            auto minmax2 = std::minmax_element(th_crop.begin() + n3, th_crop.begin() + 2 * n3);
+            auto minmax3 = std::minmax_element(th_crop.begin() + 2 * n3, th_crop.end());
+            const double ptp2_deg = (*minmax2.second - *minmax2.first) * (180.0 / M_PI);
+            const double ptp3_deg = (*minmax3.second - *minmax3.first) * (180.0 / M_PI);
+            if (ptp2_deg < cfg.theta_ptp_steady_deg && ptp3_deg < cfg.theta_ptp_steady_deg) {
+                return Regime::Steady;
+            }
+        } else {
+            return Regime::Steady;
+        }
     }
 
-    // 2. Tumbling
+    // 2. Horizon duration check
+    if (win_tu < cfg.min_window_time_units && samples.size() > 5) {
+        return Regime::Undetermined;
+    }
+
+    // 3. Minimum oscillation cycles check
+    if (n_cycles < cfg.min_cycles && samples.size() > 5) {
+        return Regime::Undetermined;
+    }
+
+    // 4. Stationarity check: middle third vs last third amplitude within stationarity_tolerance
+    const size_t n3 = th_crop.size() / 3;
+    if (n3 >= 2) {
+        double amp2 = 0.0, amp3 = 0.0;
+        if (ptp_deg < cfg.theta_ptp_flutter_max_deg && net_rotation < 2.0 * M_PI) {
+            auto minmax2 = std::minmax_element(th_crop.begin() + n3, th_crop.begin() + 2 * n3);
+            auto minmax3 = std::minmax_element(th_crop.begin() + 2 * n3, th_crop.end());
+            amp2 = *minmax2.second - *minmax2.first;
+            amp3 = *minmax3.second - *minmax3.first;
+        } else {
+            auto minmax2 = std::minmax_element(om_crop.begin() + n3, om_crop.begin() + 2 * n3);
+            auto minmax3 = std::minmax_element(om_crop.begin() + 2 * n3, om_crop.end());
+            amp2 = *minmax2.second - *minmax2.first;
+            amp3 = *minmax3.second - *minmax3.first;
+        }
+        const double stat_err = std::abs(amp3 - amp2) / std::max(amp2, 1e-6);
+        if (out_metrics) out_metrics->stationarity_err = stat_err;
+        if (stat_err > cfg.stationarity_tolerance) {
+            return Regime::Undetermined;
+        }
+    }
+
+    // 5. Tumbling
     if ((net_rotation >= cfg.min_flips_tumble * 2.0 * M_PI) &&
         (back_deg < cfg.max_reversal_tumble_deg || spin_ratio >= cfg.min_spin_ratio_tumble)) {
         return Regime::Tumbling;
     }
 
-    // 3. Fluttering
+    // 6. Fluttering
     if ((ptp_deg < cfg.theta_ptp_flutter_max_deg) && (net_rotation < 2.0 * M_PI) && (spin_ratio < cfg.min_spin_ratio_tumble)) {
         return Regime::Fluttering;
     }
 
-    // 4. Mixed / Chaotic
+    // 7. Mixed / Chaotic
     return Regime::Mixed;
 }
 
@@ -132,6 +201,7 @@ std::string regime_to_string(Regime r) {
         case Regime::Fluttering: return "Fluttering";
         case Regime::Tumbling: return "Tumbling";
         case Regime::Mixed: return "Mixed / Chaotic";
+        case Regime::Undetermined: return "Undetermined";
     }
     return "Unknown";
 }

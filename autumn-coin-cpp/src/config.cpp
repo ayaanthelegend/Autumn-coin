@@ -36,12 +36,15 @@ bool load_base_config(const std::string& filepath,
             auto r = root["regime_classifier"];
             classifier.transient_fraction = r["transient_fraction"].as<double>(classifier.transient_fraction);
             classifier.transient_t_min = r["transient_t_min"].as<double>(classifier.transient_t_min);
+            if (r["transient_time_units"]) classifier.transient_time_units = r["transient_time_units"].as<double>(classifier.transient_time_units);
+            if (r["min_window_time_units"]) classifier.min_window_time_units = r["min_window_time_units"].as<double>(classifier.min_window_time_units);
+            if (r["min_cycles"]) classifier.min_cycles = r["min_cycles"].as<double>(classifier.min_cycles);
+            if (r["stationarity_tolerance"]) classifier.stationarity_tolerance = r["stationarity_tolerance"].as<double>(classifier.stationarity_tolerance);
             classifier.theta_std_steady_deg = r["theta_std_steady_deg"].as<double>(classifier.theta_std_steady_deg);
             classifier.theta_ptp_steady_deg = r["theta_ptp_steady_deg"].as<double>(classifier.theta_ptp_steady_deg);
             classifier.theta_ptp_flutter_max_deg = r["theta_ptp_flutter_max_deg"].as<double>(classifier.theta_ptp_flutter_max_deg);
             classifier.min_flips_tumble = r["min_flips_tumble"].as<int>(classifier.min_flips_tumble);
             classifier.max_reversal_tumble_deg = r["max_reversal_tumble_deg"].as<double>(classifier.max_reversal_tumble_deg);
-            classifier.min_reversal_mixed_deg = r["min_reversal_mixed_deg"].as<double>(classifier.min_reversal_mixed_deg);
             classifier.min_spin_ratio_tumble = r["min_spin_ratio_tumble"].as<double>(classifier.min_spin_ratio_tumble);
         }
 

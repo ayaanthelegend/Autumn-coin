@@ -26,6 +26,7 @@ autumn-coin-cpp/imgui.ini
 
 # Project-specific C++ build directories
 autumn-coin-cpp/build/
+autumn-coin-cpp/build*/
 autumn-coin-cpp/test_*.csv
 cpp_sph/build/
 cpp_sph/*.obj
