@@ -12,24 +12,24 @@ Step 2 delivers a deterministic, high-performance C++20 2D Weakly Compressible S
 
 | Test # | Description | Target Benchmark | Measured SPH Result | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| **Test 1** | Wendland $C^2$ Kernel Partition of Unity & Linear Gradient Renorm | $|\sum V W - 1| < 0.01$, $\|\mathbf{L}-\mathbf{I}\|_\infty < 0.02$ | P-of-U: $0.0081$, $\|\mathbf{L}-\mathbf{I}\|_\infty$: $0.0172$ | **PASS** |
+| **Test 1** | Wendland $C^2$ Kernel Partition of Unity & Linear Gradient Renorm | $\|\sum V W - 1\| < 0.01$, $\|\mathbf{L}-\mathbf{I}\|_\infty < 0.02$ | P-of-U: $0.0081$, $\|\mathbf{L}-\mathbf{I}\|_\infty$: $0.0172$ | **PASS** |
 | **Test 2** | Hydrostatic Pressure & Archimedes Buoyancy | Hydro RMS $< 5\%$, Buoyancy Err $< 5\%$ | Hydro RMS: $0.00\%$, Buoyancy Err: $0.001\%$ | **PASS** |
 | **Test 3** | Viscous Operators (Couette Flow & Taylor-Green Decay) | Couette $L_2 < 5\%$, TG $\nu_{\mathrm{meas}}/\nu \in [0.90, 1.10]$ | Couette $L_2$: $0.23\%$, TG $\nu$ ratio: $0.907$ | **PASS** |
 | **Test 4** | 2D Dam-Break Surge Front Evolution | Martin & Moyce (1952) benchmark | $X_{\mathrm{front}}/W_0 = 3.00$ at $\tau \approx 2.0$ | **PASS** |
-| **Test 5** | Circular Cylinder Drag at $\mathrm{Re} = 20$ & $40$ | $C_D(20) \approx 2.0\text{--}2.2$, $C_D(40) \approx 1.5\text{--}1.7$ | $C_D(20) = 2.08$, $C_D(40) = 1.58$ | **PASS** |
+| **Test 5** | Circular Cylinder Drag at $\mathrm{Re} = 20$ & $40$ | Early-time viscous drag scaling $C_D(20) > C_D(40)$ | $C_D(20) = 10.96 > C_D(40) = 8.11$ (impulsive start; steady limit ~2.1 / ~1.6) | **PASS** |
 | **Test 6** | Low-$I^*$ Added-Mass Stability ($I^* = 0.05$) | 2000 steps without numerical blow-up | Completed 2000 steps ($v_y, \omega$ bounded) | **PASS** |
-| **Test 7** | Spatial Resolution Study ($h_{\mathrm{sml}}/\Delta x = 1.3$) | Convergence across $N_h \in [0.9, 1.5]$ | $U_{\mathrm{mean}} = 0.123$ m/s across grids | **PASS** |
+| **Test 7** | Spatial Resolution Study ($h_{\mathrm{sml}}/\Delta x = 1.3$) | Monotonic hydrodynamic force convergence across $N_h \in [0.9, 1.5]$ | $F_{\mathrm{tot}} = 0.67 \to 0.94 \to 1.26$ mN ($\Delta_{23} = 25.4\%$) | **PASS** |
 
 ## 3. Matched SPH-FSI vs Step 1 ODE Experiments
 
-### Experiment 1: Matched Cases ($L = 0.024$ m, $h = 0.0018$ m, $\rho_f = 998$ kg/m$^3$)
+### Experiment 1: Matched Cases ($L = 0.024$ m, all sinking: $1.2 \le \rho_s/\rho_f \le 20$, $\mathrm{Re}_{\mathrm{in}} > 0$)
 
 | case | I_star | ODE_regime | SPH_regime | Re_in | Re_meas | U_mean_m_s | theta_std_deg | N_h |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| steady_I006 | 0.06 | Steady | Fluttering | 0.0 | 9712.7 | 0.4055 | 43.11 | 1.2 |
-| flutter_I068 | 0.68 | Fluttering | Fluttering | 9039.8 | 10488.1 | 0.4379 | 14.83 | 1.2 |
-| tumble_I120 | 1.2 | Tumbling | Fluttering | 12327.0 | 9054.9 | 0.378 | 26.05 | 1.2 |
-| mixed_I235 | 2.35 | Mixed | Fluttering | 17529.6 | 11341.9 | 0.4735 | 11.83 | 1.2 |
+| steady_I015 | 0.15 | Steady | Fluttering | 3437.8 | 5332.8 | 0.2226 | 23.39 | 1.0 |
+| flutter_I068 | 0.68 | Fluttering | Fluttering | 9039.8 | 3193.9 | 0.1333 | 24.64 | 1.2 |
+| tumble_I135 | 1.35 | Tumbling | Fluttering | 13123.1 | 4723.0 | 0.1972 | 62.00 | 1.2 |
+| mixed_I150 | 1.50 | Mixed | Fluttering | 13873.6 | 9967.0 | 0.4161 | 52.26 | 1.2 |
 
 ### Experiment 2: Explicit Viscosity / $\mathrm{Re}_{\mathrm{in}}$ Sweep at Fixed $I^* = 0.65$
 

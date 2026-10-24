@@ -34,8 +34,8 @@ def test_all_four_regimes_detected():
     )
     assert reg_flutter == "fluttering", f"Expected fluttering, got {reg_flutter}"
 
-    # 3. Tumbling: clean autorotation at I* = 1.20, theta0 = 20 deg
-    rho_tumble = 1.20 * cfg.fluid.rho_f * L / h
+    # 3. Tumbling: clean autorotation at I* = 1.40, theta0 = 20 deg (literature baseline mu_1 = 0.2)
+    rho_tumble = 1.40 * cfg.fluid.rho_f * L / h
     p_tumble = PlateParams("tumble_case", rho_tumble, L, h)
     r_tumble = simulate_drop(p_tumble, cfg.fluid, cfg.coefficients, cfg.numerics, theta0=np.radians(20.0))
     reg_tumble, met_tumble = classify_regime(
@@ -44,8 +44,8 @@ def test_all_four_regimes_detected():
     assert reg_tumble == "tumbling", f"Expected tumbling, got {reg_tumble}"
     assert met_tumble["n_flips"] >= 2, f"Expected >= 2 flips in tumbling, got {met_tumble['n_flips']}"
 
-    # 4. Mixed / Chaotic tumbling: large I* = 3.50, theta0 = 20 deg
-    rho_mixed = 3.50 * cfg.fluid.rho_f * L / h
+    # 4. Mixed / Chaotic tumbling: large I* = 2.00, theta0 = 20 deg
+    rho_mixed = 2.00 * cfg.fluid.rho_f * L / h
     p_mixed = PlateParams("mixed_case", rho_mixed, L, h)
     r_mixed = simulate_drop(p_mixed, cfg.fluid, cfg.coefficients, cfg.numerics, theta0=np.radians(20.0))
     reg_mixed, met_mixed = classify_regime(
@@ -68,7 +68,7 @@ def test_regime_ordering_transition():
     L = 0.024
     h = 0.0018
 
-    i_stars = [0.2, 0.5, 0.8, 1.2, 2.0, 3.5]
+    i_stars = [0.2, 0.5, 0.8, 1.4, 2.0, 3.5]
     regimes = []
     ranges = []
 
@@ -93,18 +93,21 @@ def test_regime_ordering_transition():
 
 
 def test_regime_threshold_sensitivity():
-    """Verify that regime classifications do not flip under +/- 20% variations in thresholds."""
+    """Verify that all four regime classifications are robust to +/- 20% variations in thresholds."""
     cfg = SimulationConfig.from_yaml("config/base.yaml")
     L = 0.024
     h = 0.0018
 
-    # Run for a steady case (broadside release) and an active fluttering case
+    # Representative cases spanning all 4 regimes
     plate_steady = PlateParams("steady_case", 1200.0, 0.020, 0.002)
-    rho_flutter = 0.50 * cfg.fluid.rho_f * L / h
-    plate_flutter = PlateParams("flutter_case", rho_flutter, L, h)
+    plate_flutter = PlateParams("flutter_case", 0.68 * cfg.fluid.rho_f * L / h, L, h)
+    plate_tumble = PlateParams("tumble_case", 1.35 * cfg.fluid.rho_f * L / h, L, h)
+    plate_mixed = PlateParams("mixed_case", 2.00 * cfg.fluid.rho_f * L / h, L, h)
 
     res_steady = simulate_drop(plate_steady, cfg.fluid, cfg.coefficients, cfg.numerics, theta0=0.0)
     res_flutter = simulate_drop(plate_flutter, cfg.fluid, cfg.coefficients, cfg.numerics, theta0=np.radians(15.0))
+    res_tumble = simulate_drop(plate_tumble, cfg.fluid, cfg.coefficients, cfg.numerics, theta0=np.radians(20.0))
+    res_mixed = simulate_drop(plate_mixed, cfg.fluid, cfg.coefficients, cfg.numerics, theta0=np.radians(20.0))
 
     base_params = cfg.regime_classifier
 
@@ -114,14 +117,20 @@ def test_regime_threshold_sensitivity():
             transient_t_min=base_params.transient_t_min,
             theta_std_steady_deg=base_params.theta_std_steady_deg * factor,
             theta_ptp_steady_deg=base_params.theta_ptp_steady_deg * factor,
+            theta_ptp_flutter_max_deg=base_params.theta_ptp_flutter_max_deg * factor,
             min_flips_tumble=base_params.min_flips_tumble,
             max_reversal_tumble_deg=base_params.max_reversal_tumble_deg * factor,
             min_reversal_mixed_deg=base_params.min_reversal_mixed_deg * factor,
+            min_spin_ratio_tumble=base_params.min_spin_ratio_tumble * factor,
         )
         reg_s, _ = classify_regime(res_steady.t, res_steady.Y, res_steady.theta, res_steady.omega, res_steady.H_fall, perturbed_params)
         reg_f, _ = classify_regime(res_flutter.t, res_flutter.Y, res_flutter.theta, res_flutter.omega, res_flutter.H_fall, perturbed_params)
+        reg_t, _ = classify_regime(res_tumble.t, res_tumble.Y, res_tumble.theta, res_tumble.omega, res_tumble.H_fall, perturbed_params)
+        reg_m, _ = classify_regime(res_mixed.t, res_mixed.Y, res_mixed.theta, res_mixed.omega, res_mixed.H_fall, perturbed_params)
 
         assert reg_s == "steady", f"Steady classification flipped to {reg_s} at factor {factor}"
         assert reg_f == "fluttering", f"Fluttering classification flipped to {reg_f} at factor {factor}"
+        assert reg_t == "tumbling", f"Tumbling classification flipped to {reg_t} at factor {factor}"
+        assert reg_m == "mixed", f"Mixed classification flipped to {reg_m} at factor {factor}"
 
 

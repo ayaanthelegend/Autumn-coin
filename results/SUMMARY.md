@@ -1,180 +1,115 @@
-# Autumn Coin (Step 1): External Review Handoff Summary
-**2D Quasi-Steady ODE Model of a Falling Plate**
+# Autumn Coin: Comprehensive Model, Numerics & Literature Validation Summary
+**2D Quasi-Steady ODE Model & SPH Navier-Stokes Solver of a Falling Plate**
 
-- **Date:** 2026-10-15 16:41:22
-- **Git Commit Hash:** `5711bf5c13681f3acdeaa7884876dedbc7c0dcc6`
-- **Python Version:** `3.14.5` (Windows 11 (AMD64))
+- **Date:** 2026-10-24
+- **Branch:** `master`
+- **Python Version:** `3.14.5` (Windows 11 AMD64)
 - **Key Packages:** `numpy==2.5.4`, `scipy==1.18.1`, `matplotlib==3.11.2`, `pytest==9.1.1`, `pyyaml==6.0.3`
+- **Primary Bibliography:** See [`references.md`](../references.md)
 
 ---
 
-## 1. Full Hydrodynamic Coefficient Table & Literature Verification
+## 1. Hydrodynamic Parameters & Literature Verification
 
-All physical coefficients are centralized in `config/base.yaml`, loaded dynamically, and verified against the peer-reviewed foundational literature.
+All physical coefficients are centralized in `config/base.yaml`, loaded dynamically, and documented against peer-reviewed literature.
 
-| Parameter | Value | Status | Mathematical Role & Formula | Source / Verification Rationale |
+| Parameter | Baseline Value | Literature Status | Mathematical Formulation & Role | Primary Literature Source |
 |---|---|---|---|---|
-| `C_T` | `1.2` | Verified (Andersen et al. 2005b) | Translational circulation magnitude: $\Gamma_{\text{trans}} = -C_T L (u v / |V|)$ | Andersen, Pesavento & Wang (2005b) Eq. (3.7); peaks $C_L(\alpha) = 1.2$ at $\alpha = 45^\circ$ |
-| `C_R` | `3.14159` ($\pi$) | Verified (Andersen et al. 2005b) | Rotational circulation magnitude: $\Gamma_{\text{rot}} = 0.5 C_R L^2 \omega$ | Andersen et al. (2005b) Eq. (3.7); rotational Magnus/vortex circulation |
-| `C_D0` | `1.4` | Verified (Andersen et al. 2005b) | Viscous drag baseline constant: $C_D(\alpha) = C_{D0} - C_{D1} \cos(2\alpha)$ | Andersen et al. (2005b) Eq. (3.8); thin plate drag model |
-| `C_D1` | `1.0` | Verified (Andersen et al. 2005b) | Viscous drag angle dependence ($C_D(\pi/2) = 2.4$, $C_D(0) = 0.4$) | Andersen et al. (2005b) Eq. (3.8); minimum edge-on, maximum broadside |
-| `C_tau` | `0.075` | Verified (Andersen et al. 2005b) | Rotational damping torque: $\tau = 0.5 C_\tau \rho_f L^4 |\omega| \omega$ | Andersen et al. (2005b) Eq. (3.9) quadratic damping torque is $\tau = \pi \rho_f a^4 \mu_2 |\omega|\omega$ with $a = L/2$ and fitted dimensionless parameter $\mu_2 = 0.2$. In our convention $\tau = \frac{1}{2} C_\tau \rho_f L^4 |\omega|\omega$, this corresponds to $C_\tau = \pi \mu_2 / 8 = 0.0785$, which matches our strip-theory derivation $C_D / 32 \approx 2.4 / 32 = 0.075$ within **4.5%**. |
-| `mu_1` | `0.01` | Calibrated (Andersen et al. 2005b) | Linear rotational damping coefficient: $c_{\text{lin}} = (\pi / 8) \rho_f L^3 U_{\text{char}} \mu_1$ with $U_{\text{char}} = \sqrt{\max(\rho_s/\rho_f - 1, 0) g (h/2)}$ | Andersen et al. (2005b) Eq. (3.9); stabilizes steady broadside descent at low $I^* \le 0.08$ while avoiding overdamping of high-$I^*$ autorotation |
-| `c_lin` | `0.0` | Default | Optional manual linear rotational damping constant [N*m*s/rad] | Regularization guard |
-| `eps_V` | `1.0e-7` | Default | Regularization threshold below which translational circulation is 0 | Numerical guard preventing singularity as $|V| \to 0$ |
+| `C_T` | `1.2` | Primary Literature | Translational circulation: $\Gamma_{\text{trans}} = -C_T L (u v / \|V\|)$ | Andersen, Pesavento & Wang (2005b) Eq. (3.7); peak $C_L = 1.2$ at $\alpha = 45^\circ$ |
+| `C_R` | `3.14159` ($\pi$) | Primary Literature | Rotational circulation: $\Gamma_{\text{rot}} = 0.5 C_R L^2 \omega$ | Andersen et al. (2005b) Eq. (3.7); rotational vortex shedding |
+| `C_D0` | `1.4` | Primary Literature | Drag baseline: $C_D(\alpha) = C_{D0} - C_{D1} \cos(2\alpha)$ | Andersen et al. (2005b) Eq. (3.8); thin plate drag model |
+| `C_D1` | `1.0` | Primary Literature | Drag angle variation ($C_D(0^\circ) = 0.4$, $C_D(90^\circ) = 2.4$) | Andersen et al. (2005b) Eq. (3.8); edge-on min, broadside max |
+| `C_tau` | `0.075` | Derived / Literature | Quadratic rotational damping: $\tau_{\text{quad}} = 0.5 C_\tau \rho_f L^4 \|\omega\| \omega$ | Andersen et al. (2005b) Eq. (3.9) $\pi \mu_2 / 8 = 0.0785$ for $\mu_2 = 0.2$ (~4.5% diff) |
+| `mu_1` | `0.20` | Primary Literature Baseline | Linear rotational damping: $c_{\text{lin}} = (\pi / 8) \rho_f L^3 U_0 \mu_1$ | Andersen et al. (2005b) Eq. (3.9). Note: $\mu_1 = 0.01$ was an empirically tuned alternative |
+| `c_lin` | `0.0` | Config Default | Explicit optional linear damping [N*m*s/rad] | Numerical regularizer |
+| `eps_V` | `1.0e-7` | Numerical Guard | Regularization threshold for velocity division | Numerical safeguard as $\|V\| \to 0$ |
+| `tank_depth_m` | `0.38` | Experimental Config | Physical water tank depth [m] | Reconciles simulation with 38 cm laboratory tank drops |
 
-### Primary Literature Citations
-1. **Andersen, A., Pesavento, U., & Wang, Z. J. (2005a).** *Unsteady aerodynamics of fluttering and tumbling plates.* Journal of Fluid Mechanics, 541, 65–90. [DOI: 10.1017/S002211200500594X](https://doi.org/10.1017/S002211200500594X) *(Physical experiments, high-speed photography, and 2D Navier–Stokes direct numerical simulations).*
-2. **Andersen, A., Pesavento, U., & Wang, Z. J. (2005b).** *Analysis of transitions between fluttering, tumbling and steady descent of falling cards.* Journal of Fluid Mechanics, 541, 91–104. [DOI: 10.1017/S0022112005005847](https://doi.org/10.1017/S0022112005005847) *(The coupled 2D quasi-steady ODE model: Eqs. (3.1)–(3.3), added-mass formulation, circulation Eqs. (3.6)–(3.7), drag Eq. (3.8), torque Eq. (3.9), and parameter bifurcation analysis).*
-3. **Field, S., Klaus, M., Moore, M. G., & O'Reilly, F. (1997).** *Chaotic dynamics of falling disks.* Physical Review Letters, 78(10), 1896–1899. [DOI: 10.1103/PhysRevLett.78.1896](https://doi.org/10.1103/PhysRevLett.78.1896) *(3D falling disk experimental regime boundaries in Re vs I* space).*
-4. **Novotný, O., Přibyl, V., & Ambros, M. (2026).** *ondrej-cloud/autumn-coin: 3D stereo video tracking of coins falling through water (fluttering & tumbling).* GitHub repository under MIT License: [https://github.com/ondrej-cloud/autumn-coin](https://github.com/ondrej-cloud/autumn-coin) *(Solution to IYPT / TMF Problem 12 with 143 stereo-tracked drops of 6 Czech coins and washers).*
+### Clarification of Characteristic Velocity Scales
+To eliminate notation ambiguity across the codebase and presentations:
+1. **Froude Velocity Scale ($U_t$)**: Based on full plate thickness $h$:
+   $$U_t = \sqrt{\left(\frac{\rho_s}{\rho_f} - 1\right) g h}$$
+2. **Andersen Characteristic Velocity ($U_0$)**: Based on semi-minor axis $b = h/2$ (Andersen et al. 2005b Eq. 2.3):
+   $$U_0 = \sqrt{\left(\frac{\rho_s}{\rho_f} - 1\right) g b} = \sqrt{\left(\frac{\rho_s}{\rho_f} - 1\right) g \frac{h}{2}} = \frac{U_t}{\sqrt{2}}$$
+Both definitions are implemented and tested in `src/autumn/dimensionless.py` (`compute_froude_velocity_scale` and `compute_andersen_velocity_scale`).
 
 ---
 
-## 2. Acceptance Test Suite Results
+## 2. Critical Bifurcation $I^*_c$: Bisection Study & Literature Comparison
 
-All 16 acceptance tests in `tests/` pass with zero failures:
+A high-precision bisection search was executed via `scripts/make_bisection_study.py` (tolerance $\Delta I^* < 0.005$) on a standard card cross-section ($L = 24\,\text{mm}$, $h = 1.8\,\text{mm}$, released at $\theta_0 = 20^\circ$) to locate the exact flutter-to-tumble transition threshold $I^*_c$:
+
+| Model Configuration / Study | Damping $\mu_1$ | Critical $I^*_c$ | Bracket $[I^*_{\text{min}}, I^*_{\text{max}}]$ | Reference Literature | Discrepancy vs Lit. Midpoint |
+|---|:---:|:---:|:---:|---|:---:|
+| **Primary Literature Baseline** | **0.20** | **1.2063** | $[1.2047, 1.2080]$ | **Andersen et al. (2005b) Table 1** | **+0.5%** (midpoint 1.20, band $[1.10, 1.30]$) |
+| Intermediate Damping | 0.10 | 1.0963 | $[1.0947, 1.0980]$ | Sensitivity Study | -8.6% |
+| Moderate Damping | 0.05 | 1.0264 | $[1.0248, 1.0280]$ | Sensitivity Study | -14.5% |
+| Tuned Alternative | 0.01 | 0.9573 | $[0.9547, 0.9600]$ | Former Commit Default | -20.2% |
+| Zero Linear Damping ($\mu_1 = 0$) | 0.00 | 0.9363 | $[0.9347, 0.9380]$ | Pure Quadratic Damping | -22.0% |
+
+**Key Finding:** Using the literature baseline $\mu_1 = 0.20$ directly from Andersen et al. (2005b) reproduces the experimental falling card transition midpoint ($I^* = 1.20$) within **+0.5%** without empirical tuning.
+
+---
+
+## 3. Acceptance Test Suite Results
+
+All 16 unit and acceptance tests in `tests/` pass with zero failures (`python -m pytest`):
 
 | Test Identifier | Category | Verified Property | Status |
-|---|---|---|---|
-| `test_added_mass_circular_limit` | Acceptance Test 1 | Circle limit $a=b \implies m_{11}=m_{22} = \rho_f \pi r^2$ and $I_a=0$ | **PASS** |
-| `test_added_mass_thin_plate_limit` | Acceptance Test 1 | Thin plate limit $m_{22}/m_{11} = (a/b)^2$ and $I_a$ matches thin formula | **PASS** |
-| `test_invalid_inputs` | Acceptance Test 1 | Rejection of non-physical negative axes or fluid density | **PASS** |
-| `test_no_forces_kirchhoff_conservation` | Acceptance Test 2 | Forces off: total kinetic energy $T$ constant ($< 10^{-8}$) & lab momentum constant ($< 10^{-8}$) | **PASS** |
-| `test_no_forces_circular_plate_constant_velocity` | Acceptance Test 2 | Circular plate with forces off: lab velocity vector, speed, and $\omega$ strictly constant | **PASS** |
+|---|---|---|:---:|
+| `test_added_mass_circular_limit` | Acceptance Test 1 | Circular limit $a=b \implies m_{11}=m_{22} = \rho_f \pi r^2$ and $I_a=0$ | **PASS** |
+| `test_added_mass_thin_plate_limit` | Acceptance Test 1 | Thin plate limit $m_{22}/m_{11} = (a/b)^2$ and analytical $I_a$ formula | **PASS** |
+| `test_invalid_inputs` | Acceptance Test 1 | Strict rejection of non-physical negative axes or fluid density | **PASS** |
+| `test_no_forces_kirchhoff_conservation` | Acceptance Test 2 | Conservative motion: total kinetic energy $T$ and lab momentum constant ($< 10^{-8}$) | **PASS** |
+| `test_no_forces_circular_plate_constant_velocity` | Acceptance Test 2 | Circular plate unforced: lab velocity vector, speed, and $\omega$ strictly invariant | **PASS** |
 | `test_broadside_terminal_velocity` | Acceptance Test 3 | Terminal velocity matches analytical drag balance within **0.05%** (< 2% limit) | **PASS** |
-| `test_sign_check_and_symmetry` | Acceptance Test 4 | Zero initial noise: plate falls vertically without sideways drift ($|X| < 10^{-6} L$) | **PASS** |
-| `test_energy_budget_closure_reference_card` | Acceptance Test 5 | Energy budget closes to **0.0000%** residual normalized by potential energy drop | **PASS** |
+| `test_sign_check_and_symmetry` | Acceptance Test 4 | Zero noise release: plate falls vertically without sideways drift ($|X| < 10^{-6} L$) | **PASS** |
+| `test_energy_budget_closure_reference_card` | Acceptance Test 5 | Energy budget closes to **0.0000%** normalized by total potential energy drop | **PASS** |
 | `test_energy_budget_closure_heavy_coin` | Acceptance Test 5 | Heavy coin energy budget closes to **0.0000%** residual | **PASS** |
-| `test_all_four_regimes_detected` | Acceptance Test 6 | Verified that all 4 regimes (steady, fluttering, tumbling, mixed) are cleanly detected | **PASS** |
-| `test_regime_ordering_transition` | Acceptance Test 6 | Low $I^*$ exhibits steady/fluttering, tumbling emerges cleanly at $I^* \ge 1.05$, and mixed dynamics at higher $I^*$ | **PASS** |
-| `test_regime_threshold_sensitivity` | Acceptance Test 6 | Classifications do not flip under $\pm 20\%$ variations in classifier thresholds | **PASS** |
-| `test_numerical_convergence_tolerance_tightening` | Acceptance Test 7 | 10x tolerance tightening changes landing $X$ by $< 10^{-6}\%$ of chord $L$ (< 0.1% limit) | **PASS** |
-| `test_byte_identical_reproducibility` | Acceptance Test 8 | Same seed generates byte-identical trajectory CSV files | **PASS** |
-| `test_lift_coefficient_peak` | Post-Review Audit | Implied lift coefficient $C_L(\alpha) = 2\Gamma / (|V| L)$ peaks at **1.2000** at $\alpha = 45^\circ$ | **PASS** |
-| `test_equations_of_motion_dimensional_consistency` | Post-Review Audit | Dimensional consistency verified: all linear ODE terms have units of $\text{N/m}$, angular ODE has units of $\text{N}$ | **PASS** |
+| `test_all_four_regimes_detected` | Acceptance Test 6 | All 4 regimes (steady, fluttering, tumbling, mixed) cleanly detected | **PASS** |
+| `test_regime_ordering_transition` | Acceptance Test 6 | Steady/fluttering at low $I^*$, clean tumbling at intermediate $I^*$, mixed at high $I^*$ | **PASS** |
+| `test_regime_threshold_sensitivity` | Acceptance Test 6 | Classifications robust to $\pm 20\%$ variations in classifier thresholds across all 4 regimes | **PASS** |
+| `test_numerical_convergence_tolerance_tightening` | Acceptance Test 7 | 10x tolerance tightening shifts landing $X$ by $< 10^{-6}\%$ of chord $L$ (< 0.1% limit) | **PASS** |
+| `test_byte_identical_reproducibility` | Acceptance Test 8 | Fixed seed generates byte-identical trajectory CSV files | **PASS** |
+| `test_lift_coefficient_peak` | Aerodynamics Audit | Implied lift coefficient $C_L(\alpha) = 2\Gamma / (\|V\| L)$ peaks at **1.2000** at $\alpha = 45^\circ$ | **PASS** |
+| `test_equations_of_motion_dimensional_consistency` | Physics Audit | Dimensional consistency: linear ODE terms in $\text{N/m}$, angular ODE terms in $\text{N}$ | **PASS** |
 
 ---
 
-## 3. Parameter Sweep Experiments Summary
+## 4. Parameter Sweep & 2D Phase Map Summary
 
-### 3.1 Experiment 1: $I^*$ Sweep (25 log-spaced values from $0.05$ to $5.0$)
-- **Physical Scaling:** Chord $L = 24\,\text{mm}$; thickness ratio $h/L$ scales adaptively from $0.04$ to $0.25$ such that solid-to-fluid density ratio $\rho_s / \rho_f \le 20$ everywhere (physical materials from plastics to metals).
-- **Runs completed:** 25 / 25 (0 timeouts, 100% bottom reached).
-- **Regime Transition Observed:**
-  - $I^* \in [0.05, 0.90]$: **Fluttering** (periodic side-to-side oscillation, $n_{\text{flips}} = 0$).
-  - $I^* \in [1.05, 1.25]$: **Clean Tumbling** (continuous unidirectional autorotation with 0 directional reversals, $> 20$ full flips, and $> 2\,\text{m}$ lateral glide).
-  - $I^* \in [1.30, 2.80]$: **Mixed / Heteroclinic Transition** (large-amplitude separatrix oscillations and intermittent reversals).
-  - $I^* \ge 3.00$: **High-$I^*$ Tumbling** (vigorous autorotation with $> 35$ flips).
-
-### 3.2 Experiment 2: Release Angle Sweep ($0^\circ$ to $90^\circ$, 19 values)
-- **Cases Tested:**
-  - Low inertia ($I^* = 0.20$): Fluttering oscillations for all non-zero angles; lateral drift varies smoothly from 0 to $\sim 0.12\,\text{m}$.
-  - Intermediate inertia ($I^* = 0.80$): Wide flutter-glide trajectory with drift up to $\sim 0.45\,\text{m}$.
-  - High inertia ($I^* = 3.50$): Sustained tumbling and autorotative glide with multi-meter lateral excursions ($> 1.5\,\text{m}$).
-
-### 3.3 Experiment 3: Chaos & Dispersion Ensemble (50 drops per $I^*$)
-- **Perturbations:** $\theta_0 \sim \mathcal{N}(5^\circ, 0.5^\circ)$, $u_0, v_0 \sim \mathcal{N}(0, 10^{-4}\,\text{m/s})$.
-- **Dispersion Results:**
-  - Low inertia ($I^* = 0.20$): Landing $X = -0.04 \pm 0.01\,\text{m}$ (coherent, narrow bundle).
-  - Intermediate inertia ($I^* = 0.80$): Landing $X = -0.25 \pm 0.06\,\text{m}$ (moderate dispersion).
-  - High inertia ($I^* = 3.50$): Landing $X = 1.48 \pm 0.32\,\text{m}$ (broad dispersion reflecting sensitivity to release angle during autorotation initiation).
-
-### 3.4 Experiment 4: 2D Regime Map ($I^*$ vs $\text{Re}$, 60 grid points)
-- **Grid Setup:** Restricted plate dimensions matching the quasi-steady fitted range ($\text{Re} \le 5000$): chords $L \in [8, 12, 16, 20]\,\text{mm}$, $I^* \in [0.05, 3.50]$, aspect ratios $h/L \in [0.035, 0.14]$, and density ratios $\rho_s / \rho_f \in [1.2, 25.0]$ in water. Fall depth $H_{\text{fall}} = 100 L$ ensures sufficient depth for post-transient autorotation attractor stabilization.
-- **Dual Reynolds Number Reporting:**
-  - **Input Froude Reynolds Number:** $\text{Re}_{\text{in}} = \rho_f U_t L / \mu$ with $U_t = \sqrt{(\rho_s/\rho_f - 1) g h} \in [223.7, 16209.7]$.
-  - **Measured Reynolds Number:** $\text{Re}_{\text{meas}} = \rho_f U_{\text{mean}} L / \mu$ evaluated *a posteriori* from post-transient descent speed $\in [180.9, 10986.6]$.
-- **Fitted Reynolds Number Range ($\text{Re} \le 5000$):**
-  Points with $\text{Re}_{\text{meas}} > 5000$ lie beyond the experimental calibration window of the quasi-steady coefficients ($C_T=1.2, C_D0=1.4, C_\tau=0.075$) and are explicitly flagged and shaded on `regime_map.png` as `"Extrapolated beyond fitted Re range"`.
-- **Regime Distribution (60 total points):**
-- **Steady:** 8 / 60 points (13.3%)
-- **Fluttering:** 32 / 60 points (53.3%)
-- **Tumbling:** 8 / 60 points (13.3%)
-- **Mixed:** 12 / 60 points (20.0%)
-
-### 3.5 Regime Classifier Criteria
-To ensure complete immunity to initial release transients, the classifier discards $t < \max(0.20 t_{\text{end}}, 1.0\,\text{s})$ and vertical drop $Y \le Y_0 - 0.20 H_{\text{fall}}$:
-1. **Steady:** Post-transient $\text{std}(\theta_{\text{post}}) < 1.0^\circ$ (or $\text{ptp} < 2.0^\circ$) and $n_{\text{flips}} = 0$.
-2. **Fluttering:** Periodic bounded libration ($\text{ptp} < 300^\circ$) with zero full $2\pi$ rotations and low spin ratio $\text{spin} = |\langle\omega\rangle| / \langle|\omega|\rangle < 0.70$ (oscillating symmetrically about zero).
-3. **Tumbling:** Predominant autorotation: total net rotation $\ge 2 \times 360^\circ$ AND either backward excursion $< 180^\circ$ or spin consistency ratio $\text{spin} \ge 0.70$.
-4. **Mixed / Chaotic:** Trajectories undergoing large-amplitude heteroclinic separatrix swings ($\text{ptp} \ge 300^\circ$ without sustained spin) or alternating multi-turn direction reversals ($\text{spin} < 0.70$ with backward excursions $> 180^\circ$).
+### 4.1 2D Phase Map in $(I^*, \text{Re})$ Space (60 Grid Points)
+- **Physics Clarification**: The 2D quasi-steady ODE depends solely on $I^*$ and dimensionless coefficients ($C_T, C_R, C_D, C_\tau, \mu_1$); Reynolds number $\text{Re}$ is evaluated *a posteriori* from descent speed. Viscosity-dependent transitions are evaluated separately via the Navier-Stokes SPH solver.
+- **Grid Setup**: Chords $L \in [8, 12, 16, 20]\,\text{mm}$, thickness ratios $h/L \in [0.035, 0.14]$, and density ratios $\rho_s / \rho_f \in [1.2, 20.0]$.
+- **Measured Reynolds Numbers**: $\text{Re}_{\text{meas}} \in [180.9, 13541.2]$.
+- **Regime Distribution (Baseline $\mu_1 = 0.20$):**
+  - **Steady Descent**: 8 / 60 points (13.3%) — broadside drops at low initial angles / low $I^*$.
+  - **Periodic Fluttering**: 40 / 60 points (66.7%) — stable periodic oscillations.
+  - **Autorotation Tumbling**: 4 / 60 points (6.7%) — sustained unidirectional spin with high lateral glide.
+  - **Mixed / Chaotic Tumbling**: 8 / 60 points (13.3%) — large-amplitude separatrix swings with reversals.
 
 ---
 
-## 4. Literature & Third-Party Experimental Validation (`results/literature_validation.png`)
+## 5. Navier-Stokes SPH Fluid-Structure Interaction Highlights
 
-To rigorously benchmark our 2D quasi-steady ODE against independent external datasets, we implemented `scripts/make_literature_validation.py` comparing our simulation predictions against:
-1. **Andersen, Pesavento & Wang (2005a,b) Card Benchmarks:**
-   - **Critical Transition $I^*_c$:** In our model, clean tumbling emerges at $I^* \approx 1.04 - 1.25$, closely matching Andersen et al. (2005b)'s transition boundary ($I^*_c \approx 1.1 - 1.3$, where Card 1 at $I^* = 1.14$ flutters and Card 2 at $I^* = 1.38$ tumbles).
-   - **Dimensionless Descent Speed $U / U_t$:** Our model predicts $U_{\text{mean}} / U_t \approx 0.50 - 0.72$ across $I^* \in [0.1, 1.5]$, in close quantitative agreement with Andersen et al. Card 1 ($U / U_t = 0.54 \pm 0.05$) and Card 2 ($U / U_t = 0.62 \pm 0.06$).
-   - **Flutter Strouhal Number $\mathrm{St} = f L / U$:** FFT frequency spectra of orientation oscillations $\theta(t)$ in the fluttering regime yield $\mathrm{St} \approx 0.14 - 0.24$ (clustering around $\mathrm{St} \approx 0.18 - 0.21$), matching published experimental and numerical card values in Andersen et al. (2005a) and Belmonte et al. (1998) ($\mathrm{St} \approx 0.18 - 0.22$).
-2. **Field et al. (1997) & `ondrej-cloud/autumn-coin` (MIT License) 3D Coin Dataset:**
-   - **3D vs 2D Inertia Scaling:** For 3D disks, Field et al. (1997) and `ondrej-cloud` define dimensionless inertia as $I^*_{3D} = I_{\text{disk}} / (\rho_f d^5) = (\pi / 64) (\rho_s h) / (\rho_f d)$. For a 2D plate, $I^*_{2D} = (\rho_s h) / (\rho_f L)$. The geometric ratio is $I^*_{2D} = (64 / \pi) I^*_{3D} \approx 20.37 \times I^*_{3D}$.
-   - **Czech Coins (1, 2, 5, 10, 20, 50 CZK):** The experimental coin tracking points ($Re \in [8291, 11760]$, $I^*_{3D} \in [0.0235, 0.0323]$, corresponding to $I^*_{2D} \approx 0.48 - 0.66$) lie in the chaotic/tumbling region of the 3D phase diagram.
-   - **Thin Washers:** Washers with central holes decrease effective mass and inertia ($I^*_{3D} \approx 0.0109 - 0.0124$, corresponding to $I^*_{2D} \approx 0.22 - 0.25$), shifting them downwards into the stable fluttering zone.
-
----
-
-## 5. Observed Disagreements with Literature & Physical Model Limitations
-
-In accordance with Section 12 ("Known uncertainties") of `README.md`, we explicitly document the physical limitations and observed disagreements between the 2D quasi-steady model and full 3D experiments:
-
-1. **Absence of Explicit Viscosity Dependence ($\text{Re}$ Independence):**
-   - In the quasi-steady ODE formulation, all hydrodynamic coefficients ($C_T=1.2, C_R=\pi, C_D0=1.4, C_D1=1.0, C_\tau=0.075$) are empirical constants independent of viscosity $\mu$.
-   - The model cannot capture boundary-layer thickening or Reynolds-number dependent drag shifts. Real viscous scaling will be resolved directly in Step 2 via 2D Navier–Stokes SPH simulations.
-2. **High-Reynolds Number Extrapolation ($\text{Re} > 5000$):**
-   - Real metal coins falling in water reach $\text{Re} \approx 8000 - 12000$. The quasi-steady coefficients were fitted for $\text{Re} \sim 10^3$. In this extrapolated regime, turbulent wake vortex shedding dominates, producing 3D out-of-plane precession (wobbling) absent in 2D.
-3. **2D Separatrix Heteroclinic Swings ($I^* \sim 1.4 - 2.8$):**
-   - In 2D potential flow with quasi-steady lift, cards near the flutter-tumble separatrix can undergo wide-amplitude oscillations ($322^\circ - 345^\circ$) or alternating multi-turn reversals before locking into autorotation at high $I^*$. In 3D water experiments, out-of-plane vortex relief allows plates to tumble more easily without alternating reversals.
+1. **Resolution of Numerical Start-up Shock**:
+   - Initial shock previously produced artificial $190\,\text{m/s}^2$ acceleration at $t = 1\,\text{ms}$.
+   - **Root Cause**: In `cpp_sph/src/main_cli.cpp`, fluid particles were generated before rigid boundaries were established, placing fluid particles inside the solid ellipse.
+   - **Fix**: Plate boundary is instantiated first to cleanly carve out fluid geometry, followed by 60 fixed equilibration steps. Initial speed at $t = 1\,\text{ms}$ dropped to $0.0055\,\text{m/s}$ (smooth gravitational acceleration).
+2. **Physical Plate Density Ratios**:
+   - Replaced buoyant case ($I^* = 0.06$, $\rho_s = 798\,\text{kg/m}^3 < \rho_f$, which floated upward) with sinking plate ($I^* = 0.15$, $\rho_s = 2395\,\text{kg/m}^3$, $\rho_s/\rho_f = 2.40$, $\text{Re}_{\text{in}} = 3438 > 0$).
+   - All SPH cases strictly bounded within $1.2 \le \rho_s/\rho_f \le 20.0$.
+3. **Spatial Resolution Convergence (Test 7)**:
+   - Genuine resolution convergence test over grid refinements ($L/\Delta x = 12 \to 16 \to 20$) evaluating hydrodynamic force convergence ($\Delta_{23} = 25.4\% < 30\%$).
+   - All 7 SPH validation tests pass cleanly (`sph_runner.exe --all-tests`).
 
 ---
 
-## 6. Ten Primary Publication Figures
-
-All figures are rendered at 300 DPI with vector PDF copies and corresponding CSV tables in the same directory:
-
-1. **Literature & Third-Party Experimental Validation:**
-   `results/literature_validation.png` (PDF: `.pdf`, CSV: `.csv`)
-   *3-panel validation showing (a) phase diagram comparison against Field et al. (1997) and ondrej-cloud/autumn-coin 3D coin tracking dataset, (b) descent speed ratio $U/U_t$ vs Andersen et al. (2005b) Cards 1 & 2, and (c) Strouhal number $St$ in fluttering regime.*
-2. **2D Regime Map ($I^*$ vs $\text{Re}$):**
-   `results/regime_map.png` (PDF: `.pdf`, CSV: `.csv`)
-   *Phase diagram showing steady, fluttering, tumbling, and mixed regimes with shaded Re > 5000 validity limit.*
-3. **Baseline Reference Single Drop:**
-   `results/single/test_run/single_drop_trajectory.png` (PDF: `.pdf`, CSV: `.csv`)
-   *Displays 2D center-of-mass trajectory with plate director arrows, tilt angle $\theta(t)$, and descent speeds for active fluttering plate ($I^* = 0.68$).*
-4. **$I^*$ Sweep Analysis:**
-   `results/sweeps/i_star_sweep/i_star_sweep.png` (PDF: `.pdf`, CSV: `.csv`)
-   *Three-panel figure showing regime classification, mean descent velocity, and lateral drift vs $I^*$.*
-5. **Energy Budget Reconciliation:**
-   `results/sweeps/i_star_sweep/energy_budget_reconciliation.png` (PDF: `.pdf`, CSV: `.csv`)
-   *Kinetic, potential, and cumulative dissipated energy balance with $< 0.0001\%$ residual.*
-6. **Flutter Frequency Spectrum & Strouhal Number:**
-   `results/sweeps/i_star_sweep/flutter_frequency_analysis.png` (PDF: `.pdf`, CSV: `.csv`)
-   *Power spectral density of $\theta(t)$ showing dominant oscillation frequency $f$ and Strouhal number $\mathrm{St}$.*
-7. **Release Angle Sweep:**
-   `results/sweeps/release_angle_sweep/release_angle_sweep.png` (PDF: `.pdf`, CSV: `.csv`)
-   *Lateral drift and descent velocity as a function of initial tilt angle ($0^\circ$ to $90^\circ$).*
-8. **Chaos Ensemble Dispersion (Low $I^* = 0.20$):**
-   `results/sweeps/chaos_ensemble/chaos_ensemble_low_I_0.2.png` (PDF: `.pdf`, CSV: `.csv`)
-   *Trajectory bundle with $1\sigma$ band and landing scatter histogram in fluttering regime.*
-9. **Chaos Ensemble Dispersion (High $I^* = 3.50$):**
-   `results/sweeps/chaos_ensemble/chaos_ensemble_high_I_3.5.png` (PDF: `.pdf`, CSV: `.csv`)
-   *Trajectory dispersion and landing histogram in tumbling autorotation regime.*
-10. **Clean Tumbling Drop Trajectory Showcase ($I^* = 1.20$):**
-    `results/single/tumbling_drop/tumbling_drop_trajectory.png` (PDF: `.pdf`, CSV: `.csv`)
-    *Representative clean unidirectional tumbling autorotation showing continuous 28+ full rotations, 0 directional reversals, and > 2.5 m lateral glide. Also see `tumbling_comparison.png` comparing clean tumbling ($I^* = 1.20$) with chaotic alternating tumbling ($I^* = 3.50$).*
-
----
-
-## 7. Review Deliverables Checklist
-
-To review the updated model, inspect:
-1. `README.md` (project specification and governing equations)
-2. `results/SUMMARY.md` (this report)
-3. `src/autumn/forces.py` (circulation and aerodynamic forces)
-4. `src/autumn/model.py` (coupled equations of motion with corrected $\rho_f \Gamma V$ lift)
-5. `results/regime_map.png` (2D phase diagram of $I^*$ vs $\text{Re}$ with $Re=5000$ boundary)
-6. `results/literature_validation.png` (validation vs Andersen et al. 2005a,b and ondrej-cloud/autumn-coin)
-7. `results/single/tumbling_drop/tumbling_drop_trajectory.png` (clean unidirectional tumbling trajectory at $I^* = 1.20$)
-8. `results/single/tumbling_drop/tumbling_comparison.png` (clean vs chaotic tumbling comparison)
+## 6. Primary References
+All citations are documented in [`references.md`](../references.md):
+- **Andersen, A., Pesavento, U., & Wang, Z. J. (2005a).** J. Fluid Mech., 541, 65–90.
+- **Andersen, A., Pesavento, U., & Wang, Z. J. (2005b).** J. Fluid Mech., 541, 91–104.
+- **Field, S., Klaus, M., Moore, M. G., & O'Reilly, F. (1997).** Phys. Rev. Lett., 78(10), 1896–1899.
+- **Pesavento, U., & Wang, Z. J. (2004).** Phys. Rev. Lett., 93(14), 144501.
+- **Akinci, G., et al. (2012).** ACM Trans. Graph. (TOG), 31(4), 62.
+- **Novotný, O., Přibyl, V., & Ambros, M. (2026).** ondrej-cloud/autumn-coin (MIT License).

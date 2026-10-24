@@ -1,0 +1,40 @@
+coefficients:
+  C_D0: 1.4
+  C_D1: 1.0
+  C_R: 3.141592653589793
+  C_T: 1.2
+  C_tau: 0.075
+  c_lin: 0.0
+  eps_V: 1.0e-07
+  mu_1: 0.01
+coin_set: reference_card
+fluid:
+  g: 9.81
+  mu: 0.001
+  rho_f: 998.0
+numerics:
+  H_fall_factor: 40.0
+  atol: 1.0e-11
+  dt_out: 0.001
+  integrator: DOP853
+  rtol: 1.0e-09
+  seed: 42
+  t_max_factor: 5.0
+  t_max_min: 80.0
+outcome:
+  duration_s: 7.220378461913683
+  final_X_m: 0.013269206699982217
+  final_Y_m: -0.7999999999999999
+  mean_descent_speed_ms: 0.1472846278087999
+  reached_bottom: true
+  timed_out: false
+plate:
+  I_star: 0.6763527054108216
+  L: 0.02
+  h: 0.0015
+  name: reference_card
+  notes: Active periodic fluttering showcase plate (I* ~ 0.68) demonstrating sustained
+    side-to-side flutter.
+  rho_s: 9000.0
+release_angle_deg: 15.0
+run_id: test_run

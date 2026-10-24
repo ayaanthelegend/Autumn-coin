@@ -135,12 +135,26 @@ int main(int argc, char** argv) {
         p_cfg.rho_s = rho_s;
         p_cfg.pos = {0.0, -0.04};
         p_cfg.theta = theta0_deg * M_PI / 180.0;
-        p_cfg.fixed = false;
+        p_cfg.fixed = true; // Hold fixed during equilibration to prevent start-up shock
 
         SPHSolver solver(f_cfg, s_cfg, d_cfg);
+        // Add rigid plate first so fluid is carved out cleanly
+        solver.add_rigid_ellipse(p_cfg);
         solver.init_domain_walls();
         solver.add_fluid_block(d_cfg.x_min + 0.005, d_cfg.x_max - 0.005, d_cfg.y_min + 0.005, 0.0, dx);
-        solver.add_rigid_ellipse(p_cfg);
+
+        // Equilibration phase: allow particle pressure and density to equilibrate around fixed plate
+        int equil_steps = 60;
+        for (int eq = 0; eq < equil_steps; ++eq) {
+            solver.step_kdk(dt);
+        }
+        // Release plate into free flight at t = 0
+        solver.rigid_bodies[0].config.fixed = false;
+        solver.rigid_bodies[0].vel = {0.0, 0.0};
+        solver.rigid_bodies[0].vel_half = {0.0, 0.0};
+        solver.rigid_bodies[0].omega = 0.0;
+        solver.rigid_bodies[0].omega_half = 0.0;
+        solver.sim_time = 0.0;
 
         std::filesystem::path csv_path(out_csv);
         if (csv_path.has_parent_path()) {

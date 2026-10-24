@@ -25,7 +25,7 @@ struct CoeffsConfig {
     double C_D1 = 1.0;
     double C_tau = 0.075;
     double c_lin = 0.0;
-    double mu_1 = 0.01;
+    double mu_1 = 0.2; // Literature baseline (Andersen 2005b Eq. 3.9); 0.01 is tuned alternative
     double eps_V = 1e-7;
 };
 

@@ -2,6 +2,7 @@
 #include "autumn/model.hpp"
 #include "autumn/integrator.hpp"
 #include "autumn/tank.hpp"
+#include <algorithm>
 #include <cmath>
 #include <random>
 

@@ -34,7 +34,7 @@ def compute_i_star(rho_s: float, h: float, rho_f: float, L: float) -> float:
 
 
 def compute_froude_velocity_scale(rho_s: float, rho_f: float, g: float, h: float) -> float:
-    r"""Compute velocity scale (Froude-type velocity scale).
+    r"""Compute Froude velocity scale based on full plate thickness h.
 
     Equation:
         U_t = \sqrt{\left(\frac{\rho_s}{\rho_f} - 1\right) g h}
@@ -43,6 +43,18 @@ def compute_froude_velocity_scale(rho_s: float, rho_f: float, g: float, h: float
     if buoyant_ratio <= 0:
         return 0.0
     return math.sqrt(buoyant_ratio * g * h)
+
+
+def compute_andersen_velocity_scale(rho_s: float, rho_f: float, g: float, b: float) -> float:
+    r"""Compute characteristic velocity scale U_0 from Andersen et al. (2005b) eq. (2.3) based on semi-minor axis b = h / 2.
+
+    Equation:
+        U_0 = \sqrt{\left(\frac{\rho_s}{\rho_f} - 1\right) g b} = \sqrt{\left(\frac{\rho_s}{\rho_f} - 1\right) g \frac{h}{2}} = \frac{U_t}{\sqrt{2}}
+    """
+    buoyant_ratio = (rho_s / rho_f) - 1.0
+    if buoyant_ratio <= 0:
+        return 0.0
+    return math.sqrt(buoyant_ratio * g * b)
 
 
 def compute_reynolds_number(rho_f: float, U: float, L: float, mu: float) -> float:
@@ -137,6 +149,8 @@ def classify_regime(
     ptp_deg = math.degrees(ptp_theta)
     back_deg = math.degrees(max_backward_excursion)
 
+    dt_window = float(t[valid_mask][-1] - t[valid_mask][0]) if np.sum(valid_mask) > 1 else 0.0
+
     metrics = {
         "theta_range_rad": ptp_theta,
         "theta_range_deg": ptp_deg,
@@ -144,9 +158,11 @@ def classify_regime(
         "n_flips": float(n_flips),
         "delta_theta_net_rad": delta_th_net,
         "max_backward_excursion_deg": back_deg,
+        "min_reversal_mixed_deg": params.min_reversal_mixed_deg,
         "spin_ratio": spin_ratio,
         "rel_std_omega": rel_std_om,
-        "mean_abs_omega": mean_abs_om
+        "mean_abs_omega": mean_abs_om,
+        "window_duration_s": dt_window,
     }
 
     # 1. Steady: post-transient standard deviation < 1 deg (or ptp < 2 deg) and no flips
@@ -154,9 +170,10 @@ def classify_regime(
         return "steady", metrics
 
     # 2. Tumbling: at least min_flips_tumble full rotations with predominant unidirectional spin
-    # (either backward excursion < max_reversal_tumble_deg OR high spin consistency ratio >= min_spin_ratio_tumble)
+    # (either backward excursion < min_reversal_mixed_deg OR high spin consistency ratio >= min_spin_ratio_tumble
+    # while keeping backward excursion below max_reversal_tumble_deg)
     if (net_rotation >= params.min_flips_tumble * 2.0 * math.pi) and (
-        back_deg < params.max_reversal_tumble_deg or spin_ratio >= params.min_spin_ratio_tumble
+        back_deg < params.min_reversal_mixed_deg or (spin_ratio >= params.min_spin_ratio_tumble and back_deg < params.max_reversal_tumble_deg)
     ):
         return "tumbling", metrics
 
@@ -165,5 +182,6 @@ def classify_regime(
     if (ptp_deg < params.theta_ptp_flutter_max_deg) and (net_rotation < 2.0 * math.pi) and (spin_ratio < params.min_spin_ratio_tumble):
         return "fluttering", metrics
 
-    # 4. Mixed / Chaotic: anything else (separatrix swings, chaotic direction reversals)
+    # 4. Mixed / Chaotic: trajectories exhibiting large reversals (back_deg >= min_reversal_mixed_deg),
+    # separatrix swings, or erratic non-uniform autorotation
     return "mixed", metrics

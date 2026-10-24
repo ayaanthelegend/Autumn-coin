@@ -1,8 +1,42 @@
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
 .pytest_cache/
-results/*
-!results/SUMMARY.md
+*.egg-info/
+.venv/
+venv/
+
+# C++ Build artifacts, objects, libraries & binaries
+build/
+bin/
+*.obj
+*.o
+*.exe
+*.lib
+*.dll
+*.so
+*.dylib
+*.pdb
+*.ilk
+*.exp
+imgui.ini
+.vscode/
+
+# Project-specific C++ build directories
+autumn-coin-cpp/build/
+cpp_sph/*.obj
+cpp_sph/bin/
+
+# Heavy simulation frames and scratch dumps
+results_sph/frames/
+results_sph/drops/frames/
 scratch/
 shared_bundle/
+
+# Keep important summaries and small CSV/PNG result artifacts
+!results/SUMMARY.md
+!results/*.csv
+!results_sph/SUMMARY_SPH.md
+!results_sph/comparison/*.csv
+!results_sph/validation/*.csv

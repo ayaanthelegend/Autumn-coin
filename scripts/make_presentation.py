@@ -322,6 +322,7 @@ def get_summarized_regime_map_rows() -> List[List[str]]:
                 total = len(df)
                 order = ["steady", "fluttering", "tumbling", "mixed"]
                 rows = []
+                re_col = "Re_meas" if "Re_meas" in df.columns else ("Re" if "Re" in df.columns else "re_meas")
                 for reg in order:
                     sub = df[df["regime"].str.lower() == reg]
                     if len(sub) == 0:
@@ -330,8 +331,8 @@ def get_summarized_regime_map_rows() -> List[List[str]]:
                     pct = 100.0 * cnt / total
                     i_min, i_max = sub["I_star"].min(), sub["I_star"].max()
                     i_mean = sub["I_star"].mean()
-                    re_min, re_max = sub["Re"].min(), sub["Re"].max()
-                    re_mean, re_std = sub["Re"].mean(), sub["Re"].std(ddof=1) if cnt > 1 else 0.0
+                    re_min, re_max = sub[re_col].min(), sub[re_col].max()
+                    re_mean, re_std = sub[re_col].mean(), sub[re_col].std(ddof=1) if cnt > 1 else 0.0
                     rows.append([
                         reg.capitalize(),
                         f"{cnt} / {total}",
@@ -352,6 +353,42 @@ def get_summarized_regime_map_rows() -> List[List[str]]:
         ["Tumbling", "4 / 60", "6.7%", "[1.040, 1.040]", "1.040", "[4125, 16338]", "9937 ± 5270"],
         ["Mixed / Chaotic", "16 / 60", "26.7%", "[1.408, 3.500]", "2.350", "[2453, 20206]", "9168 ± 5081"],
     ]
+
+
+def get_coin_sets_table_rows() -> list[list[str]]:
+    """Dynamically construct Slide 4 table rows from config/coin_sets.yaml."""
+    import yaml
+    import math
+    coin_p = ROOT / "config" / "coin_sets.yaml"
+    if not coin_p.exists():
+        return []
+    with open(coin_p, "r", encoding="utf-8") as f:
+        data = yaml.safe_load(f) or {}
+    rows = []
+    rho_f = 998.0
+    g = 9.81
+    for name, d in data.items():
+        if not isinstance(d, dict) or "rho_s" not in d:
+            continue
+        rho_s = float(d["rho_s"])
+        L = float(d["L"])
+        h = float(d["h"])
+        role = str(d.get("role", ""))
+        beta = h / L
+        i_star = (rho_s * h) / (rho_f * L)
+        delta_rho = (rho_s / rho_f) - 1.0
+        u_t = math.sqrt(max(delta_rho, 0.0) * g * h)
+        rows.append([
+            name,
+            role,
+            f"{rho_s:.0f}",
+            f"{L * 1000.0:.1f}",
+            f"{h * 1000.0:.2f}",
+            f"{beta:.4f}",
+            f"{i_star:.3f}",
+            f"{u_t:.3f}",
+        ])
+    return rows
 
 
 # ==============================================================================
@@ -510,12 +547,12 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
             "Parameter Set Name", "Simulation Role", "ρ_s [kg/m³]", "L [mm]", "h [mm]",
             "β = h/L", "I* (in Water)", "U_t [m/s]"
         ],
-        rows=[
-            ["reference_card", "Baseline active fluttering showcase", "2700", "24.0", "1.50", "0.0625", "0.680", "0.158"],
-            ["light_coin", "Low-density metallic/aluminium disc", "2700", "24.0", "1.80", "0.0750", "0.203–0.80", "0.173"],
-            ["washer_proxy", "Reduced effective density (central hole proxy)", "4000", "24.0", "1.80", "0.0750", "0.301", "0.230"],
-            ["tumbling_clean", "Unidirectional period-1 tumbling showcase", "3200", "20.0", "1.50", "0.0750", "1.200", "0.180"],
-            ["heavy_coin", "High-inertia steel/brass coin (mixed/tumble)", "7800", "24.0", "1.80", "0.0750", "0.586–3.50", "0.347"],
+        rows=get_coin_sets_table_rows() or [
+            ["reference_card", "Baseline active fluttering showcase", "9000", "20.0", "1.50", "0.0750", "0.676", "0.343"],
+            ["steady_card", "Steady descent baseline", "1200", "20.0", "2.00", "0.1000", "0.120", "0.063"],
+            ["light_coin", "Low-density aluminium proxy", "2700", "24.0", "1.80", "0.0750", "0.203", "0.173"],
+            ["washer_proxy", "Reduced effective density (hole)", "4000", "24.0", "1.80", "0.0750", "0.301", "0.230"],
+            ["heavy_coin", "High-inertia steel/brass coin", "7800", "24.0", "1.80", "0.0750", "0.586", "0.347"],
         ],
         left=0.5, top=3.90, width=12.33, height=2.95,
         col_widths=[1.8, 3.3, 1.2, 1.0, 1.0, 1.0, 1.6, 1.43],
@@ -600,7 +637,7 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
             "• Exact Conversion: C_τ = π μ_2 / 8. For Andersen's fitted μ_2 = 0.2, C_τ = 0.0785.",
             "• Strip-Theory Derivation: Integrating 0.5 ρ_f C_D(π/2) |ω r| (ω r) r dr from −L/2 to +L/2 gives:",
             "      C_τ,strip = C_D(π/2) / 32 = 2.4 / 32 = 0.0750  (Agrees with Andersen Eq. 3.9 within 4.5%!).",
-            "• Role of Linear Term μ_1: Stabilizes steady broadside descent at low inertia (I* <= 0.07).",
+            "• Role of Linear Term μ_1: Literature baseline μ_1 = 0.20 reproduces flutter-tumble boundary at I*_c = 1.206; μ_1 = 0.01 is a tuned alternative yielding I*_c = 0.957.",
         ],
         left=6.75, top=1.35, width=6.08, height=5.35, font_size=12.0
     )
@@ -612,7 +649,7 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
     add_header(
         s7,
         "6. Hydrodynamic Coefficient Table & Literature Verification",
-        "All Parameters Centralized in `config/base.yaml` and Verified Against Primary Literature",
+        "All Parameters Centralized in `config/base.yaml` with Literature Baseline and Sensitivity Analyses",
     )
     add_summary_table(
         s7,
@@ -625,7 +662,7 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
             ["C_D0", "1.40", "—", "Baseline drag constant: C_D(α) = C_D0 − C_D1 cos(2α)", "Andersen et al. (2005b) Eq. (3.8)"],
             ["C_D1", "1.00", "—", "Angle-dependent drag amplitude (C_D in [0.4, 2.4])", "Andersen et al. (2005b) Eq. (3.8)"],
             ["C_τ", "0.075", "—", "Quadratic rotational damping: 0.5 C_τ ρ_f L⁴ |ω|ω", "Strip theory C_D/32 = 0.075 (Andersen Eq. 3.9 gives πμ₂/8 = 0.0785)"],
-            ["μ_1", "0.01", "—", "Linear viscous rotational damping: (π/8) ρ_f L³ U_char μ_1 ω", "Andersen et al. (2005b) Eq. (3.9); stabilizes low-I* steady regime"],
+            ["μ_1", "0.20", "—", "Linear viscous rotational damping: (π/8) ρ_f L³ U_char μ_1 ω", "Literature baseline (Andersen et al. 2005b Eq. 3.9); 0.01 is tuned alternative"],
         ],
         left=0.5, top=1.35, width=12.33, height=5.35,
         col_widths=[1.1, 1.3, 1.0, 4.3, 4.63],
@@ -648,7 +685,7 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
             "• Solver: SciPy `solve_ivp` with 8th-order Dormand–Prince (`DOP853`).",
             "• Error Tolerances: rtol = 1.0 × 10⁻⁹,  atol = 1.0 × 10⁻¹¹.",
             "• Dense Output Sampling: dt_out = 1.0 × 10⁻³ s.",
-            "• Terminal Bottom Event: H_fall = 40 L (sweeps) to 60 L (regime map).",
+            "• Terminal Bottom Event: H_fall = 40 L (tank/benchmarks) to 100 L (asymptotic regime map).",
             "• Adaptive Cutoff: t_max = max(80 s, 5 * H_fall / U_term,est).",
             "• Transient Removal: Discard initial 20% of fall time (t < max(0.2 t_end, 1.0 s)) and initial 20% of drop depth (Y > Y_0 − 0.2 H_fall).",
         ],
@@ -665,17 +702,17 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
             ],
             [
                 "2. Fluttering",
-                "1.0° <= std(θ_post)  AND  ptp(θ_post) < 300°  (n_flips = 0)",
+                "std(θ_post) >= 1.0°  AND  ptp(θ_post) < 300°  (with net |Δθ_net| < 2π & spin_ratio < 0.70)",
                 "Periodic side-to-side gliding oscillation without flipping over vertical."
             ],
             [
                 "3. Tumbling",
-                "|Δθ_net| >= 2 × 360°  AND  max_backward_excursion < 180°",
+                "|Δθ_net| >= 4π  AND  (max_backward_excursion < 180° OR spin_ratio >= 0.70)",
                 "Sustained unidirectional end-over-end autorotation with large lateral glide."
             ],
             [
                 "4. Mixed / Chaotic",
-                "ptp(θ_post) >= 300°  WITH  directional reversals >= 90° (or < 2 net flips)",
+                "ptp(θ_post) >= 300°  WITH  chaotic reversals (spin_ratio < 0.70 & excursion >= 90°)",
                 "Heteroclinic separatrix crossings, alternating spin directions & flutter bouts."
             ],
         ],
@@ -836,7 +873,7 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
             "• Flutter Frequency Scaling: Dominant FFT peak f = 0.77 Hz to 1.45 Hz across I* in [0.10, 0.80].",
             "• Dimensionless Strouhal Number:  St = (f * L) / U_mean ≈ 0.20 – 0.57",
             "• Agreement with Card Experiments: Belmonte et al. (1998) and Andersen et al. (2005a) report St ≈ 0.18 – 0.22 for fluttering cards in water.",
-            "• Bifurcation Jump: At I*_c ≈ 1.05, spectrum transitions from a discrete libration peak into continuous autorotation harmonics: f_rot = |⟨ω⟩| / (2π).",
+            "• Bifurcation Jump: At I*_c ≈ 1.206 (baseline μ_1 = 0.20), spectrum transitions from a discrete libration peak into continuous autorotation harmonics: f_rot = |⟨ω⟩| / (2π).",
         ],
         left=6.5, top=max(cap_bot_12 + 0.12, 4.15), width=6.3, height=2.55, font_size=11.5
     )
@@ -854,7 +891,7 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
         s13,
         [
             "Exact Broadside Equilibrium (θ_0 = 0.0°): Falls purely vertically (X = 0) at all I* because gravity and drag act symmetrically along the minor axis.",
-            "Global Limit-Cycle Attractor in Fluttering (Fig. 5): Any non-zero release angle (θ_0 in [5°, 85°]) converges onto the exact same post-transient fluttering amplitude and mean descent speed; θ_0 only shifts the initial transient phase (smoothly varying net drift from 0 to 0.12 m at I*=0.20, and 0 to 0.45 m at I*=0.80).",
+            "Empirical Limit-Cycle Attractor in Fluttering (θ_0 in [5°, 85°], Fig. 5): Any non-zero release angle in this range contracts onto the exact same post-transient fluttering amplitude and mean descent speed; θ_0 only shifts the initial transient phase (smoothly varying net drift from 0 to 0.12 m at I*=0.20, and 0 to 0.45 m at I*=0.80).",
             "High Sensitivity Above Bifurcation (I* = 3.50): In the mixed/tumbling regime, small changes in release angle select between clockwise/counterclockwise spin basins and alter multi-meter lateral excursions (> 1.5 m).",
         ],
         left=0.5, top=1.35, width=5.8, height=5.35, font_size=13.5
@@ -870,7 +907,7 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
         "Attractor Stability & Pitchfork Symmetry Breaking (Fig. 5)",
         [
             "• Symmetrical Saddle: At θ_0 = 0.0°, dX/dt = 0 strictly by bilateral symmetry.",
-            "• Flutter Basin (I* = 0.20 & 0.80): Orbit is a stable limit cycle with Lyapunov exponent λ < 0. Initial tilt θ_0 acts purely as a phase shift on the limit cycle.",
+            "• Flutter Basin (I* = 0.20 & 0.80): Trajectories contract onto a stable periodic limit cycle. Initial tilt θ_0 acts purely as a phase shift on the limit cycle.",
             "• Tumbling Basin Bifurcation (I* = 3.50): Separatrix crossing makes spin direction clockwise vs counter-clockwise highly sensitive to θ_0 (∂X_land / ∂θ_0 > 50 mm/deg).",
             "• Measured Speed Invariance: Post-transient U_mean = 0.158 ± 0.002 m/s regardless of θ_0.",
         ],
@@ -938,7 +975,7 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
     add_header(
         s15,
         "14. Phase Diagram (I* vs. Re) & Summarized 60-Run Dataset Table",
-        "Physical Grid: Chords L in {12, 18, 24, 30} mm, I* in [0.05, 3.50], Fall Depth H_fall = 60 L",
+        "Physical Grid: Chords L in {8, 12, 16, 20} mm, I* in [0.05, 3.50], Fall Depth H_fall = 100 L",
     )
     regime_rows = get_summarized_regime_map_rows()
     add_summary_table(
@@ -953,10 +990,10 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
         s15,
         "Key Dataset Findings & Why Stage 2 (SPH) is Required (Fig. 7)",
         [
-            "• Monotonic I* Ordering: Steady (I* <= 0.068) → Fluttering (0.092–0.768) → Clean Tumbling (I* = 1.04) → Mixed/Chaotic (I* >= 1.41).",
-            "• Quasi-Steady Viscosity Caveat: Because C_T, C_R, C_D0, C_D1, C_τ are fixed constants, μ does not enter the ODEs; Re_meas is computed a posteriori.",
-            "• Fitted Re Range: Literature coefficients are calibrated for Re ~ 300–5,000; points at Re > 5,000 represent high-speed extrapolations.",
-            "• SPH Motivation: Explicit viscosity sweeps require Stage 2 Navier–Stokes / SPH modeling.",
+            "• Monotonic I* Ordering: Steady (I* <= 0.068) → Fluttering (0.092–1.20) → Clean Tumbling (I* ≈ 1.21–1.41) → Mixed/Chaotic (I* >= 1.50).",
+            "• Absence of Fluid Viscosity in ODE: Because coefficients C_T, C_R, C_D0, C_D1, C_τ are constant, fluid viscosity μ does not appear in the ODE rhs; Re is computed a posteriori from realized descent speed.",
+            "• Calibration & Fitted Re Range: Literature coefficients are calibrated for Re ~ 300–5,000; points at higher Re represent high-speed extrapolations.",
+            "• SPH Motivation: Explicit Reynolds number dependence and boundary-layer separation require Stage 2 SPH modeling.",
         ],
         left=0.5, top=4.25, width=6.25, height=2.55, font_size=11.5
     )
@@ -1205,7 +1242,7 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
         s20,
         "Key Quantitative Benchmark Agreements (Fig. 10)",
         [
-            "• Critical Bifurcation Threshold: Our 2D ODE predicts I*_c ≈ 1.05, within ~5–10% of Andersen et al. (2005b) card experiments (I*_c ≈ 1.10–1.30).",
+            "• Critical Bifurcation Threshold: With literature baseline μ_1 = 0.20 (Andersen 2005b Eq. 3.9), bisection yields I*_c = 1.206 ([1.205, 1.208]), matching Andersen's card transition midpoint (1.20, band [1.10, 1.30]) within +0.5% (Fig. 10b).",
             "• Terminal Speed Ratio: Simulated U_mean / U_t matches Andersen (2005b) cards within 4% across both fluttering and tumbling branches (Fig. 10b).",
             "• Flutter Frequency: Implied Strouhal number St ≈ 0.201 agrees with the Belmonte (1998) / Andersen (2005a) empirical card band St in [0.18, 0.22] (Fig. 10c).",
             "• 3D vs 2D Discrepancy: Real 3D coins (ondrej-cloud 2024) tumble at lower I*_disk due to 3D azimuthal tipping modes absent in 2D planar models.",
@@ -1223,18 +1260,18 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
             [
                 "Present Work (2026)\n[Stage 1 2D ODE]",
                 "2D Quasi-Steady ODE\n(Elliptical cross-section)",
-                "332 – 5000\n(extrap. to 20,206)",
+                "181 – 5000\n(extrap. to 13,541)",
                 "I* ≈ 0.07 – 0.09\n(stabilized by μ_1)",
-                "I*_c ≈ 1.04 – 1.10\n(Mixed for I* >= 1.41)",
-                "Closes energy budget to < 10⁻⁴%; reproduces flutter St ≈ 0.20 and speed ratio U/U_t."
+                "I*_c = 1.206 ± 0.002\n(μ_1 = 0.20 baseline;\n0.957 for μ_1=0.01)",
+                "Closes energy budget to < 10⁻⁴%; reproduces flutter St ≈ 0.20 and speed ratio U/U_t within 4%."
             ],
             [
                 "Andersen et al.\n(JFM 2005a,b)",
                 "Quasi-2D Aluminium Plates\nin Water + DNS + ODE",
                 "280 – 1200\n(2D card experiments)",
                 "I* ≈ 0.08 – 0.12\n(linear damping μ_1)",
-                "I*_c ≈ 1.10 – 1.30\n(Tumbling at I* = 1.4)",
-                "Our critical I*_c ≈ 1.05 agrees within ~5–10% of their physical card transition!"
+                "I*_c ≈ 1.10 – 1.30\n(Midpoint 1.20;\nTable 1 cards 1 & 2)",
+                "Our baseline I*_c = 1.206 matches their physical card transition midpoint within +0.5%!"
             ],
             [
                 "Field et al.\n(Nature 1997)",
@@ -1323,17 +1360,17 @@ def build_full_22_slide_deck(output_filename: str = "Autumn_Coin_IYPT_2026_Full_
             [
                 "Dimensionless Inertia",
                 "I* = (ρ_s h) / (ρ_f L)",
-                "Primary bifurcation parameter: drives transition from Steady (I*<=0.068) → Fluttering (0.09–0.90) → Clean Tumbling (I*≈1.05–1.25) → Mixed/Chaotic (I*>=1.30), jumping lateral drift by >10×."
+                "Primary bifurcation parameter: drives transition from Steady (I*<=0.068) → Fluttering (0.09–1.20) → Clean Tumbling (I*≈1.21–1.41) → Mixed/Chaotic (I*>=1.50), jumping lateral drift by >10×."
             ],
             [
                 "Reynolds Number / Viscosity",
                 "Re = ρ_f U L / μ",
-                "High viscosity (low Re < 50) overdamps pitching into steady descent; at coin Reynolds numbers (Re ~ 500–5,000), pressure & circulation forces dominate and regime boundaries become weakly dependent on Re."
+                "In the 2D ODE, regime dynamics depend strictly on dimensionless inertia I* (fluid viscosity μ does not enter the quasi-steady equations); explicit Reynolds number dependence and viscous boundary-layer effects are investigated via the Stage 2 SPH model."
             ],
             [
                 "Initial Release Angle",
                 "θ_0 in [0°, 90°]",
-                "Insensitive attractor in fluttering regime (sets only initial glide phase); near/above I*_c, small θ_0 perturbations amplify landing scatter by 32× (σ_X = 0.01 m at I*=0.20 → 0.32 m at I*=3.50)."
+                "Insensitive attractor in fluttering regime (sets only initial glide phase); near/above I*_c, small θ_0 perturbations amplify landing scatter by 32× (50-drop Gaussian ensemble: σ_X = 0.010 m at I*=0.20 → 0.320 m at I*=3.50)."
             ],
             [
                 "Geometry / Internal Cutout",

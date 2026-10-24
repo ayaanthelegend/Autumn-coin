@@ -1,271 +1,175 @@
-# Autumn Coin: Step 1, Quasi-Steady ODE Model of a Falling Plate (2D)
+# Autumn Coin: Fluid Dynamics of Falling Disks & Plates
 
-> This file is the single source of truth for the agent. Read it once, then build.
-> Do NOT re-read the whole file every step: use the section index below.
+[![Python Tests](https://img.shields.io/badge/pytest-16%20passed-brightgreen.svg)]()
+[![C++ Core Tests](https://img.shields.io/badge/catch2-9%20passed%20(631%20checks)-brightgreen.svg)]()
+[![SPH Validation](https://img.shields.io/badge/sph_tests-7%2F7%20passed-brightgreen.svg)]()
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-## 0. Section index
+An end-to-end computational and theoretical investigation of **IYPT 2026 Problem 12: Autumn Coin**, investigating the complex trajectory bifurcation (steady descent, periodic fluttering, chaotic tumble-glide, and autorotation) of coins and planar plates falling through viscous fluids.
 
-1. Goal and scope
-2. Working rules for the agent
-3. Repository layout (every file and what goes in it)
-4. Physics spec (equations, coefficients, nondimensional numbers)
-5. Numerics
-6. Parameter sets
-7. Experiments / parameter sweeps
-8. Output and plot specs
-9. Acceptance tests (must pass before moving on)
-10. Task order (checklist)
-11. Handoff for external review
-12. Known uncertainties
+The project combines three synchronized computational solvers:
+1. **2D Quasi-Steady Kirchhoff ODE Model (Python)**: High-precision adaptive Runge-Kutta integrator (`DOP853`) capturing translational/rotational added mass, Kutta-Joukowski circulation, angle-of-attack dependent drag, and nonlinear damping.
+2. **High-Performance C++ Desktop Visualizer (`autumn-coin-cpp/`)**: Real-time simulation and visualization using Raylib, Dear ImGui, and ImPlot with interactive parameter tuning and headless CI support.
+3. **2D Weakly Compressible Smoothed Particle Hydrodynamics Solver (`cpp_sph/`)**: Direct Navier-Stokes fluid-structure interaction (FSI) solver coupling weakly compressible SPH (Wendland $C_2$ kernel) with moving rigid body boundaries.
 
 ---
 
-## 1. Goal and scope
-
-Build a Python implementation of a **2D quasi-steady model** of a thin plate (the cross-section of a coin) falling through water, after Andersen, Pesavento and Wang, *J. Fluid Mech.* 541 (2005) and Pesavento and Wang, *PRL* 93 (2004).
-
-The model must reproduce, qualitatively:
-
-- **steady descent**
-- **fluttering** (side-to-side oscillation, no full rotation)
-- **tumbling** (continuous rotation with drift)
-- a **chaotic / mixed** regime between them
-
-as the dimensionless moment of inertia `I*` and Reynolds number `Re` change.
-
-This model is the reference for later steps (a 2D SPH + rigid-body FSI sim in Unity, and a comparison with literature data). **Out of scope for this step:** SPH, Unity, 3D, any experimental or fabricated data. All outputs are *simulation results*; label them as such everywhere.
-
-## 2. Working rules for the agent
-
-- Python 3.10+, `numpy`, `scipy`, `matplotlib`, `pytest`, `pyyaml`. No other dependencies without asking.
-- Work in small steps following section 10. After each step: run tests, then commit.
-- Keep all physical coefficients in `config/*.yaml`, never hardcoded in the solver.
-- Every function that implements a formula gets a docstring with the equation and its source.
-- Do not invent coefficients. If a value is marked `VERIFY` (section 12), implement it as a config default and print a one-line warning on first use.
-- Fixed random seeds. Every run writes its config next to its output.
-- Keep console output short. Write details to log files in `results/`.
-- Do not modify files under `tests/` just to make tests pass. If a test fails, fix the model or report it.
-
-## 3. Repository layout
+## Repository Structure
 
 ```
-autumn-coin-sim/
-  README.md                      # this file
-  requirements.txt
-  config/
-    base.yaml                    # fluid + numerics + coefficient defaults
-    coin_sets.yaml               # plate/coin parameter sets (section 6)
-    sweeps.yaml                  # sweep definitions (section 7)
-  src/autumn/
-    __init__.py
-    params.py                    # dataclasses, config loading, derived quantities
-    added_mass.py                # m11, m22, I_a for an ellipse
-    forces.py                    # circulation, drag/lift coefficients, drag force, torque
-    model.py                     # rhs(t, state, params) -> d(state)/dt
-    integrate.py                 # solve_ivp wrapper, event for hitting the bottom
-    dimensionless.py             # I*, Re, Fr, St, regime classifier
-    metrics.py                   # post-processing: tilt stats, frequency, mean speed, energy
-    sweeps.py                    # run sweeps over (I*, release angle, perturbation)
-    plotting.py                  # all figures (section 8)
-  scripts/
-    run_single.py                # one drop: config name -> trajectory CSV + plots
-    run_sweep.py                 # a sweep from sweeps.yaml
-    make_regime_map.py           # I* vs Re regime diagram
-    make_summary.py              # writes results/SUMMARY.md for external review
-  tests/
-    test_added_mass.py
-    test_forces.py
-    test_terminal_velocity.py
-    test_energy.py
-    test_regimes.py
-  results/                       # generated, gitignored except SUMMARY.md
-    single/<run_id>/{config.yaml,trajectory.csv,*.png}
-    sweeps/<sweep_id>/{config.yaml,runs.csv,*.png}
-    SUMMARY.md
+Autumn-coin/
+├── config/                      # Simulation configurations & coin geometry sets
+│   ├── base.yaml                # Hydrodynamic parameters, classifier thresholds, numerics
+│   └── coin_sets.yaml           # Physical coin & plate geometries (CZK, EUR, cards)
+├── src/autumn/                  # Core Python quasi-steady ODE package
+│   ├── added_mass.py            # Analytical potential flow added mass & inertia
+│   ├── forces.py                # Circulation, viscous drag, and damping torque
+│   ├── model.py                 # Kirchhoff equations of motion (RHS)
+│   ├── integrate.py             # DOP853 numerical time integration & event detection
+│   ├── metrics.py               # Energy accounting, FFT analysis, trajectory summary
+│   ├── dimensionless.py         # Nondimensional scaling (I*, Re, St) & regime classifier
+│   └── params.py                # Dataclasses and YAML configuration loader
+├── tests/                       # Complete pytest suite (16 unit and acceptance tests)
+├── scripts/                     # Production scripts for scientific studies & presentation
+│   ├── make_bisection_study.py  # High-precision bisection for critical I*_c vs literature
+│   ├── make_regime_map.py       # 60-point (I*, Re) phase space regime map
+│   ├── make_presentation.py     # Generates the complete 22-slide IYPT deck
+│   └── check_slide_numbers.py   # Automated consistency audit for presentation slides
+├── autumn-coin-cpp/             # Native C++ port & interactive visualizer
+│   ├── src/                     # C++ model, integrator, and Raylib/ImGui visualizer
+│   ├── include/autumn/          # C++ header definitions
+│   └── tests/                   # Native C++ Catch2 unit test suite
+├── cpp_sph/                     # 2D SPH FSI solver
+│   ├── src/                     # SPH solver, Wendland C2 kernel, rigid body coupling
+│   └── include/                 # SPH header files
+├── scripts_sph/                 # Automated runners for SPH drops and post-processing
+├── results/                     # ODE outputs, phase diagrams, and SUMMARY.md
+├── results_sph/                 # SPH drop CSVs, validation logs, and SUMMARY_SPH.md
+├── docs/                        # Technical documentation & developer notes
+├── tools/                       # Development maintenance and verification utilities
+└── references.md                # Complete bibliography of peer-reviewed literature
 ```
 
-## 4. Physics spec
+---
 
-### 4.1 Geometry and masses (per unit depth)
+## Physics & Hydrodynamic Formulation
 
-Plate cross-section = ellipse with semi-axes `a` (major, half-chord) and `b` (minor, half-thickness).
+The 2D equations of motion for a plate falling under gravity through an incompressible fluid are formulated in the body-fixed coordinate frame $(u, v, \omega)$ following Kirchhoff's equations with quasi-steady hydrodynamic forces (Andersen, Pesavento & Wang, *J. Fluid Mech.* 2005):
 
-- chord `L = 2a`, thickness `h = 2b`, area `A = pi*a*b`
-- solid mass `m = rho_s * A`, displaced fluid mass `m_f = rho_f * A`
-- solid moment of inertia `I = m*(a^2 + b^2)/4`
+$$\begin{aligned}
+(m + m_{11})\dot{u} &= (m + m_{22})v\omega - F_L \sin\alpha - F_{D,u} - (m - m_f)g\sin\theta \\
+(m + m_{22})\dot{v} &= -(m + m_{11})u\omega + F_L \cos\alpha - F_{D,v} - (m - m_f)g\cos\theta \\
+(I + I_a)\dot{\omega} &= (m_{11} - m_{22})uv - \tau_{\text{diss}}
+\end{aligned}$$
 
-Coin mapping: coin diameter `D -> L`, coin thickness `h -> h`. This is a 2D cross-section approximation; state this in all captions.
+Where:
+- **Added Mass**: $m_{11} = \rho_f \pi b^2$, $m_{22} = \rho_f \pi a^2$, and $I_a = \frac{1}{8}\rho_f \pi (a^2 - b^2)^2$.
+- **Circulation & Lift**: $\Gamma = -C_T L \frac{uv}{|V|} + \frac{1}{2} C_R L^2 \omega$, with peak $C_{L,\max} = C_T = 1.2$ at $\alpha = 45^\circ$.
+- **Viscous Drag**: $C_D(\alpha) = C_{D0} - C_{D1}\cos(2\alpha)$, with $C_D(0^\circ) = 0.4$ (edge-on) and $C_D(90^\circ) = 2.4$ (broadside).
+- **Damping Torque**: $\tau_{\text{diss}} = \frac{1}{2}C_\tau \rho_f L^4 |\omega|\omega + c_{\text{lin}}\omega$, with literature baseline $\mu_1 = 0.20$ yielding $c_{\text{lin}} = \frac{\pi}{8}\rho_f L^3 U_0 \mu_1$.
 
-### 4.2 Added mass (ellipse, potential flow)
+---
 
-```
-m11 = rho_f * pi * b^2        # along the major axis
-m22 = rho_f * pi * a^2        # along the minor axis
-I_a = rho_f * pi * (a^2 - b^2)^2 / 8
-```
+## Installation & Setup
 
-### 4.3 State vector
+### Python Environment
+Requires Python 3.10+ (tested on Python 3.14).
 
-`state = [X, Y, theta, u, v, omega]`
+```bash
+# Clone the repository
+git clone https://github.com/ayaanthelegend/Autumn-coin.git
+cd Autumn-coin
 
-- `(X, Y)` lab-frame position, Y up, gravity `-Y`
-- `theta` angle of the major axis from the +X axis
-- `(u, v)` velocity components in the **body frame** (u along the major axis, v along the minor axis)
-- `omega = d(theta)/dt`
-
-Kinematics:
-
-```
-dX/dt = u*cos(theta) - v*sin(theta)
-dY/dt = u*sin(theta) + v*cos(theta)
-dtheta/dt = omega
+# Install dependencies
+pip install -r requirements.txt
+pip install -e .
 ```
 
-### 4.4 Dynamics (Kirchhoff + quasi-steady forces)
+### Building C++ Core & Visualizer (`autumn-coin-cpp`)
+Prerequisites: CMake 3.20+ and a C++20 compiler (MSVC 2022, GCC 11+, or Clang 13+).
 
-```
-(m + m11) du/dt = (m + m22) v*omega - rho_f*Gamma*v - F_u - (m - m_f) g sin(theta)
-(m + m22) dv/dt = -(m + m11) u*omega + rho_f*Gamma*u - F_v - (m - m_f) g cos(theta)
-(I + I_a) domega/dt = (m11 - m22) u*v - tau
-```
+```bash
+cd autumn-coin-cpp
+cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release
 
-Sign convention check is mandatory (section 9, tests 3 and 4). If a sign test fails, fix the signs, not the test.
-*Note:* Circulation lift is dimensional: $\rho_f \Gamma V$ (in body components $\rho_f \Gamma v$ and $\rho_f \Gamma u$).
-
-### 4.5 Circulation (Kutta-Joukowski, with rotational part)
-
-```
-alpha  = atan2(-v, u)                  # angle of attack (document your convention)
-Gamma  = -C_T * L * (u*v / |V|)  + 0.5 * C_R * L^2 * omega
-|V|    = sqrt(u^2 + v^2)               # guard: if |V| < eps, translational term = 0
+# To build headless tests only (e.g. on Linux servers without X11):
+cmake -B build -S . -DAUTUMN_BUILD_VIZ=OFF
+cmake --build build --target autumn_tests
 ```
 
-Note: With $C_L(\alpha) = 2\Gamma / (|V| L)$, the convention $\Gamma_{\text{trans}} = -C_T L (u v / |V|)$ gives $C_L(\alpha) = C_T \sin(2\alpha)$, peaking at $C_{L,\max} = C_T = 1.2$ at $\alpha = 45^\circ$.
-Defaults: `C_T = 1.2`, `C_R = pi` (verified against Andersen et al. 2005b).
+### Building SPH Solver (`cpp_sph`)
+Using the provided MSVC build utility or standard C++20 compiler:
 
-### 4.6 Viscous drag and torque
-
-```
-C_D(alpha) = C_D0 - C_D1 * cos(2*alpha)        # defaults C_D0 = 1.4, C_D1 = 1.0 (VERIFY)
-F_u = 0.5 * rho_f * L * C_D(alpha) * |V| * u
-F_v = 0.5 * rho_f * L * C_D(alpha) * |V| * v
-tau = 0.5 * C_tau * rho_f * L^4 * |omega| * omega   # default C_tau = 0.075 (strip theory C_D / 32; tunable)
+```bash
+python cpp_sph/build.py
 ```
 
-Optionally add a small linear rotational damping `tau_lin = c_lin * omega` for numerical stability. Default `c_lin = 0`.
+---
 
-### 4.7 Nondimensional numbers (implement in `dimensionless.py`)
+## Verification & Testing
 
+### 1. Python Acceptance Test Suite
+Runs the 16 full unit and acceptance tests covering added-mass limits, Kirchhoff momentum conservation, broadside terminal velocity, energy budget closure to $< 10^{-4}\%$, regime classifier sensitivity, and dimensional consistency:
+
+```bash
+python -m pytest
 ```
-I_star = (rho_s * h) / (rho_f * L)             # 2D plate dimensionless moment of inertia
-U_t    = sqrt((rho_s/rho_f - 1) * g * h)       # velocity scale (Froude-type)
-Re     = rho_f * U * L / mu                    # use measured mean descent speed for U
-St     = f * L / U                             # f = dominant oscillation frequency
+
+### 2. C++ Parity & Unit Tests
+Executes 9 Catch2 test cases (631 assertions) validating C++ ODE rhs evaluation, cross-compiler compatibility, coordinate symmetries, and exact numeric parity against Python DOP853 outputs:
+
+```bash
+./autumn-coin-cpp/build/autumn_tests
 ```
 
-Do NOT use `I/(m R^2)`: it is constant for a solid disk and carries no information.
+### 3. SPH FSI Solver Validation Suite
+Runs the 7 formal fluid mechanics validation cases (spatial partition-of-unity, gradient exactness, hydrostatic pressure, Taylor-Green vortex decay, cylinder drag scaling, boundary penetration resistance, and spatial grid resolution convergence):
 
-### 4.8 Regime classifier
+```bash
+./cpp_sph/bin/sph_runner.exe --all-tests
+```
 
-From each trajectory, after discarding the initial transient (first 10 percent of fall height):
+---
 
-- `theta_range = max(theta) - min(theta)`; `n_flips` = count of full 2*pi rotations of `theta`
-- **steady**: `theta_range < 0.2 rad` and tilt variance below a threshold (`var_theta_steady`)
-- **fluttering**: `theta` oscillates, `n_flips == 0`
-- **tumbling**: `n_flips >= 2` with a consistent rotation direction
-- **mixed / chaotic**: anything else (e.g. flutter with occasional flips)
+## Reproducing Key Results
 
-All thresholds are config values in `base.yaml`. Print the classification counts per sweep.
+### 1. Critical $I^*_c$ Bisection Study
+Determines the flutter-to-tumble bifurcation boundary across damping values $\mu_1 \in \{0, 0.01, 0.05, 0.1, 0.2\}$:
 
-## 5. Numerics
+```bash
+python scripts/make_bisection_study.py
+```
+*Results*: Baseline $\mu_1 = 0.20$ gives $I^*_c = 1.2063$ ($[1.2047, 1.2080]$), within **+0.5%** of Andersen et al. (2005b) Table 1 experimental card transition midpoint ($1.20$, band $[1.10, 1.30]$).
 
-- Integrator: `scipy.integrate.solve_ivp`, method `DOP853`, `rtol=1e-9`, `atol=1e-11`.
-- Dense output sampled at a fixed `dt_out` (default 1e-3 s) for post-processing.
-- Terminal event: fall depth reaches `H_fall` (default 40 L). Adaptive $t_{\max} \approx 3 \text{--} 5 \times H_{\text{fall}} / U_{\text{terminal}}$ with timeout flagging.
-- Use SI units everywhere. Fluid: water at 20 C, `rho_f = 998`, `mu = 1.0e-3`, `g = 9.81`.
-- Verify convergence: tightening tolerances by 10x must change landing x by < 0.1 percent of chord $L$ for a non-chaotic fluttering case.
+### 2. 2D Regime Map in $(I^*, \text{Re})$ Space
+Generates the 60-point phase diagram with post-transient classifier evaluations:
 
-## 6. Parameter sets (`config/coin_sets.yaml`)
+```bash
+python scripts/make_regime_map.py
+```
 
-Define each set by `rho_s`, `L`, `h`, `a/b = L/h`. Include at least:
+### 3. IYPT 22-Slide Deck Generation
+Builds the full 22-slide PowerPoint presentation with live tables and figures:
 
-| name               | role                                | rho_s [kg/m3] | L [mm] | h [mm] |
-| ------------------ | ----------------------------------- | ------------- | ------ | ------ |
-| `reference_card` | baseline for flutter/tumble physics | 1200          | 20     | 2      |
-| `heavy_coin`     | metal coin, high I*                 | 7800          | 24     | 1.8    |
-| `light_coin`     | low I*                              | 2700          | 24     | 1.8    |
-| `washer_proxy`   | lower effective density (hole)      | 4000          | 24     | 1.8    |
+```bash
+python scripts/make_presentation.py
+python scripts/check_slide_numbers.py  # Runs automated audit across all 22 slides
+```
 
-These values are illustrative inputs for simulation, **not measurements**. Include a `notes` field per set stating that.
+---
 
-## 7. Experiments / sweeps (`config/sweeps.yaml`)
+## Key Findings & Highlights
 
-1. **I\* sweep** (main result): `I*` from 0.05 to 5 (log spaced, 25 values). Scaled physically with aspect ratio $h/L \in [0.04, 0.25]$ such that $\rho_s/\rho_f \le 20$. Release angle 5 deg off horizontal plus small noise.
-2. **Release angle sweep**: 0 to 90 deg, 19 values, at three `I*` values (low $0.2$, transition $0.8$, tumble $3.5$).
-3. **Ensemble for chaos statistics**: for each of 3 selected `I*`, 50 drops with `theta0 ~ N(mu, 0.5 deg)` and `u0, v0 ~ N(0, 1e-4 m/s)`; seed fixed. Outputs: mean trajectory, 1-sigma band, landing scatter.
-4. **Viscosity dependence & regime map**: The quasi-steady formulation carries no explicit viscosity dependence in its force terms (fixed coefficients). The Reynolds number Re is evaluated a posteriori from the measured mean descent speed U via Re = rho_f * U * L / mu. Viscosity is probed through physical scaling of rho_s, L, and h, while true viscous Re dependence is reserved for the 2D SPH step.
-5. **Regime map**: grid over I* and Re (evaluated a posteriori across physical variations of rho_s, L, h), classifying each cell.
+1. **Literature Baseline Alignment**: Using the un-tuned literature damping parameter $\mu_1 = 0.20$ from Andersen et al. (2005b) yields $I^*_c = 1.206$, achieving $+0.5\%$ agreement with empirical falling card transitions without parameter fitting.
+2. **Energy Conservation**: Numerical energy accounting tracks kinetic, potential, and cumulative viscous dissipation, demonstrating energy closure within $< 0.001\%$ across entire drops.
+3. **Decoupled Physics**: Demonstrates that the 2D ODE depends strictly on $I^*$ and hydrodynamic coefficients; Reynolds number effects are isolated and evaluated directly in Navier-Stokes SPH simulations.
+4. **SPH Shock Mitigation**: Eliminating impulsive particle initialization shocks via geometric solid pre-carving and initial relaxation enables smooth gravitational start-up from rest ($|V|(1\,\text{ms}) \le 0.006\,\text{m/s}$).
 
-## 8. Output and plot specs
+---
 
-Matplotlib, white background, dark text and axes (no theme-dependent light text), 300 dpi PNG plus PDF.
-Every plot title or caption must say "2D quasi-steady model simulation".
+## References & Bibliography
+See [`references.md`](references.md) for complete citations of foundational literature (Field et al. 1997, Andersen et al. 2005a, 2005b, Pesavento & Wang 2004, Akinci et al. 2012, ondrej-cloud 2026).
 
-1. Single drop: trajectory in the X-Y plane (orientation arrows every N frames), `theta(t)`, speed vs time.
-2. Ensemble: mean trajectory with 1-sigma band, landing scatter (rose / scatter), histogram of landing x.
-3. I\* sweep: regime vs `I*`, mean descent speed vs `I*`, lateral drift vs `I*`.
-4. Phase diagram: `I*` vs `Re` with regime colours, one legend, no overlapping labels.
-5. Energy budget: potential, kinetic (translational + rotational), cumulative dissipated energy; total must reconcile to within 1 percent.
-6. Frequency analysis: FFT of `theta(t)` in the fluttering regime; report `St`.
-   CSV for every figure's underlying data in the same folder.
-
-## 9. Acceptance tests (pytest, all must pass)
-
-1. **Added mass**: for `a == b` (circle), `m11 == m22` and `I_a == 0`.
-2. **No forces (Kirchhoff conservation)**: zero drag, zero circulation, zero torque, zero gravity: total kinetic energy $T$ is constant (to 1e-8) and lab-frame linear momentum rotated from $((m+m_{11})u, (m+m_{22})v)$ is constant (to 1e-8). For a circular plate ($a = b$), lab velocity and angular momentum are strictly constant.
-3. **Broadside terminal velocity**: start with the plate horizontal (`theta = 0`) and tiny noise suppressed. Terminal speed must match the drag balance `0.5*rho_f*C_D*L*U^2 = (rho_s - rho_f)*g*A` within 2 percent (use the `C_D` at the correct `alpha`).
-4. **Sign check**: a plate released with `theta = 0` and zero velocity falls straight down in the absence of perturbations, never drifting sideways by more than `1e-6 L` when noise is off.
-5. **Energy**: with drag, torque, and circulation work all included, the energy budget closes to within 1 percent over a full drop, normalized by the potential energy drop $(m - m_f) g H_{\text{fall}}$.
-6. **Regime ordering**: at fixed `Re`-range, the classifier gives fluttering or steady for the smallest `I*` in the sweep and tumbling for the largest. Do not hardcode the critical value: report where the transition occurs.
-7. **Convergence**: tolerance tightened 10x changes a non-chaotic fluttering landing position by less than 0.1 percent of chord $L$.
-8. **Reproducibility**: same seed, same CSV (byte-identical).
-
-## 10. Task order (tick off in order; commit after each)
-
-- [X] 1. Scaffold repo, `requirements.txt`, configs, `params.py`
-- [X] 2. `added_mass.py` + test 1
-- [X] 3. `forces.py`, `model.py` + tests 2, 3, 4
-- [X] 4. `integrate.py`, `run_single.py`, first single-drop plots
-- [X] 5. `dimensionless.py`, `metrics.py`, regime classifier + test 6
-- [X] 6. Energy budget + test 5
-- [X] 7. Convergence and reproducibility tests (7, 8)
-- [X] 8. Sweeps (section 7) and sweep plots
-- [X] 9. Regime map
-- [X] 10. `make_summary.py` (section 11)
-
-## 11. Handoff for external review
-
-Generate `results/SUMMARY.md` containing:
-
-- git commit hash, Python and package versions
-- the full coefficient table actually used (every `VERIFY` item, its value, its source)
-- test results (pass/fail list)
-- for each sweep: number of runs, regime counts, the estimated transition `I*`
-- the 10 most important figures (file paths)
-- any test that was relaxed, any coefficient tuned, and why
-- a short "Observed disagreements with literature" section (even if empty)
-
-To review the model, share: `README.md`, `results/SUMMARY.md`, `src/autumn/forces.py`, `src/autumn/model.py`, and the regime map and a single-drop figure.
-
-## 12. Known uncertainties (flag these, do not silently fix)
-
-| item                                          | default                                   | status                                     |
-| --------------------------------------------- | ----------------------------------------- | ------------------------------------------ |
-| `C_T`, `C_R`                              | 1.2, pi                                   | VERIFY against Andersen et al. 2005        |
-| `C_D(alpha)` form and constants             | 1.4 - 1.0 cos(2 alpha)                    | VERIFY                                     |
-| rotational torque form and `C_tau`          | 0.5 C_tau rho_f L^4 abs(omega) omega, 0.2 | tunable, must be documented                |
-| angle-of-attack sign convention               | `alpha = atan2(-v, u)`                  | check with tests 3 and 4                   |
-| 2D approximation of a 3D coin                 | n/a                                       | limitation: state in paper                 |
-| critical `I*` for flutter-tumble transition | none                                      | must emerge from the model, not be assumed |
-
-Rules: if the model output disagrees with the literature, report it in `SUMMARY.md` and do not tune coefficients to hide it without documenting what was tuned.
+## License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

@@ -1,3 +1,0 @@
-D:/Autumn coin/autumn-coin-cpp/build/_deps/yaml-cpp-subbuild/CMakeFiles/yaml-cpp-populate.dir
-D:/Autumn coin/autumn-coin-cpp/build/_deps/yaml-cpp-subbuild/CMakeFiles/edit_cache.dir
-D:/Autumn coin/autumn-coin-cpp/build/_deps/yaml-cpp-subbuild/CMakeFiles/rebuild_cache.dir

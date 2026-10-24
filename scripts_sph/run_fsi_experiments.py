@@ -19,12 +19,12 @@ def run_experiment_1():
     DROPS_DIR.mkdir(parents=True, exist_ok=True)
     COMPARISON_DIR.mkdir(parents=True, exist_ok=True)
 
-    # 4 Representative cases across dynamic regimes from Step 1 ODE
+    # 4 Representative cases across dynamic regimes from Step 1 ODE (all sinking: 1.2 <= rho_s/rho_f <= 20)
     cases = [
-        {"name": "steady_I006",    "I_star": 0.06, "L": 0.024, "h": 0.0018, "mu": 0.001, "theta0": 5.0,  "t_end": 0.35, "ode_regime": "Steady"},
-        {"name": "flutter_I068",   "I_star": 0.68, "L": 0.024, "h": 0.0018, "mu": 0.001, "theta0": 5.0,  "t_end": 0.40, "ode_regime": "Fluttering"},
-        {"name": "tumble_I120",    "I_star": 1.20, "L": 0.024, "h": 0.0018, "mu": 0.001, "theta0": 20.0, "t_end": 0.40, "ode_regime": "Tumbling"},
-        {"name": "mixed_I235",     "I_star": 2.35, "L": 0.024, "h": 0.0018, "mu": 0.001, "theta0": 15.0, "t_end": 0.40, "ode_regime": "Mixed"}
+        {"name": "steady_I015",    "I_star": 0.15, "L": 0.024, "h": 0.0015, "mu": 0.001, "theta0": 0.0,   "t_end": 0.45, "ode_regime": "Steady"},
+        {"name": "flutter_I068",   "I_star": 0.68, "L": 0.024, "h": 0.0018, "mu": 0.001, "theta0": 5.0,   "t_end": 0.50, "ode_regime": "Fluttering"},
+        {"name": "tumble_I135",    "I_star": 1.35, "L": 0.024, "h": 0.0018, "mu": 0.001, "theta0": 20.0,  "t_end": 0.50, "ode_regime": "Tumbling"},
+        {"name": "mixed_I150",     "I_star": 1.50, "L": 0.024, "h": 0.0018, "mu": 0.001, "theta0": 15.0,  "t_end": 0.50, "ode_regime": "Mixed"}
     ]
 
     results = []

@@ -11,10 +11,10 @@ import yaml
 _VERIFY_WARNED = False
 
 def warn_verify_coefficients_once() -> None:
-    """Print confirmation on first use for verified hydrodynamic coefficients."""
+    """Print confirmation on first use for hydrodynamic coefficients."""
     global _VERIFY_WARNED
     if not _VERIFY_WARNED:
-        print("[Autumn Info] Hydrodynamic coefficients verified against Andersen, Pesavento & Wang (2005b): C_T=1.2, C_R=pi, C_D0=1.4, C_D1=1.0, C_tau=0.075.")
+        print("[Autumn Info] Hydrodynamic coefficients: C_T=1.2, C_R=pi, C_D0=1.4, C_D1=1.0, C_tau=0.075, baseline mu_1=0.2 (literature value; mu_1=0.01 is an alternative tuned setting).")
         _VERIFY_WARNED = True
 
 
@@ -45,9 +45,12 @@ class Coefficients:
         Analysis of transitions between fluttering, tumbling and steady descent of falling cards.
         J. Fluid Mech. 541, 91-104. DOI: 10.1017/S0022112005005847.
         Eqs. (3.1)-(3.9): circulation Eq. 3.7, drag Eq. 3.8, torque Eq. 3.9.
-        Note: Andersen et al. (2005b) eq. (3.9) gives pi * rho_f * a^4 * mu_2 * |omega|*omega.
+        Note: Andersen et al. (2005b) eq. (3.9) gives:
+            tau_nu = pi * rho_f * a^4 * ((U/a)*mu_1 + mu_2 * |omega|) * omega
+        Standard literature baseline is mu_1 = 0.2, mu_2 = 0.2 (e.g. arXiv:2102.10386).
         With a = L/2 and mu_2 = 0.2, this equates to 0.5 * C_tau * rho_f * L^4 * |omega|*omega
-        with C_tau = pi * mu_2 / 8 = 0.0785, which agrees within 4% of strip theory (0.075).
+        with C_tau = pi * mu_2 / 8 = 0.0785 (standard strip theory uses 0.075).
+        mu_1 = 0.01 is an alternative empirically tuned value.
     """
     C_T: float = 1.2
     C_R: float = math.pi
@@ -55,7 +58,7 @@ class Coefficients:
     C_D1: float = 1.0
     C_tau: float = 0.075
     c_lin: float = 0.0
-    mu_1: float = 0.01
+    mu_1: float = 0.2
     eps_V: float = 1.0e-7
 
 
@@ -67,9 +70,11 @@ class NumericsParams:
     atol: float = 1.0e-11
     dt_out: float = 0.001
     H_fall_factor: float = 40.0
-    t_max_factor: float = 3.0
-    t_max_min: float = 30.0
+    t_max_factor: float = 5.0
+    t_max_min: float = 80.0
     seed: int = 42
+    perturbation_rad: float = 0.0
+    tank_depth_m: Optional[float] = 0.38
 
 
 @dataclass(frozen=True)

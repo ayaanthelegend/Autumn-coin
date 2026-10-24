@@ -86,7 +86,11 @@ def simulate_drop(
     if initial_state is not None:
         y0 = list(initial_state)
     else:
-        y0 = [X0, Y0, theta0, u0, v0, omega0]
+        # Controlled symmetry-breaking perturbation to avoid compiler/OS-dependent floating-point roundoff
+        theta_init = theta0
+        if abs(theta0) < 1e-12 and u0 == 0.0 and v0 == 0.0 and omega0 == 0.0 and numerics.perturbation_rad != 0.0:
+            theta_init = numerics.perturbation_rad
+        y0 = [X0, Y0, theta_init, u0, v0, omega0]
 
     h_fall = numerics.H_fall_factor * plate.L
 

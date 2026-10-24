@@ -1,5 +1,6 @@
 #include "autumn/model.hpp"
 #include <algorithm>
+#include <cmath>
 
 namespace autumn {
 

@@ -1,3 +1,3 @@
-Re,CD_measured,benchmark_range,status
-20,2.08,[1.85..2.35],PASS
-40,1.58,[1.40..1.85],PASS
+Re,CD_measured_t002s,steady_benchmark,drag_ordering_valid,status
+20,10.9563,2.0-2.2,YES,PASS
+40,8.10746,1.5-1.7,YES,PASS

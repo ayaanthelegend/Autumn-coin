@@ -20,7 +20,8 @@ def test_lift_coefficient_peak():
     L = 0.024
     speed = 0.5  # m/s, omega = 0 to isolate translational lift
 
-    alphas = np.linspace(-math.pi, math.pi, 361)
+    # Restrict to [0, pi/2] to uniquely isolate the primary positive stall-free lift peak at 45 deg
+    alphas = np.linspace(0.0, math.pi / 2.0, 1801)
     c_l_values = []
 
     for alpha in alphas:
@@ -40,7 +41,7 @@ def test_lift_coefficient_peak():
 
     # Peak must be within [1.18, 1.22] near 45 deg
     assert math.isclose(c_l_max, 1.2, abs_tol=0.01), f"Expected peak near 1.2, got {c_l_max}"
-    assert math.isclose(alpha_peak_deg, 45.0, abs_tol=1.0), f"Expected peak at 45 deg, got {alpha_peak_deg}"
+    assert math.isclose(alpha_peak_deg, 45.0, abs_tol=0.5), f"Expected peak at 45 deg, got {alpha_peak_deg}"
 
 
 def test_equations_of_motion_dimensional_consistency():
@@ -100,3 +101,21 @@ def test_equations_of_motion_dimensional_consistency():
     domega_dt = (munk_moment - tau) / model.I_tot
 
     assert math.isfinite(du_dt) and math.isfinite(dv_dt) and math.isfinite(domega_dt)
+
+
+def test_velocity_scales_froude_and_andersen():
+    r"""Verify relationship between Froude velocity scale U_t (full thickness h) and Andersen scale U_0 (semi-thickness b)."""
+    from autumn.dimensionless import compute_andersen_velocity_scale, compute_froude_velocity_scale
+
+    rho_s = 2700.0
+    rho_f = 998.0
+    g = 9.81
+    h = 0.0018
+    b = h / 2.0
+
+    u_t = compute_froude_velocity_scale(rho_s, rho_f, g, h)
+    u_0 = compute_andersen_velocity_scale(rho_s, rho_f, g, b)
+
+    assert u_t > 0.0 and u_0 > 0.0
+    # U_t = sqrt(2) * U_0
+    assert math.isclose(u_t, math.sqrt(2.0) * u_0, rel_tol=1e-9)

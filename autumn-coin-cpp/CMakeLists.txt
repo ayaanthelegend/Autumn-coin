@@ -6,10 +6,12 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+option(AUTUMN_BUILD_VIZ "Build the GUI visualizer (requires OpenGL/X11 on Linux)" ON)
+
 # Dependencies via FetchContent
 include(FetchContent)
 
-# 1. yaml-cpp
+# 1. yaml-cpp (Required for autumn_core)
 FetchContent_Declare(
     yaml-cpp
     GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
@@ -19,53 +21,58 @@ set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(yaml-cpp)
 
-# 2. raylib
-FetchContent_Declare(
-    raylib
-    GIT_REPOSITORY https://github.com/raysan5/raylib.git
-    GIT_TAG 5.5
-)
-set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(raylib)
-
-# 3. Dear ImGui
-FetchContent_Declare(
-    imgui
-    GIT_REPOSITORY https://github.com/ocornut/imgui.git
-    GIT_TAG v1.91.5
-)
-FetchContent_GetProperties(imgui)
-if(NOT imgui_POPULATED)
-    FetchContent_Populate(imgui)
-    add_library(imgui STATIC
-        ${imgui_SOURCE_DIR}/imgui.cpp
-        ${imgui_SOURCE_DIR}/imgui_draw.cpp
-        ${imgui_SOURCE_DIR}/imgui_tables.cpp
-        ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+# -------------------------------------------------------------
+# Optional GUI Dependencies (raylib + Dear ImGui + ImPlot)
+# -------------------------------------------------------------
+if(AUTUMN_BUILD_VIZ)
+    # 2. raylib
+    FetchContent_Declare(
+        raylib
+        GIT_REPOSITORY https://github.com/raysan5/raylib.git
+        GIT_TAG 5.5
     )
-    target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR})
-    if(MSVC)
-        target_compile_definitions(imgui PUBLIC NOMINMAX _USE_MATH_DEFINES)
+    set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(raylib)
+
+    # 3. Dear ImGui
+    FetchContent_Declare(
+        imgui
+        GIT_REPOSITORY https://github.com/ocornut/imgui.git
+        GIT_TAG v1.91.5
+    )
+    FetchContent_GetProperties(imgui)
+    if(NOT imgui_POPULATED)
+        FetchContent_Populate(imgui)
+        add_library(imgui STATIC
+            ${imgui_SOURCE_DIR}/imgui.cpp
+            ${imgui_SOURCE_DIR}/imgui_draw.cpp
+            ${imgui_SOURCE_DIR}/imgui_tables.cpp
+            ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+        )
+        target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR})
+        if(MSVC)
+            target_compile_definitions(imgui PUBLIC NOMINMAX _USE_MATH_DEFINES)
+        endif()
     endif()
-endif()
 
-# 4. ImPlot
-FetchContent_Declare(
-    implot
-    GIT_REPOSITORY https://github.com/epezent/implot.git
-    GIT_TAG v0.16
-)
-FetchContent_GetProperties(implot)
-if(NOT implot_POPULATED)
-    FetchContent_Populate(implot)
-    add_library(implot STATIC
-        ${implot_SOURCE_DIR}/implot.cpp
-        ${implot_SOURCE_DIR}/implot_items.cpp
+    # 4. ImPlot
+    FetchContent_Declare(
+        implot
+        GIT_REPOSITORY https://github.com/epezent/implot.git
+        GIT_TAG v0.16
     )
-    target_include_directories(implot PUBLIC ${implot_SOURCE_DIR})
-    target_link_libraries(implot PUBLIC imgui)
-    if(MSVC)
-        target_compile_definitions(implot PUBLIC NOMINMAX _USE_MATH_DEFINES)
+    FetchContent_GetProperties(implot)
+    if(NOT implot_POPULATED)
+        FetchContent_Populate(implot)
+        add_library(implot STATIC
+            ${implot_SOURCE_DIR}/implot.cpp
+            ${implot_SOURCE_DIR}/implot_items.cpp
+        )
+        target_include_directories(implot PUBLIC ${implot_SOURCE_DIR})
+        target_link_libraries(implot PUBLIC imgui)
+        if(MSVC)
+            target_compile_definitions(implot PUBLIC NOMINMAX _USE_MATH_DEFINES)
+        endif()
     endif()
 endif()
 
@@ -126,31 +133,33 @@ add_test(NAME autumn_tests COMMAND autumn_tests)
 # -------------------------------------------------------------
 # autumn_viz Executable (raylib + Dear ImGui + ImPlot)
 # -------------------------------------------------------------
-add_executable(autumn_viz
-    src/main.cpp
-    src/render.cpp
-    src/plots.cpp
-    src/ui.cpp
-    third_party/rlImGui/rlImGui.cpp
-)
+if(AUTUMN_BUILD_VIZ)
+    add_executable(autumn_viz
+        src/main.cpp
+        src/render.cpp
+        src/plots.cpp
+        src/ui.cpp
+        third_party/rlImGui/rlImGui.cpp
+    )
 
-target_include_directories(autumn_viz PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/third_party
-    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/rlImGui
-)
+    target_include_directories(autumn_viz PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/third_party
+        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/rlImGui
+    )
 
-target_compile_definitions(autumn_viz PRIVATE
-    NO_FONT_AWESOME
-)
+    target_compile_definitions(autumn_viz PRIVATE
+        NO_FONT_AWESOME
+    )
 
-target_link_libraries(autumn_viz PRIVATE
-    autumn_core
-    raylib
-    imgui
-    implot
-)
+    target_link_libraries(autumn_viz PRIVATE
+        autumn_core
+        raylib
+        imgui
+        implot
+    )
 
-if(MSVC)
-    target_compile_definitions(autumn_viz PRIVATE NOMINMAX _USE_MATH_DEFINES _CRT_SECURE_NO_WARNINGS)
+    if(MSVC)
+        target_compile_definitions(autumn_viz PRIVATE NOMINMAX _USE_MATH_DEFINES _CRT_SECURE_NO_WARNINGS)
+    endif()
 endif()
