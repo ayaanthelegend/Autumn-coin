@@ -26,7 +26,7 @@ def generate_summary():
     df_t4 = pd.read_csv(VAL_DIR / "test4_dam_break.csv") if (VAL_DIR / "test4_dam_break.csv").exists() else None
     df_t5 = pd.read_csv(VAL_DIR / "test5_cylinder_drag.csv") if (VAL_DIR / "test5_cylinder_drag.csv").exists() else None
     df_t6 = pd.read_csv(VAL_DIR / "test6_low_Istar_stability.csv") if (VAL_DIR / "test6_low_Istar_stability.csv").exists() else None
-    df_t7 = pd.read_csv(VAL_DIR / "test7_resolution_study.csv") if (VAL_DIR / "test7_resolution_study.csv").exists() else None
+    df_t7 = pd.read_csv(VAL_DIR / "test7_resolution_study.csv", keep_default_na=False) if (VAL_DIR / "test7_resolution_study.csv").exists() else None
 
     # Load comparison results
     df_matched = pd.read_csv(COMP_DIR / "matched_cases_sph_vs_ode.csv") if (COMP_DIR / "matched_cases_sph_vs_ode.csv").exists() else None
@@ -54,7 +54,18 @@ def generate_summary():
     content.append("| **Test 4** | 2D Dam-Break Surge Front Evolution | Martin & Moyce (1952) benchmark | $X_{\\mathrm{front}}/W_0 = 3.00$ at $\\tau \\approx 2.0$ | **PASS** |\n")
     content.append("| **Test 5** | Circular Cylinder Drag at $\\mathrm{Re} = 20$ & $40$ | $C_D(20) \\approx 2.0\\text{--}2.2$, $C_D(40) \\approx 1.5\\text{--}1.7$ | $C_D(20) = 2.08$, $C_D(40) = 1.58$ | **PASS** |\n")
     content.append("| **Test 6** | Low-$I^*$ Added-Mass Stability ($I^* = 0.05$) | 2000 steps without numerical blow-up | Completed 2000 steps ($v_y, \\omega$ bounded) | **PASS** |\n")
-    content.append("| **Test 7** | Spatial Resolution Study ($h_{\\mathrm{sml}}/\\Delta x = 1.3$) | Convergence across $N_h \\in [0.9, 1.5]$ | $U_{\\mathrm{mean}} = 0.123$ m/s across grids | **PASS** |\n\n")
+
+    if df_t7 is not None and len(df_t7) >= 3:
+        fine_row = df_t7.iloc[2]
+        eps_23 = fine_row.get("rel_change_pct", 12.6)
+        order_str = fine_row.get("observed_order_p", "not computed")
+        t7_status = fine_row.get("status", "FAIL")
+        content.append(f"| **Test 7** | Spatial Resolution Study ($h_{{\\mathrm{{sml}}}}/\\Delta x = 1.3$) | Relative change $\\le 5.0\\%$ (Med to Fine) | $\\epsilon_{{23}} = {eps_23:.1f}\\%$, order: {order_str} | **{t7_status}** |\n\n")
+        content.append("### Test 7 Multi-Grid Resolution Data\n\n")
+        content.append(df_to_md(df_t7))
+        content.append("\n\n")
+    else:
+        content.append("| **Test 7** | Spatial Resolution Study ($h_{\\mathrm{sml}}/\\Delta x = 1.3$) | Relative change $\\le 5.0\\%$ (Med to Fine) | Non-monotonic convergence, order: not computed | **FAIL** |\n\n")
 
     content.append("## 3. Matched SPH-FSI vs Step 1 ODE Experiments\n\n")
     if df_matched is not None:

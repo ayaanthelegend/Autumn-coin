@@ -18,10 +18,13 @@ DROPS_DIR = ROOT_DIR / "results_sph" / "drops"
 COMPARISON_DIR = ROOT_DIR / "results_sph" / "comparison"
 
 
-def compute_spectral_frequency(t: np.ndarray, signal: np.ndarray) -> float:
-    """Compute dominant oscillation frequency via FFT after detrending."""
+def compute_spectral_frequency(t: np.ndarray, signal: np.ndarray) -> tuple[float | None, str]:
+    """Compute dominant oscillation frequency via FFT after detrending.
+    Requires at least 3 full cycles in the signal window (T_window >= 3.0 / f_peak);
+    otherwise returns (None, 'not resolvable').
+    """
     if len(t) < 30:
-        return 0.0
+        return None, "not resolvable"
     dt = float(np.mean(np.diff(t)))
     sig_detrend = signal - np.mean(signal)
     fft_vals = np.abs(np.fft.rfft(sig_detrend))
@@ -29,11 +32,18 @@ def compute_spectral_frequency(t: np.ndarray, signal: np.ndarray) -> float:
     # Mask out DC and near-zero drift frequencies (< 0.5 Hz)
     valid_idx = freqs >= 0.5
     if not np.any(valid_idx):
-        return 0.0
+        return None, "not resolvable"
     valid_freqs = freqs[valid_idx]
     valid_fft = fft_vals[valid_idx]
     peak_idx = np.argmax(valid_fft)
-    return float(valid_freqs[peak_idx])
+    f_peak = float(valid_freqs[peak_idx])
+
+    # Duration of signal window
+    t_win = float(t[-1] - t[0])
+    # Minimum 3 cycles required: T_win >= 3.0 * (1 / f_peak)
+    if f_peak <= 0.0 or t_win < (3.0 / f_peak):
+        return None, "not resolvable"
+    return f_peak, f"{f_peak:.2f}"
 
 
 def run_ode_matched(case: dict) -> pd.DataFrame:
@@ -116,9 +126,9 @@ def compare_sph_and_ode():
         df_sph = pd.read_csv(sph_csv)
         dfs_sph[c["name"]] = df_sph
 
-        # Developed regime: discard transient (first 25%)
-        post_ode = df_ode["t"] >= 0.25 * c["t_end"]
-        post_sph = df_sph["t"] >= 0.25 * c["t_end"]
+        # Developed regime: discard transient (first 25%), compare over matched window [0.25 * t_end, t_end]
+        post_ode = (df_ode["t"] >= 0.25 * c["t_end"]) & (df_ode["t"] <= c["t_end"])
+        post_sph = (df_sph["t"] >= 0.25 * c["t_end"]) & (df_sph["t"] <= c["t_end"])
 
         # Descent speeds
         u_mean_ode = float(np.mean(np.abs(df_ode.loc[post_ode, "vy"])))
@@ -129,9 +139,12 @@ def compare_sph_and_ode():
         th_ode_deg = np.degrees(df_ode.loc[post_ode, "theta"].values)
         th_sph_deg = np.degrees(df_sph.loc[post_sph, "theta"].values)
 
-        f_ode = compute_spectral_frequency(df_ode.loc[post_ode, "t"].values, th_ode_deg)
-        f_sph = compute_spectral_frequency(df_sph.loc[post_sph, "t"].values, th_sph_deg)
-        diff_f_pct = (abs(f_sph - f_ode) / f_ode * 100.0) if f_ode > 0.1 else 0.0
+        f_val_ode, f_str_ode = compute_spectral_frequency(df_ode.loc[post_ode, "t"].values, th_ode_deg)
+        f_val_sph, f_str_sph = compute_spectral_frequency(df_sph.loc[post_sph, "t"].values, th_sph_deg)
+        if f_val_ode is not None and f_val_sph is not None and f_val_ode > 0.1:
+            diff_f_pct = f"{abs(f_val_sph - f_val_ode) / f_val_ode * 100.0:.2f}"
+        else:
+            diff_f_pct = "—"
 
         th_amp_ode = float(0.5 * (np.max(th_ode_deg) - np.min(th_ode_deg)))
         th_amp_sph = float(0.5 * (np.max(th_sph_deg) - np.min(th_sph_deg)))
@@ -157,9 +170,9 @@ def compare_sph_and_ode():
             "U_mean_ODE_m_s": round(u_mean_ode, 4),
             "U_mean_SPH_m_s": round(u_mean_sph, 4),
             "diff_U_pct": round(diff_u_pct, 2),
-            "freq_ODE_Hz": round(f_ode, 2),
-            "freq_SPH_Hz": round(f_sph, 2),
-            "diff_freq_pct": round(diff_f_pct, 2),
+            "freq_ODE_Hz": f_str_ode,
+            "freq_SPH_Hz": f_str_sph,
+            "diff_freq_pct": diff_f_pct,
             "theta_amp_ODE_deg": round(th_amp_ode, 1),
             "theta_amp_SPH_deg": round(th_amp_sph, 1),
             "diff_theta_amp_pct": round(diff_th_pct, 2)

@@ -85,7 +85,8 @@ def plot_validation_ladder():
     if t5_csv.exists():
         df5 = pd.read_csv(t5_csv)
         re_vals = df5["Re"]
-        cd_meas = df5["CD_measured"]
+        cd_col = "CD_measured_t002s" if "CD_measured_t002s" in df5.columns else ("CD_measured" if "CD_measured" in df5.columns else df5.columns[1])
+        cd_meas = df5[cd_col]
         bench_low = [1.85, 1.40]
         bench_high = [2.35, 1.85]
         ax.bar(re_vals - 1.5, cd_meas, width=3.0, color="#3949AB", label="2D SPH Measured $C_D$")

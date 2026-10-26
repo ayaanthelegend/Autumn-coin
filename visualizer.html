@@ -167,6 +167,7 @@
     .badge-flutter { background: #DBEAFE; color: #1E40AF; border: 1px solid #93C5FD; }
     .badge-tumble { background: #FEE2E2; color: #991B1B; border: 1px solid #FCA5A5; }
     .badge-mixed { background: #FEF3C7; color: #92400E; border: 1px solid #FCD34D; }
+    .badge-undetermined { background: #F1F5F9; color: #475569; border: 1px solid #94A3B8; }
     .badge-analyzing { background: #F1F5F9; color: #475569; border: 1px solid #CBD5E1; }
     .telemetry-grid {
       display: grid;
@@ -507,6 +508,7 @@
           <div class="legend-item" id="legVort" onclick="toggleVortices()" title="Click to toggle Vortex Rings">
             <div class="legend-swatch legend-vort"></div> Vortex Rings
           </div>
+          <div style="font-size: 10px; color: #64748B; margin-top: 4px; padding-left: 2px; width: 100%;">Force arrows: sqrt-scaled (clamped &le; 120 px)</div>
         </div>
       </div>
 
@@ -568,7 +570,8 @@
 
         <!-- Physical Info Card -->
         <div class="info-card" id="coinInfoCard">
-          <div><strong>Solid Density &rho;<sub>s</sub>:</strong> <span id="infoRhoS">2700.0 kg/m&sup3;</span> (&rho;<sub>s</sub>/&rho;<sub>f</sub> = <span id="infoRhoRatio">2.71</span>)</div>
+          <div id="infoNoteRef" style="display: none; background: #F0F9FF; color: #0369A1; border: 1px solid #BAE6FD; padding: 4px 8px; border-radius: 4px; font-weight: 600; font-size: 11px; margin-bottom: 6px;">Dimensionless benchmark plate (not a physical material)</div>
+          <div id="rowRhoS"><strong>Solid Density &rho;<sub>s</sub>:</strong> <span id="infoRhoS">2700.0 kg/m&sup3;</span> (&rho;<sub>s</sub>/&rho;<sub>f</sub> = <span id="infoRhoRatio">2.71</span>)</div>
           <div><strong>Aspect Ratio h/L:</strong> <span id="infoAspect">0.0625</span> | <strong>I*:</strong> <span id="infoIStar">0.169</span></div>
           <div><strong>Velocity Scale U<sub>t</sub>:</strong> <span id="infoUt">0.158 m/s</span> (U<sub>0</sub> = <span id="infoU0">0.112 m/s</span>)</div>
           <div style="color: #64748B; font-size: 10px; margin-top: 2px;">Re<sub>in</sub> is display-only: the ODE model has no fluid viscosity.</div>
@@ -590,7 +593,7 @@
         </div>
 
         <div id="symmWarning" class="warning-box">
-          ⚠️ Symmetrically exact drop (|sin &theta;<sub>0</sub>| &lt; 10<sup>-6</sup>) with zero perturbation: trajectory direction is determined purely by floating-point roundoff.
+          ⚠️ Symmetric release (&theta;<sub>0</sub> &in; {0&deg;, 90&deg;, 180&deg;, 270&deg;} &plusmn; 10<sup>-6</sup>) with zero perturbation: unstable saddle point where trajectory direction is determined purely by floating-point roundoff.
         </div>
 
         <div style="margin: 8px 0; font-size: 12px; display: flex; gap: 14px; align-items: center;">
@@ -716,7 +719,10 @@
     <div class="modal-content">
       <div class="modal-header">
         <h3 style="font-size: 14px; color: #0E2A54;">📊 Multi-Coin Trajectory Comparison (First 60 a/U<sub>0</sub>, classified at 80 L)</h3>
-        <div style="display: flex; gap: 8px;">
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <label style="font-size: 12px; display: flex; align-items: center; gap: 5px; font-weight: 600; color: #1E293B; cursor: pointer;">
+            <input type="checkbox" id="chkCommonScale" checked onchange="renderCompareModal()"> Common Scale
+          </label>
           <button onclick="saveComparePNG()" style="background: #0E7490; color: #FFFFFF; border-color: #085166;">Save Comparison PNG</button>
           <button onclick="closeCompareModal()">Close</button>
         </div>
@@ -905,10 +911,14 @@
       }
     }
 
-    function classifyRegime(times, Ys, thetas, omegas, H_fall, customParams = null) {
+    function classifyRegime(times, Ys, thetas, omegas, H_fall, customParams = null, tau_0 = null) {
       const p = Object.assign({
         transient_fraction: 0.20,
         transient_t_min: 1.0,
+        transient_time_units: 20.0,
+        min_window_time_units: 30.0,
+        min_cycles: 2.0,
+        stationarity_tolerance: 0.15,
         theta_std_steady_deg: 1.0,
         theta_ptp_steady_deg: 2.0,
         theta_ptp_flutter_max_deg: 300.0,
@@ -920,7 +930,11 @@
       if (!times || times.length < 2) return "fluttering";
 
       const t_end = times[times.length - 1];
-      const t_transient = Math.max(p.transient_fraction * t_end, p.transient_t_min);
+      const effective_tau0 = (tau_0 !== null && tau_0 > 0.0) ? tau_0 : 0.05;
+      const transient_time_thresh = (tau_0 !== null && tau_0 > 0.0)
+        ? (p.transient_time_units || 20.0) * effective_tau0
+        : p.transient_t_min;
+      const t_transient = Math.max(p.transient_fraction * t_end, transient_time_thresh);
       const y0 = Ys[0];
       const transient_depth = p.transient_fraction * H_fall;
 
@@ -943,6 +957,7 @@
 
       const th_crop = valid_indices.map(i => thetas[i]);
       const om_crop = valid_indices.map(i => omegas[i]);
+      const t_crop = valid_indices.map(i => times[i]);
 
       let min_th = th_crop[0], max_th = th_crop[0];
       let sum_th = 0;
@@ -961,6 +976,7 @@
 
       const delta_th_net = th_crop[th_crop.length - 1] - th_crop[0];
       const net_rotation = Math.abs(delta_th_net);
+      const n_flips = Math.floor(net_rotation / (2.0 * Math.PI));
 
       let max_backward_excursion = 0.0;
       if (delta_th_net >= 0) {
@@ -992,19 +1008,82 @@
       const ptp_deg = ptp_theta * 180 / Math.PI;
       const back_deg = max_backward_excursion * 180 / Math.PI;
 
-      // 1. Steady
-      if ((std_deg < p.theta_std_steady_deg || ptp_deg < p.theta_ptp_steady_deg) && ptp_deg < 360.0) {
-        return "steady";
+      const dt_window = (t_crop.length > 1) ? (t_crop[t_crop.length - 1] - t_crop[0]) : 0.0;
+      const window_time_units = dt_window / effective_tau0;
+
+      // Count oscillation cycles
+      let zc = 0;
+      for (let i = 0; i < om_crop.length - 1; ++i) {
+        if ((om_crop[i] * om_crop[i + 1]) < 0) zc++;
       }
-      // 2. Tumbling
+      const net_turns = net_rotation / (2.0 * Math.PI);
+      const n_cycles = Math.max(net_turns, zc / 2.0);
+
+      // 1. Steady check: if post-transient std < 1 deg (or ptp < 2 deg) and no flips
+      if ((std_deg < p.theta_std_steady_deg || ptp_deg < p.theta_ptp_steady_deg) && ptp_deg < 360.0) {
+        const n3 = Math.floor(th_crop.length / 3);
+        if (n3 >= 2) {
+          const th2 = th_crop.slice(n3, 2 * n3);
+          const th3 = th_crop.slice(2 * n3);
+          const ptp2_deg = (Math.max(...th2) - Math.min(...th2)) * 180 / Math.PI;
+          const ptp3_deg = (Math.max(...th3) - Math.min(...th3)) * 180 / Math.PI;
+          if (ptp2_deg < p.theta_ptp_steady_deg && ptp3_deg < p.theta_ptp_steady_deg) {
+            return "steady";
+          }
+        } else {
+          return "steady";
+        }
+      }
+
+      // 2. Horizon duration check: require at least min_window_time_units
+      const min_window_tu = p.min_window_time_units ?? 30.0;
+      if (window_time_units < min_window_tu && times.length > 5) {
+        if (typeof globalThis !== 'undefined') globalThis.__currentRegimeReason = "window_too_short";
+        return "undetermined";
+      }
+
+      // 3. Minimum oscillation cycles check
+      const min_cycles = p.min_cycles ?? 2.0;
+      if (n_cycles < min_cycles && times.length > 5) {
+        if (typeof globalThis !== 'undefined') globalThis.__currentRegimeReason = "insufficient_cycles";
+        return "undetermined";
+      }
+
+      // 4. Stationarity check: middle third vs last third amplitude within stationarity_tolerance (15%)
+      const n3 = Math.floor(th_crop.length / 3);
+      if (n3 >= 2) {
+        const th2 = th_crop.slice(n3, 2 * n3);
+        const th3 = th_crop.slice(2 * n3);
+        const om2 = om_crop.slice(n3, 2 * n3);
+        const om3 = om_crop.slice(2 * n3);
+        let amp2 = 0, amp3 = 0;
+        if (ptp_deg < p.theta_ptp_flutter_max_deg && net_rotation < 2.0 * Math.PI) {
+          amp2 = Math.max(...th2) - Math.min(...th2);
+          amp3 = Math.max(...th3) - Math.min(...th3);
+        } else {
+          amp2 = Math.max(...om2) - Math.min(...om2);
+          amp3 = Math.max(...om3) - Math.min(...om3);
+        }
+        const stationarity_err = Math.abs(amp3 - amp2) / Math.max(amp2, 1e-6);
+        const stationarity_tol = p.stationarity_tolerance ?? 0.15;
+        if (stationarity_err > stationarity_tol) {
+          if (typeof globalThis !== 'undefined') globalThis.__currentRegimeReason = "non_stationary_amplitude";
+          return "undetermined";
+        }
+      }
+
+      // 5. Tumbling: at least min_flips_tumble full rotations with predominant unidirectional spin
       if ((net_rotation >= p.min_flips_tumble * 2.0 * Math.PI) && (back_deg < p.max_reversal_tumble_deg || spin_ratio >= p.min_spin_ratio_tumble)) {
         return "tumbling";
       }
-      // 3. Fluttering
+
+      // 6. Fluttering: bounded periodic oscillations below separatrix threshold (ptp < theta_ptp_flutter_max_deg)
+      // with no full rotations and low spin ratio (oscillating back and forth about zero)
       if ((ptp_deg < p.theta_ptp_flutter_max_deg) && (net_rotation < 2.0 * Math.PI) && (spin_ratio < p.min_spin_ratio_tumble)) {
         return "fluttering";
       }
-      // 4. Mixed
+
+      // 7. Mixed
       return "mixed";
     }
 
@@ -1181,6 +1260,7 @@
 
     function updateInfoCard() {
       const p = activeCoin;
+      const isRef = !!p.is_reference;
       const rho_s = p.rho_s;
       const rho_ratio = rho_s / COEFFS.rho_f;
       const aspect = p.h / p.L;
@@ -1188,22 +1268,32 @@
       const u_t = compute_U_t(rho_s, COEFFS.rho_f, COEFFS.g, p.h);
       const u_0 = compute_U_0(rho_s, COEFFS.rho_f, COEFFS.g, p.h * 0.5);
 
-      document.getElementById("infoRhoS").innerText = rho_s.toFixed(1) + " kg/m³";
-      document.getElementById("infoRhoRatio").innerText = rho_ratio.toFixed(2);
+      const noteRefEl = document.getElementById("infoNoteRef");
+      if (isRef) {
+        if (noteRefEl) noteRefEl.style.display = "block";
+        document.getElementById("infoRhoS").innerText = "n/a";
+        document.getElementById("infoRhoRatio").innerText = "n/a";
+        document.getElementById("valReIn").innerText = "n/a";
+      } else {
+        if (noteRefEl) noteRefEl.style.display = "none";
+        document.getElementById("infoRhoS").innerText = rho_s.toFixed(1) + " kg/m³";
+        document.getElementById("infoRhoRatio").innerText = rho_ratio.toFixed(2);
+        const re_in = (COEFFS.rho_f * u_t * p.L) / mu_visc;
+        document.getElementById("valReIn").innerText = Math.round(re_in);
+      }
+
       document.getElementById("infoAspect").innerText = aspect.toFixed(4);
       document.getElementById("infoIStar").innerText = i_star.toFixed(3);
       document.getElementById("infoUt").innerText = u_t.toFixed(3) + " m/s";
       document.getElementById("infoU0").innerText = u_0.toFixed(3) + " m/s";
-
-      const re_in = (COEFFS.rho_f * u_t * p.L) / mu_visc;
-      document.getElementById("valReIn").innerText = Math.round(re_in);
       document.getElementById("valIStar").innerText = i_star.toFixed(3);
     }
 
     function checkSymmetryWarning() {
       const rad = theta0_deg * Math.PI / 180.0;
       const warnEl = document.getElementById("symmWarning");
-      if (Math.abs(Math.sin(rad)) < 1e-6 && Math.abs(perturb_deg) < 1e-6 && startMode === "rest") {
+      const isSymmetric = (Math.abs(Math.sin(rad)) < 1e-6 || Math.abs(Math.cos(rad)) < 1e-6);
+      if (isSymmetric && Math.abs(perturb_deg) < 1e-6 && startMode === "rest") {
         warnEl.style.display = "block";
       } else {
         warnEl.style.display = "none";
@@ -1640,8 +1730,16 @@
     }
 
     function drawArrow(x0, y0, vx, vy, scale, col) {
-      const x1 = x0 + vx * scale;
-      const y1 = y0 - vy * scale;
+      let dx = vx * scale;
+      let dy = -vy * scale;
+      const len = Math.hypot(dx, dy);
+      if (len > 120.0) {
+        const fac = 120.0 / len;
+        dx *= fac;
+        dy *= fac;
+      }
+      const x1 = x0 + dx;
+      const y1 = y0 + dy;
       ctx.strokeStyle = col;
       ctx.fillStyle = col;
       ctx.lineWidth = 2.0;
@@ -1650,14 +1748,43 @@
       ctx.lineTo(x1, y1);
       ctx.stroke();
 
-      const len = Math.hypot(x1 - x0, y1 - y0);
-      if (len > 5) {
-        const ux = (x1 - x0) / len;
-        const uy = (y1 - y0) / len;
+      const finalLen = Math.hypot(dx, dy);
+      if (finalLen > 5) {
+        const ux = dx / finalLen;
+        const uy = dy / finalLen;
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.lineTo(x1 - ux * 7 + uy * 4, y1 - uy * 7 - ux * 4);
         ctx.lineTo(x1 - ux * 7 - uy * 4, y1 - uy * 7 + ux * 4);
+        ctx.fill();
+      }
+    }
+
+    function drawForceArrow(x0, y0, fx, fy, col) {
+      const mag = Math.hypot(fx, fy);
+      if (mag < 1e-7) return;
+      // Sqrt scaling with max display clamp of 120 px
+      const dispLen = Math.min(120.0, Math.sqrt(mag) * 350.0);
+      const ux = fx / mag;
+      const uy = fy / mag;
+      const x1 = x0 + ux * dispLen;
+      const y1 = y0 - uy * dispLen;
+
+      ctx.strokeStyle = col;
+      ctx.fillStyle = col;
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.moveTo(x0, y0);
+      ctx.lineTo(x1, y1);
+      ctx.stroke();
+
+      if (dispLen > 5) {
+        const ax = ux;
+        const ay = -uy;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x1 - ax * 7 - ay * 4, y1 - ay * 7 + ax * 4);
+        ctx.lineTo(x1 - ax * 7 + ay * 4, y1 - ay * 7 - ax * 4);
         ctx.fill();
       }
     }
@@ -1810,8 +1937,11 @@
             drawArrow(coinPt.x, coinPt.y, lab_vx, lab_vy, 140.0, "#06B6D4");
           }
           if (showForces) {
-            drawArrow(coinPt.x, coinPt.y, odeSim.FLx, odeSim.FLy, 380.0, "#2563EB");
-            drawArrow(coinPt.x, coinPt.y, odeSim.FDx, odeSim.FDy, 380.0, "#DC2626");
+            drawForceArrow(coinPt.x, coinPt.y, odeSim.FLx, odeSim.FLy, "#2563EB");
+            drawForceArrow(coinPt.x, coinPt.y, odeSim.FDx, odeSim.FDy, "#DC2626");
+            ctx.fillStyle = "#64748B";
+            ctx.font = "10px sans-serif";
+            ctx.fillText("Force vectors: sqrt-scaled (clamped ≤ 120 px)", 14, canvas.height - 12);
           }
           if (showChord) {
             drawArrow(coinPt.x, coinPt.y, cos_th * 0.02, sin_th * 0.02, 1200.0, "#475569");
@@ -1886,7 +2016,7 @@
           else omegas.push((thetas[i] - thetas[i - 1]) / Math.max(times[i] - times[i - 1], 1e-4));
         }
 
-        const detected = classifyRegime(times, Ys, thetas, omegas, odeSim.H_fall);
+        const detected = classifyRegime(times, Ys, thetas, omegas, odeSim.H_fall, null, odeSim.t_unit);
         const isFinal = odeSim.reached_depth || (odeSim.time >= 60.0);
         const prefix = isFinal ? "" : "PROVISIONAL: ";
 
@@ -1896,11 +2026,18 @@
           badge.className = "regime-badge badge-flutter";
         } else if (detected === "tumbling") {
           badge.className = "regime-badge badge-tumble";
+        } else if (detected === "undetermined") {
+          badge.className = "regime-badge badge-undetermined";
         } else {
           badge.className = "regime-badge badge-mixed";
         }
         badge.innerText = (prefix + detected).toUpperCase();
+        window.__currentDetectedRegime = detected;
       }
+    }
+
+    function getActiveRegime() {
+      return window.__currentDetectedRegime || (document.getElementById("regimeBadge")?.innerText || "");
     }
 
     // -------------------------------------------------------------------------
@@ -2108,12 +2245,17 @@
     }
 
     // -------------------------------------------------------------------------
-    // Headless Multi-Coin Comparison Modal (Task 6 & Amendments 2, 7)
+    // Headless Multi-Coin Comparison Modal (Task 5, Ticks, Common Scale & Horizon)
     // -------------------------------------------------------------------------
+    let compareCache = null;
+
     function openCompareModal() {
       const modal = document.getElementById("modalCompare");
       modal.style.display = "flex";
+      renderCompareModal();
+    }
 
+    function renderCompareModal() {
       const cCanvas = document.getElementById("compareCanvas");
       const cCtx = cCanvas.getContext("2d");
       const W = cCanvas.width;
@@ -2122,80 +2264,192 @@
       cCtx.fillStyle = "#FFFFFF";
       cCtx.fillRect(0, 0, W, H);
 
-      // Run every enabled catalog coin
       const enabledCoins = COINS.filter(c => c.enabled && !c.is_reference);
       const cols = 3;
       const rows = 3;
       const cellW = W / cols;
       const cellH = H / rows;
 
-      enabledCoins.forEach((coin, idx) => {
+      // Simulate all coins if not cached
+      if (!compareCache || compareCache.length !== enabledCoins.length) {
+        compareCache = enabledCoins.map(coin => {
+          const sim = new ODESimulator(coin, 5.0 * Math.PI / 180.0, 0.0, 0.0, 0.0, 0.20);
+          const H_fall = 80.0 * coin.L;
+          const dt = 0.001;
+          const min_horizon = 80.0 * sim.t_unit;
+          const times = [], Ys = [], thetas = [], omegas = [], Xs = [];
+
+          while ((sim.Y > -H_fall || sim.time < min_horizon) && sim.time < 50.0) {
+            sim.step(dt, null);
+            times.push(sim.time);
+            Xs.push(sim.X);
+            Ys.push(sim.Y);
+            thetas.push(sim.theta);
+            omegas.push(sim.omega);
+          }
+
+          const regime = classifyRegime(times, Ys, thetas, omegas, H_fall, null, sim.t_unit);
+          const t_max_draw = 60.0 * sim.t_unit;
+
+          const normX = Xs.map(x => x / coin.L);
+          const normY = Ys.map(y => y / coin.L);
+          const drawIndices = times.map((t, i) => t <= t_max_draw ? i : -1).filter(i => i >= 0);
+          const cutoffIdx = drawIndices.length > 0 ? drawIndices[drawIndices.length - 1] : 0;
+
+          return {
+            coin,
+            sim,
+            regime,
+            normX,
+            normY,
+            cutoffIdx
+          };
+        });
+      }
+
+      const isCommon = document.getElementById("chkCommonScale") ? document.getElementById("chkCommonScale").checked : true;
+
+      // Calculate global bounding box across the 60 tau_0 window
+      let gMinX = -5, gMaxX = 5, gMinY = -35, gMaxY = 1;
+      for (const item of compareCache) {
+        const xs = item.normX.slice(0, item.cutoffIdx + 1);
+        const ys = item.normY.slice(0, item.cutoffIdx + 1);
+        if (xs.length > 0) {
+          gMinX = Math.min(gMinX, ...xs);
+          gMaxX = Math.max(gMaxX, ...xs);
+          gMinY = Math.min(gMinY, ...ys);
+          gMaxY = Math.max(gMaxY, ...ys);
+        }
+      }
+      gMinX = Math.floor(gMinX - 1);
+      gMaxX = Math.ceil(gMaxX + 1);
+      gMinY = Math.floor(gMinY - 2);
+      gMaxY = Math.ceil(gMaxY + 1);
+
+      compareCache.forEach((item, idx) => {
         const cRow = Math.floor(idx / cols);
         const cCol = idx % cols;
         const ox = cCol * cellW;
         const oy = cRow * cellH;
-
-        // Simulate headless to 80 L depth
-        const sim = new ODESimulator(coin, 5.0 * Math.PI / 180.0, 0.0, 0.0, 0.0, 0.20);
-        const H_fall = 80.0 * coin.L;
-        const dt = 0.001;
-        const times = [], Ys = [], thetas = [], omegas = [], Xs = [];
-
-        while (sim.Y > -H_fall && sim.time < 50.0) {
-          sim.step(dt, null);
-          times.push(sim.time);
-          Xs.push(sim.X);
-          Ys.push(sim.Y);
-          thetas.push(sim.theta);
-          omegas.push(sim.omega);
-        }
-
-        // Classify from full 80 L run
-        const regime = classifyRegime(times, Ys, thetas, omegas, H_fall);
-
-        // Filter to first 60 time units (a / U_0) for drawing
-        const t_max_draw = 60.0 * sim.t_unit;
-        const drawIndices = times.map((t, i) => t <= t_max_draw ? i : -1).filter(i => i >= 0);
-
-        // Normalize coordinates (x / L, y / L)
-        const normX = drawIndices.map(i => Xs[i] / coin.L);
-        const normY = drawIndices.map(i => Ys[i] / coin.L);
 
         // Draw panel background and border
         cCtx.strokeStyle = "#CBD5E1";
         cCtx.lineWidth = 1.0;
         cCtx.strokeRect(ox + 4, oy + 4, cellW - 8, cellH - 8);
 
-        // Auto bounds for this panel
-        let minX = -10, maxX = 10, minY = -40, maxY = 0;
-        if (normX.length > 0) {
-          minX = Math.min(...normX, -5);
-          maxX = Math.max(...normX, 5);
-          minY = Math.min(...normY, -10);
+        // Panel bounds
+        let minX = gMinX, maxX = gMaxX, minY = gMinY, maxY = gMaxY;
+        if (!isCommon) {
+          const xs = item.normX.slice(0, item.cutoffIdx + 1);
+          const ys = item.normY.slice(0, item.cutoffIdx + 1);
+          minX = Math.min(...xs, -3);
+          maxX = Math.max(...xs, 3);
+          minY = Math.min(...ys, -10);
+          maxY = Math.max(...ys, 0);
+          minX = Math.floor(minX - 1);
+          maxX = Math.ceil(maxX + 1);
+          minY = Math.floor(minY - 2);
+          maxY = Math.ceil(maxY + 1);
         }
-        const spanX = Math.max(maxX - minX, 10);
+
+        const spanX = Math.max(maxX - minX, 6);
         const spanY = Math.max(maxY - minY, 10);
+        const plotLeft = ox + 28;
+        const plotTop = oy + 24;
+        const plotW = cellW - 36;
+        const plotH = cellH - 38;
 
         function pToScreen(x, y) {
-          const px = ox + 10 + ((x - minX) / spanX) * (cellW - 20);
-          const py = oy + 26 + ((maxY - y) / spanY) * (cellH - 36);
+          const px = plotLeft + ((x - minX) / spanX) * plotW;
+          const py = plotTop + ((maxY - y) / spanY) * plotH;
           return { x: px, y: py };
         }
 
-        // Draw trajectory
-        if (normX.length >= 2) {
+        // Draw grid lines & axis ticks
+        cCtx.strokeStyle = "#F1F5F9";
+        cCtx.lineWidth = 1.0;
+        cCtx.fillStyle = "#94A3B8";
+        cCtx.font = "8px sans-serif";
+
+        // Vertical axis (Y/L) ticks
+        const yStep = spanY > 30 ? 10 : 5;
+        const startYTick = Math.ceil(minY / yStep) * yStep;
+        for (let yt = startYTick; yt <= maxY; yt += yStep) {
+          const pt = pToScreen(minX, yt);
+          cCtx.beginPath();
+          cCtx.moveTo(plotLeft, pt.y);
+          cCtx.lineTo(plotLeft + plotW, pt.y);
+          cCtx.stroke();
+
+          cCtx.fillStyle = "#64748B";
+          cCtx.fillText(yt.toString(), ox + 6, pt.y + 3);
+        }
+
+        // Horizontal axis (X/L) ticks
+        const xStep = spanX > 20 ? 10 : (spanX > 8 ? 5 : 2);
+        const startXTick = Math.ceil(minX / xStep) * xStep;
+        for (let xt = startXTick; xt <= maxX; xt += xStep) {
+          const pt = pToScreen(xt, minY);
+          cCtx.beginPath();
+          cCtx.moveTo(pt.x, plotTop);
+          cCtx.lineTo(pt.x, plotTop + plotH);
+          cCtx.stroke();
+
+          cCtx.fillStyle = "#64748B";
+          cCtx.fillText(xt.toString(), pt.x - 4, oy + cellH - 6);
+        }
+
+        // Axis labels
+        cCtx.fillStyle = "#475569";
+        cCtx.font = "bold 8px sans-serif";
+        cCtx.fillText("y/L", ox + 8, plotTop + 10);
+        cCtx.fillText("x/L", plotLeft + plotW - 14, oy + cellH - 6);
+
+        // Draw solid trajectory for first 60 tau_0
+        if (item.normX.length >= 2) {
           cCtx.strokeStyle = "#DC2626";
           cCtx.lineWidth = 1.8;
+          cCtx.setLineDash([]);
           cCtx.beginPath();
-          for (let i = 0; i < normX.length; ++i) {
-            const pt = pToScreen(normX[i], normY[i]);
+          for (let i = 0; i <= item.cutoffIdx; ++i) {
+            const pt = pToScreen(item.normX[i], item.normY[i]);
             if (i === 0) cCtx.moveTo(pt.x, pt.y);
             else cCtx.lineTo(pt.x, pt.y);
           }
           cCtx.stroke();
+
+          // Draw dashed trajectory from 60 tau_0 to simulation horizon
+          if (item.normX.length > item.cutoffIdx + 1) {
+            cCtx.strokeStyle = "#94A3B8";
+            cCtx.lineWidth = 1.2;
+            cCtx.setLineDash([3, 3]);
+            cCtx.beginPath();
+            const pCut = pToScreen(item.normX[item.cutoffIdx], item.normY[item.cutoffIdx]);
+            cCtx.moveTo(pCut.x, pCut.y);
+            for (let i = item.cutoffIdx + 1; i < item.normX.length; ++i) {
+              const pt = pToScreen(item.normX[i], item.normY[i]);
+              cCtx.lineTo(pt.x, pt.y);
+            }
+            cCtx.stroke();
+            cCtx.setLineDash([]);
+          }
+
+          // Marker where 60 tau_0 window ends
+          const pEnd60 = pToScreen(item.normX[item.cutoffIdx], item.normY[item.cutoffIdx]);
+          cCtx.strokeStyle = "#0E7490";
+          cCtx.fillStyle = "#FFFFFF";
+          cCtx.lineWidth = 1.5;
+          cCtx.beginPath();
+          cCtx.arc(pEnd60.x, pEnd60.y, 3.5, 0, Math.PI * 2);
+          cCtx.fill();
+          cCtx.stroke();
+
+          cCtx.fillStyle = "#0E7490";
+          cCtx.font = "bold 8px sans-serif";
+          cCtx.fillText("60τ₀", pEnd60.x + 5, pEnd60.y - 2);
         }
 
-        // Start dot
+        // Start dot (0, 0)
         const pStart = pToScreen(0, 0);
         cCtx.fillStyle = "#16A34A";
         cCtx.beginPath();
@@ -2205,10 +2459,16 @@
         // Panel header
         cCtx.fillStyle = "#0F172A";
         cCtx.font = "bold 11px sans-serif";
-        cCtx.fillText(coin.id, ox + 10, oy + 18);
-        cCtx.font = "10px sans-serif";
-        cCtx.fillStyle = "#475569";
-        cCtx.fillText(`I*=${sim.I_star.toFixed(3)} | ${regime.toUpperCase()}`, ox + cellW - 130, oy + 18);
+        cCtx.fillText(item.coin.id, ox + 8, oy + 16);
+
+        cCtx.font = "bold 10px sans-serif";
+        let regColor = "#475569";
+        if (item.regime === "fluttering") regColor = "#1D4ED8";
+        else if (item.regime === "tumbling") regColor = "#B91C1C";
+        else if (item.regime === "mixed") regColor = "#B45309";
+        else if (item.regime === "undetermined") regColor = "#475569";
+        cCtx.fillStyle = regColor;
+        cCtx.fillText(`I*=${item.sim.I_star.toFixed(3)} | ${item.regime.toUpperCase()}`, ox + cellW - 135, oy + 16);
       });
     }
 

@@ -1,0 +1,105 @@
+{
+  "generated_at": "2026-10-26T12:57:09.414Z",
+  "environment": {
+    "os": "Windows_NT 10.0.26200 (x64)",
+    "browser": "Google Chrome Headless CDP",
+    "viewport_desktop": "1440x900",
+    "viewport_mobile": "375x812"
+  },
+  "screenshots": [
+    {
+      "file": "desktop_1440_overview.png",
+      "type": "overview_desktop",
+      "status": "captured"
+    },
+    {
+      "file": "mobile_375_overview.png",
+      "type": "overview_mobile",
+      "status": "captured",
+      "scrollWidth": 375
+    },
+    {
+      "file": "coin_pk_rs10.png",
+      "coin_id": "pk_rs10",
+      "regime": "ANALYSING...",
+      "group": "catalog"
+    },
+    {
+      "file": "coin_pk_rs5_2002.png",
+      "coin_id": "pk_rs5_2002",
+      "regime": "ANALYSING...",
+      "group": "catalog"
+    },
+    {
+      "file": "coin_design_acrylic_24x1.2.png",
+      "coin_id": "design_acrylic_24x1.2",
+      "regime": "ANALYSING...",
+      "group": "catalog"
+    },
+    {
+      "file": "coin_design_aluminium_24x1.5.png",
+      "coin_id": "design_aluminium_24x1.5",
+      "regime": "ANALYSING...",
+      "group": "catalog"
+    },
+    {
+      "file": "coin_design_brass_24x3.0.png",
+      "coin_id": "design_brass_24x3.0",
+      "regime": "ANALYSING...",
+      "group": "catalog"
+    },
+    {
+      "file": "coin_design_brass_24x3.5.png",
+      "coin_id": "design_brass_24x3.5",
+      "regime": "ANALYSING...",
+      "group": "catalog"
+    },
+    {
+      "file": "coin_design_steel_24x4.5.png",
+      "coin_id": "design_steel_24x4.5",
+      "regime": "ANALYSING...",
+      "group": "catalog"
+    },
+    {
+      "file": "coin_design_lead_24x3.5.png",
+      "coin_id": "design_lead_24x3.5",
+      "regime": "ANALYSING...",
+      "group": "catalog"
+    },
+    {
+      "file": "coin_design_tungsten_24x3.0.png",
+      "coin_id": "design_tungsten_24x3.0",
+      "regime": "ANALYSING...",
+      "group": "catalog"
+    },
+    {
+      "file": "ref_istar_1.1_flutter.png",
+      "coin_id": "ref_1.1",
+      "I_star": 1.1,
+      "regime": "undetermined",
+      "reason": "window_too_short",
+      "group": "reference"
+    },
+    {
+      "file": "ref_istar_1.4_tumble.png",
+      "coin_id": "ref_1.4",
+      "I_star": 1.4,
+      "regime": "undetermined",
+      "reason": "window_too_short",
+      "group": "reference"
+    },
+    {
+      "file": "ref_istar_1.6_mixed.png",
+      "coin_id": "ref_1.6",
+      "I_star": 1.6,
+      "regime": "undetermined",
+      "reason": "window_too_short",
+      "group": "reference"
+    },
+    {
+      "file": "compare_coins_grid.png",
+      "type": "comparison_grid",
+      "status": "captured"
+    }
+  ]
+}

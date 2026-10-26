@@ -59,6 +59,10 @@ function extractYamlInt(yaml, key) {
 const expectedThresholds = {
   transient_fraction: extractYamlFloat(baseYamlContent, 'transient_fraction') ?? 0.20,
   transient_t_min: extractYamlFloat(baseYamlContent, 'transient_t_min') ?? 1.0,
+  transient_time_units: extractYamlFloat(baseYamlContent, 'transient_time_units') ?? 20.0,
+  min_window_time_units: extractYamlFloat(baseYamlContent, 'min_window_time_units') ?? 30.0,
+  min_cycles: extractYamlFloat(baseYamlContent, 'min_cycles') ?? 2.0,
+  stationarity_tolerance: extractYamlFloat(baseYamlContent, 'stationarity_tolerance') ?? 0.15,
   theta_std_steady_deg: extractYamlFloat(baseYamlContent, 'theta_std_steady_deg') ?? 1.0,
   theta_ptp_steady_deg: extractYamlFloat(baseYamlContent, 'theta_ptp_steady_deg') ?? 2.0,
   theta_ptp_flutter_max_deg: extractYamlFloat(baseYamlContent, 'theta_ptp_flutter_max_deg') ?? 300.0,
@@ -72,7 +76,7 @@ const testT = [0, 1, 2, 3, 4, 5];
 const testY = [0, -1, -2, -3, -4, -5];
 const testTh = [0, 0, 0, 0, 0, 0];
 const testOm = [0, 0, 0, 0, 0, 0];
-const dummyRegime = core.classifyRegime(testT, testY, testTh, testOm, 5.0, expectedThresholds);
+const dummyRegime = core.classifyRegime(testT, testY, testTh, testOm, 5.0, expectedThresholds, 1.0);
 assert.equal(dummyRegime, "steady", "Steady classification failed with base.yaml thresholds");
 console.log("✓ Classifier thresholds verified against config/base.yaml.");
 
@@ -122,14 +126,19 @@ assert.ok(fs.existsSync(regimesCsvPath), "results/coin_regimes.csv does not exis
 
 const csvLines = fs.readFileSync(regimesCsvPath, 'utf8').trim().split('\n');
 const expectedCoinRegimes = {};
+const expectedCoinRegimesMu001 = {};
 for (let i = 1; i < csvLines.length; ++i) {
   const parts = csvLines[i].split(',');
   const coinId = parts[0];
   const th0 = parseFloat(parts[3]);
   const mu1 = parseFloat(parts[4]);
   const reg = parts[5];
-  if (Math.abs(th0 - 5.0) < 1e-4 && Math.abs(mu1 - 0.20) < 1e-4) {
-    expectedCoinRegimes[coinId] = reg;
+  if (Math.abs(th0 - 5.0) < 1e-4) {
+    if (Math.abs(mu1 - 0.20) < 1e-4) {
+      expectedCoinRegimes[coinId] = reg;
+    } else if (Math.abs(mu1 - 0.01) < 1e-4) {
+      expectedCoinRegimesMu001[coinId] = reg;
+    }
   }
 }
 
@@ -139,10 +148,11 @@ assert.equal(enabledCatalogCoins.length, 9, "Expected 9 enabled catalog coins");
 for (const coin of enabledCatalogCoins) {
   const sim = new core.ODESimulator(coin, 5.0 * Math.PI / 180.0, 0.0, 0.0, 0.0, 0.20);
   const H_fall = 80.0 * coin.L;
+  const min_horizon = 80.0 * sim.t_unit;
   const times = [], Ys = [], thetas = [], omegas = [];
   const dt = 0.001;
 
-  while (sim.Y > -H_fall && sim.time < 50.0) {
+  while ((sim.Y > -H_fall || sim.time < min_horizon) && sim.time < 50.0) {
     sim.step(dt, null); // wide tank (unconstrained fall)
     times.push(sim.time);
     Ys.push(sim.Y);
@@ -150,13 +160,34 @@ for (const coin of enabledCatalogCoins) {
     omegas.push(sim.omega);
   }
 
-  const detected = core.classifyRegime(times, Ys, thetas, omegas, H_fall, expectedThresholds);
+  const detected = core.classifyRegime(times, Ys, thetas, omegas, H_fall, expectedThresholds, sim.t_unit);
   const exp = expectedCoinRegimes[coin.id];
   assert.ok(exp, `No expected regime in CSV for coin ${coin.id}`);
 
   console.log(`  ${coin.id.padEnd(25)}: I*=${sim.I_star.toFixed(3)} | detected=${detected.padEnd(10)} | expected=${exp.padEnd(10)} | PASS`);
   assert.equal(detected, exp, `Regime mismatch for coin ${coin.id}: got ${detected}, expected ${exp}`);
 }
+
+// Verify that acrylic coin at mu_1 = 0.01 correctly classifies as 'undetermined' due to stationarity check
+console.log("\n--- Testing 'undetermined' classification (Acrylic at mu_1 = 0.01) ---");
+const acrylicCoin = core.COINS.find(c => c.id === "design_acrylic_24x1.2");
+assert.ok(acrylicCoin, "Acrylic coin not found in COINS");
+const simUndet = new core.ODESimulator(acrylicCoin, 5.0 * Math.PI / 180.0, 0.0, 0.0, 0.0, 0.01);
+const H_fall_u = 80.0 * simUndet.L;
+const min_h_u = 80.0 * simUndet.t_unit;
+const t_u = [], Y_u = [], th_u = [], om_u = [];
+while ((simUndet.Y > -H_fall_u || simUndet.time < min_h_u) && simUndet.time < 50.0) {
+  simUndet.step(0.001, null);
+  t_u.push(simUndet.time);
+  Y_u.push(simUndet.Y);
+  th_u.push(simUndet.theta);
+  om_u.push(simUndet.omega);
+}
+const detUndet = core.classifyRegime(t_u, Y_u, th_u, om_u, H_fall_u, expectedThresholds, simUndet.t_unit);
+const expUndet = expectedCoinRegimesMu001["design_acrylic_24x1.2"];
+console.log(`  Acrylic (mu_1=0.01): detected=${detUndet} | expected=${expUndet} | PASS`);
+assert.equal(detUndet, expUndet, `Expected ${expUndet} for acrylic at mu_1=0.01, got ${detUndet}`);
+console.log("✓ 'undetermined' stationarity check verified against results/coin_regimes.csv.");
 console.log("✓ All 9 catalog coins match results/coin_regimes.csv exactly.");
 
 // 5. Verify Presets [1]-[4]

@@ -650,17 +650,24 @@ TestReport run_test_7() {
     double rel_change_12 = (u_means[1] > 1e-6) ? (diff12 / u_means[1]) * 100.0 : 0.0;
     double rel_change_23 = (u_means[2] > 1e-6) ? (diff23 / u_means[2]) * 100.0 : 0.0;
 
+    // Check monotonicity: sequence of velocities must be strictly increasing or decreasing
+    bool is_monotonic = ((u_means[1] - u_means[0]) * (u_means[2] - u_means[1]) > 0.0);
+
     // Observed order of convergence: p = ln(diff12 / diff23) / ln(r_avg)
+    // Only meaningful for monotonic asymptotic convergence
     double r12 = grids[0].second / grids[1].second; // 1.3333
     double r23 = grids[1].second / grids[2].second; // 1.2500
     double r_avg = 0.5 * (r12 + r23);
-    double obs_order_p = 0.0;
-    if (diff23 > 1e-8 && diff12 > 1e-8) {
-        obs_order_p = std::log(diff12 / diff23) / std::log(r_avg);
+    std::string obs_order_str = "not computed";
+    if (is_monotonic && diff23 > 1e-8 && diff12 > 1e-8) {
+        double p = std::log(diff12 / diff23) / std::log(r_avg);
+        std::ostringstream oss;
+        oss << std::fixed << std::setprecision(2) << p;
+        obs_order_str = oss.str();
     }
 
-    // Evaluation: FAIL if medium-to-fine change exceeds 5.0%
-    bool passed = (rel_change_23 <= 5.0) && (u_means[2] > 0.05) && (!std::isnan(u_means[2]));
+    // Evaluation: FAIL if medium-to-fine change exceeds 5.0% or if non-monotonic
+    bool passed = is_monotonic && (rel_change_23 <= 5.0) && (u_means[2] > 0.05) && (!std::isnan(u_means[2]));
     rep.passed = passed;
 
     for (size_t i = 0; i < grids.size(); ++i) {
@@ -670,14 +677,14 @@ TestReport run_test_7() {
 
         csv << grids[i].first << "," << grids[i].second << "," << (1.3 * grids[i].second) << ","
             << N_h << "," << u_means[i] << "," << th_amps[i] << "," << rel_ch << ","
-            << obs_order_p << "," << status << "\n";
+            << obs_order_str << "," << status << "\n";
 
         summary_ss << "[" << grids[i].first << ": U_mean=" << std::fixed << std::setprecision(4)
                    << u_means[i] << " m/s, th_amp=" << std::setprecision(1) << th_amps[i] << " deg";
         if (i > 0) summary_ss << " (rel diff: " << std::setprecision(2) << rel_ch << "%)";
         summary_ss << "] ";
     }
-    summary_ss << "| Obs Order p = " << std::setprecision(2) << obs_order_p
+    summary_ss << "| Obs Order p = " << obs_order_str
                << " | eps_23 = " << std::setprecision(2) << rel_change_23 << "% (Threshold <= 5.0%)";
     csv.close();
 

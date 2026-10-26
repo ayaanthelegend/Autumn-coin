@@ -2,7 +2,8 @@
 
 [![Python Tests](https://img.shields.io/badge/pytest-23%20passed-brightgreen.svg)]()
 [![C++ Core Tests](https://img.shields.io/badge/catch2-10%20passed-brightgreen.svg)]()
-[![SPH Validation](https://img.shields.io/badge/sph_tests-7%2F7%20passed-brightgreen.svg)]()
+[![SPH Validation](https://img.shields.io/badge/sph_tests-6%2F7%20passed%20(Test%207%20FAIL)-orange.svg)]()
+[![Presentation Audit](https://img.shields.io/badge/slide_audit-12%2F12%20passed-brightgreen.svg)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 An end-to-end computational and theoretical investigation of **IYPT 2026 Problem 12: Autumn Coin**, investigating the complex trajectory bifurcation (steady descent, periodic fluttering, chaotic tumble-glide, and autorotation) of coins and planar plates falling through viscous fluids.
@@ -34,8 +35,8 @@ Autumn-coin/
 ├── scripts/                     # Production scripts for scientific studies & presentation
 │   ├── make_bisection_study.py  # High-precision bisection for critical I*_c vs literature
 │   ├── make_regime_map.py       # 60-point (I*, Re) phase space regime map
-│   ├── make_presentation.py     # Generates the complete 24-slide IYPT deck
-│   └── check_slide_numbers.py   # Automated consistency audit for presentation slides (9/9 audits passed)
+│   ├── make_presentation.py     # Generates the complete 24-slide IYPT deck (Autumn_Coin_IYPT_2026.pptx)
+│   └── check_slide_numbers.py   # Automated consistency audit for presentation slides (12/12 audits passed)
 ├── autumn-coin-cpp/             # Native C++ port & interactive visualizer
 │   ├── src/                     # C++ model, integrator, and Raylib/ImGui visualizer
 │   ├── include/autumn/          # C++ header definitions

@@ -26,7 +26,7 @@ from pptx import Presentation
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-DECK_PATH = ROOT / "Autumn_Coin_IYPT_2026_Full_22Slides.pptx"
+DECK_PATH = ROOT / "Autumn_Coin_IYPT_2026.pptx"
 
 
 def get_slide_text(slide) -> str:
@@ -102,23 +102,23 @@ def check_slide_9(prs: Presentation):
 
 
 def check_slide_15(prs: Presentation):
-    print("[Check 4/9] Checking Slide 15 regime dataset against results/regime_map.csv...")
+    print("[Check 4/12] Checking Slide 15 regime dataset against results/regime_map.csv...")
     map_csv = ROOT / "results" / "regime_map.csv"
     assert map_csv.exists(), "results/regime_map.csv missing"
     df = pd.read_csv(map_csv)
-    assert len(df) == 60, f"Expected 60 points in regime_map.csv, got {len(df)}"
+    n_pts = len(df)
 
     slide = prs.slides[14]
     tables = get_slide_tables(slide)
     assert len(tables) > 0, "Slide 15 missing table"
     rows = tables[0][1:]  # skip header
     total_cnt = sum(int(r[1].split()[0]) for r in rows)
-    assert total_cnt == 60, f"Total counts in slide table {total_cnt} != 60"
-    print(f"  -> PASSED: Slide 15 dynamically reflects {len(df)} points from regime_map.csv.")
+    assert total_cnt == n_pts, f"Total counts in slide table {total_cnt} != {n_pts}"
+    print(f"  -> PASSED: Slide 15 dynamically reflects {n_pts} points from regime_map.csv.")
 
 
 def check_slide_16(prs: Presentation):
-    print("[Check 5/9] Checking Slide 16 (Slide A) coin regimes table against results/coin_regimes.csv...")
+    print("[Check 5/12] Checking Slide 16 (Slide A) coin regimes table against results/coin_regimes.csv...")
     csv_p = ROOT / "results" / "coin_regimes.csv"
     assert csv_p.exists(), "results/coin_regimes.csv missing"
     df = pd.read_csv(csv_p)
@@ -155,7 +155,7 @@ def check_slide_16(prs: Presentation):
 
 
 def check_slide_17(prs: Presentation):
-    print("[Check 6/9] Checking Slide 17 (Slide B) onset I* range against results/mu1_sensitivity.csv...")
+    print("[Check 6/12] Checking Slide 17 (Slide B) onset I* range against results/mu1_sensitivity.csv...")
     csv_p = ROOT / "results" / "mu1_sensitivity.csv"
     assert csv_p.exists(), "results/mu1_sensitivity.csv missing"
     df = pd.read_csv(csv_p)
@@ -171,20 +171,70 @@ def check_slide_17(prs: Presentation):
     assert max_c in text, f"Slide 17 missing max onset I*_c {max_c}"
     assert "Established in Literature" in text, "Slide 17 missing Established section"
     assert "Our Contributions" in text, "Slide 17 missing Our Contributions section"
+    assert "Observed (not proven) invariance" in text, "Slide 17 missing 'Observed (not proven) invariance'"
     print(f"  -> PASSED: Slide 17 onset range [{min_c}, {max_c}] and Established vs Ours verified.")
 
 
+def check_slide_19(prs: Presentation):
+    print("[Check 7/12] Checking Slide 19 SPH validation table and Test 7 status...")
+    slide = prs.slides[18]
+    tables = get_slide_tables(slide)
+    assert len(tables) > 0, "Slide 19 missing validation table"
+    rows = tables[0][1:]
+    t7_row = [r for r in rows if "Test 7" in r[0]]
+    assert len(t7_row) > 0, "Slide 19 missing Test 7 row"
+    t7_status = t7_row[0][3]
+    assert t7_status == "FAIL", f"Slide 19 Test 7 status expected 'FAIL', got '{t7_status}'"
+
+    t7_csv = ROOT / "results_sph" / "validation" / "test7_resolution_study.csv"
+    if t7_csv.exists():
+        df7 = pd.read_csv(t7_csv)
+        if len(df7) >= 3:
+            eps_val = float(df7.iloc[2]["rel_change_pct"])
+            eps_str = f"{eps_val:.1f}%"
+            assert eps_str in t7_row[0][2], f"Slide 19 Test 7 eps mismatch: expected '{eps_str}' in '{t7_row[0][2]}'"
+    print("  -> PASSED: Slide 19 Test 7 status is FAIL and matches resolution study metrics.")
+
+
+def check_slide_20(prs: Presentation):
+    print("[Check 8/12] Checking Slide 20 SPH vs ODE comparison metrics...")
+    slide = prs.slides[19]
+    text = get_slide_text(slide)
+
+    comp_csv = ROOT / "results_sph" / "comparison" / "quantitative_sph_vs_ode_comparison.csv"
+    if comp_csv.exists():
+        df_c = pd.read_csv(comp_csv)
+        for _, row in df_c.iterrows():
+            diff_u = float(row["diff_U_pct"])
+            diff_str = f"{diff_u:.1f}%"
+            assert diff_str in text, f"Slide 20 missing SPH vs ODE velocity diff {diff_str}"
+
+    assert "not resolvable" in text.lower(), "Slide 20 missing 'not resolvable' frequency statement"
+    assert "mixed" in text.lower(), "Slide 20 missing SPH mixed regime identification for tumbling case"
+    print("  -> PASSED: Slide 20 honest comparison metrics and unresolvable frequencies verified.")
+
+
 def check_slide_22(prs: Presentation):
-    print("[Check 7/9] Checking Slide 22 validation against literature and bisection...")
+    print("[Check 9/12] Checking Slide 22 validation against literature and bisection...")
     slide = prs.slides[21]
     text = get_slide_text(slide)
-    assert "1.217" in text, "Slide 22 missing baseline bisection I*_c = 1.217"
+    assert "1.213" in text, "Slide 22 missing baseline bisection I*_c = 1.213"
+    assert "[1.10, 1.30]" in text, "Slide 22 missing experimental card bracket [1.10, 1.30]"
     assert "open discrepancy" in text.lower(), "Slide 22 missing open discrepancy statement"
-    print("  -> PASSED: Slide 22 bisection I*_c = 1.217 and 2D/3D discrepancy verified.")
+    print("  -> PASSED: Slide 22 bisection I*_c = 1.213, [1.10, 1.30] bracket, and 2D/3D discrepancy verified.")
+
+
+def check_slide_24(prs: Presentation):
+    print("[Check 10/12] Checking Slide 24 title and references...")
+    slide = prs.slides[23]
+    text = get_slide_text(slide)
+    assert "23. Conclusions & References" in text, "Slide 24 title must be '23. Conclusions & References'"
+    assert "Verified Primary Literature References" not in text, "Slide 24 must not have 'Verified Primary Literature References'"
+    print("  -> PASSED: Slide 24 title and reference card header verified.")
 
 
 def check_sph_cases():
-    print("[Check 8/9] Checking SPH matched cases density ratios and Re_in...")
+    print("[Check 11/12] Checking SPH matched cases density ratios and Re_in...")
     sph_csv = ROOT / "results_sph" / "comparison" / "matched_cases_sph_vs_ode.csv"
     assert sph_csv.exists(), "results_sph/comparison/matched_cases_sph_vs_ode.csv missing"
     df_s = pd.read_csv(sph_csv)
@@ -199,7 +249,7 @@ def check_sph_cases():
 
 
 def check_tone_and_terminology(prs: Presentation):
-    print("[Check 9/9] Checking entire deck for prohibited words and phrases...")
+    print("[Check 12/12] Checking entire deck for prohibited words, unchecked equations, and obsolete values...")
     forbidden = [
         "novel regime ordering",
         "first discovery",
@@ -207,10 +257,28 @@ def check_tone_and_terminology(prs: Presentation):
         "lyapunov exponent",
     ]
     for idx, slide in enumerate(prs.slides):
-        text = get_slide_text(slide).lower()
+        text = get_slide_text(slide)
+        text_lower = text.lower()
         for phrase in forbidden:
-            assert phrase not in text, f"Forbidden phrase '{phrase}' found on Slide {idx + 1}"
-    print("  -> PASSED: No prohibited phrases found across all 24 slides.")
+            assert phrase not in text_lower, f"Forbidden phrase '{phrase}' found on Slide {idx + 1}"
+
+        # Assert no obsolete critical I* = 1.05
+        assert "1.05" not in text or "i*_c ≈ 1.05" not in text_lower, f"Obsolete I*_c = 1.05 found on Slide {idx + 1}"
+        assert "i*_c ~ 1.05" not in text_lower, f"Obsolete I*_c ~ 1.05 found on Slide {idx + 1}"
+
+        # Assert equation citations are not bare without (numbering unchecked)
+        for bare_eq in ["eq. 3.1]", "eq. 3.2]", "eq. 3.3]", "eq. 3.6", "eq. 3.7", "eq. 3.8", "eq. 3.9"]:
+            if bare_eq in text_lower:
+                assert "numbering unchecked" in text_lower or "unchecked" in text_lower, f"Bare equation label '{bare_eq}' without '(numbering unchecked)' on Slide {idx + 1}"
+
+        # Assert 'Verified' does not appear outside verified allowable headings
+        for line in text.split("\n"):
+            if "Verified" in line:
+                allowed = ["18/18 Passing", "Verified 2D WCSPH-FSI Solver", "Verified Primary Literature References"]
+                # None of these should be arbitrary
+                assert any(a in line for a in ["18/18 Passing", "Verification", "verified", "2D WCSPH-FSI"]), f"Unapproved 'Verified' on Slide {idx + 1}: {line}"
+
+    print("  -> PASSED: No prohibited phrases, obsolete I*_c values, or bare unchecked equation labels.")
 
 
 def main():
@@ -226,12 +294,15 @@ def main():
     check_slide_15(prs)
     check_slide_16(prs)
     check_slide_17(prs)
+    check_slide_19(prs)
+    check_slide_20(prs)
     check_slide_22(prs)
+    check_slide_24(prs)
     check_sph_cases()
     check_tone_and_terminology(prs)
 
     print("=" * 70)
-    print("  ALL 9 PRESENTATION AND DATA CONSISTENCY AUDITS PASSED CLEANLY!")
+    print("  ALL 12 PRESENTATION AND DATA CONSISTENCY AUDITS PASSED CLEANLY!")
     print("=" * 70)
 
 
