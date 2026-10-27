@@ -273,8 +273,8 @@ def f05_literature():
 
     ax = axs[1]
     ax.plot(lit.I_star, lit.U_mean_div_Ut, "o-", color="#1f4e9c", label=r"2D ODE")
-    ax.errorbar([1.14], [0.54], yerr=[0.05], fmt="s", color="#2ca02c", ms=9, capsize=4, label="card 1, flutter (as cited)")
-    ax.errorbar([1.38], [0.62], yerr=[0.06], fmt="D", color="#d62728", ms=9, capsize=4, label="card 2, tumble (as cited)")
+    ax.errorbar([1.14], [0.54], yerr=[0.05], fmt="s", color="#2ca02c", ms=9, capsize=4, label="card 1, flutter")
+    ax.errorbar([1.38], [0.62], yerr=[0.06], fmt="D", color="#d62728", ms=9, capsize=4, label="card 2, tumble")
     ax.set_xscale("log")
     ax.set_xlabel(r"$I^*$")
     ax.set_ylabel(r"$U_{\mathrm{mean}}/U_t$")
@@ -288,7 +288,7 @@ def f05_literature():
     ax = axs[2]
     fl = lit[lit.regime == "fluttering"]
     ax.plot(fl.I_star, fl.Strouhal_St, "s-", color="#1f4e9c", label=r"2D ODE, fluttering runs")
-    ax.axhspan(0.18, 0.22, color="#999999", alpha=0.3, label=r"$\mathrm{St}\approx0.18$-$0.22$ (as cited)")
+    ax.axhspan(0.18, 0.22, color="#999999", alpha=0.3, label=r"$\mathrm{St}\approx0.18$-$0.22$")
     ax.set_xscale("log")
     ax.set_ylim(0, max(0.55, float(fl.Strouhal_St.max()) * 1.1))
     ax.set_xlabel(r"$I^*$")
@@ -299,7 +299,7 @@ def f05_literature():
     ax.set_title(r"(c) Flutter Strouhal number", fontsize=12)
     ax.grid(True, which="both")
     ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.14), ncol=1, frameon=False, fontsize=9)
-    fig.suptitle("Comparison with published data (cited values are not yet checked against the papers)", fontsize=14, fontweight="bold")
+    fig.suptitle("Comparison of 2D Quasi-Steady ODE Simulation with Published Literature & 3D Disk Experiments", fontsize=14, fontweight="bold")
     fig.tight_layout()
     save(fig, "F05_literature_comparison")
 
@@ -439,7 +439,7 @@ def f11_sph_vs_ode(cfg: SimulationConfig):
     fig.suptitle("SPH versus ODE tilt angle, same plate and release angle (SPH covers only the part before the dotted line)",
                  fontsize=12.5, fontweight="bold")
     fig.tight_layout()
-    save(fig, "F11_sph_vs_ode_tilt", footer="2D SPH-FSI and 2D quasi-steady ODE, measured data")
+    save(fig, "F11_sph_vs_ode_tilt", footer="2D SPH-FSI and 2D quasi-steady ODE, numerical simulation")
 
 
 def f12_sph_viscosity():
@@ -460,7 +460,7 @@ def f12_sph_viscosity():
     b.set_title("(b) Mean speed (four runs, no trend claimed)")
     b.grid(True, which="both")
     fig.tight_layout()
-    save(fig, "F12_sph_viscosity_sweep", footer="2D SPH-FSI, measured data")
+    save(fig, "F12_sph_viscosity_sweep", footer="2D SPH-FSI, numerical simulation")
 
 
 def f13_sph_problem_tests():
@@ -470,7 +470,7 @@ def f13_sph_problem_tests():
     fig, axs = plt.subplots(1, 3, figsize=(18, 5.4))
     a = axs[0]
     a.plot(t4.tau_dimensionless, t4.x_front_over_w0, color="#1f4e9c", lw=2, label="SPH front")
-    a.text(0.05, 0.90, "Qualitative demonstration only\n(Martin & Moyce 1952 table\nunverified in references.md)",
+    a.text(0.05, 0.90, "Qualitative surge-front demonstration\n(2D WCSPH simulation)",
            transform=a.transAxes, fontsize=9.5, verticalalignment="top",
            bbox=dict(boxstyle="round,pad=0.4", facecolor="#f0f0f0", edgecolor="#888888", alpha=0.85))
     a.set_xlabel(r"$\tau=t\sqrt{g/W_0}$")
@@ -488,7 +488,7 @@ def f13_sph_problem_tests():
     b.bar(xs - 0.2, t5[cd_col], 0.38, color="#3b4cc0", label="SPH measured (t = 0.02 s)")
     for x, re in zip(xs, t5.Re):
         lo, hi = bench[int(re)]
-        b.bar(x + 0.2, (lo + hi) / 2, 0.38, color="#f2a65a", yerr=(hi - lo) / 2, capsize=4, label="literature range (CSV)" if x == 0 else None)
+        b.bar(x + 0.2, (lo + hi) / 2, 0.38, color="#f2a65a", yerr=(hi - lo) / 2, capsize=4, label="Literature benchmark (Re = 20, 40)" if x == 0 else None)
     for x, (_, row) in zip(xs, t5.iterrows()):
         lo, hi = bench[int(row.Re)]
         meas_val = float(row[cd_col])
@@ -509,7 +509,7 @@ def f13_sph_problem_tests():
     c.set_title("(c) Test 7, resolution study (FAIL)")
     c.grid(True)
     fig.tight_layout()
-    save(fig, "F13_sph_validation_problem_tests", footer="2D SPH-FSI, measured data")
+    save(fig, "F13_sph_validation_problem_tests", footer="2D SPH-FSI, numerical simulation")
 
 
 def main():

@@ -118,14 +118,14 @@ Because the quasi-steady ODE coefficients ($C_T, C_R, C_{D0}, C_{D1}, C_\tau$) a
 \subsection{Single-Drop Showcases & Energy Conservation}
 For the baseline fluttering showcase (\texttt{reference\_card}: $L = 20\,\mathrm{mm}$, $h = 1.5\,\mathrm{mm}$, $\rho_s = 9000\,\mathrm{kg/m^3}$, $I^* = 0.676353$, $\theta_0 = 15^\circ$, $H_{\mathrm{fall}} = 40L = 0.800\,\mathrm{m}$), the plate reaches the tank bottom at $t_{\mathrm{end}} = 7.2204\,\mathrm{s}$ with a small net horizontal offset $X_{\mathrm{final}} = +13.27\,\mathrm{mm}$. In the post-transient limit cycle, the orientation oscillates with peak-to-peak amplitude $\Delta\theta_{\mathrm{ptp}} = 74.8^\circ$ ($\mathrm{std}(\theta) = 24.6^\circ$), mean vertical descent speed $\langle -v_Y \rangle = 0.1473\,\mathrm{m/s}$ ($U_{\mathrm{mean}}/U_t = 0.6445$, $\mathrm{Re}_{\mathrm{meas}} \approx 2940$), dominant frequency $f_{\mathrm{flutter}} \approx 0.88\,\mathrm{Hz}$, and Strouhal number $\mathrm{St} \approx 0.120$.
 
-Furthermore, integrating the instantaneous viscous dissipation rate $P_{\mathrm{diss}}(t) = u F_u + v F_v + \omega \tau$ alongside kinetic energy $T(t) = \frac{1}{2}M_u u^2 + \frac{1}{2}M_v v^2 + \frac{1}{2}I_{\mathrm{tot}}\omega^2$ and buoyant potential energy $V_{\mathrm{pot}}(t) = (m - m_f)gY(t)$ closes the total mechanical energy budget $E_{\mathrm{total}}(t)$ within $0.12\%$ of the available potential energy drop $(m - m_f)gH_{\mathrm{fall}}$ (Figure~\ref{fig:f08}).
+Furthermore, integrating the instantaneous viscous dissipation rate $P_{\mathrm{diss}}(t) = u F_u + v F_v + \omega \tau$ alongside kinetic energy $T(t) = \frac{1}{2}M_u u^2 + \frac{1}{2}M_v v^2 + \frac{1}{2}I_{\mathrm{tot}}\omega^2$ and buoyant potential energy $V_{\mathrm{pot}}(t) = (m - m_f)gY(t)$ closes the total mechanical energy budget $E_{\mathrm{total}}(t)$: the benchmark energy closure residual reaches a maximum of $1.1 \times 10^{-5}\%$ on the reference drop (and $< 0.12\%$ across all high-inertia sweeps, well within the $1.0\%$ acceptance limit) of the available potential energy drop $(m - m_f)gH_{\mathrm{fall}}$ (Figure~\ref{fig:f08}).
 
 Conversely, for the tumbling showcase (\texttt{heavy\_coin} at $I^* = 1.20$, $L = 24\,\mathrm{mm}$, $h = 1.8\,\mathrm{mm}$, $\theta_0 = 20^\circ$, $H_{\mathrm{fall}} = 0.960\,\mathrm{m}$), rotational inertia carries the plate past the vertical saddle ($\theta = \pm 90^\circ$) on every cycle. Over $t_{\mathrm{end}} = 11.5745\,\mathrm{s}$, the plate completes $N_{\mathrm{flips}} = 33.42$ continuous unidirectional revolutions ($\Delta\theta_{\mathrm{net}} = -12033.8^\circ$), while the persistent sign of $\omega$ generates unidirectional Magnus circulation lift ($\frac{1}{2}C_R L^2 \omega$) that drives a massive lateral glide of $X_{\mathrm{final}} = -2.9123\,\mathrm{m}$.
 
 \begin{figure}[t]
     \centering
     \includegraphics[width=\columnwidth]{../results/paper_figures/F08_energy_budget.pdf}
-    \caption{Total mechanical energy reconciliation (\texttt{F08\_energy\_budget}, 2D quasi-steady ODE simulation) showing kinetic energy $T(t)$, potential energy $V_{\mathrm{pot}}(t)$, cumulative dissipated work $W_{\mathrm{diss}}(t)$, and total mechanical energy $E_{\mathrm{total}}(t)$ closing within $0.12\%$ of $\Delta E_{\mathrm{pot}}$.}
+    \caption{Total mechanical energy reconciliation (\texttt{F08\_energy\_budget}, 2D quasi-steady ODE simulation) showing kinetic energy $T(t)$, potential energy $V_{\mathrm{pot}}(t)$, cumulative dissipated work $W_{\mathrm{diss}}(t)$, and total mechanical energy $E_{\mathrm{total}}(t)$ closing within $1.1 \times 10^{-5}\%$ on the reference drop (and $< 0.12\%$ across high-inertia sweeps, well within the $1.0\%$ acceptance limit).}
     \label{fig:f08}
 \end{figure}
 
@@ -157,7 +157,7 @@ $0.20$ & $\mathbf{1.2172}$ & $[1.2156, 1.2188]$ & $0.0031$ & $\mathbf{+1.43\%}$ 
 \subsection{Critical Inertia Threshold $I^*_c$ \& Linear Damping Sensitivity ($\mu_1$)}
 A central finding of our study is the role of the linear rotational damping coefficient $\mu_1$ in Eq.~(\ref{eq:torque}). As shown in Figure~\ref{fig:f01} and Table~\ref{tab:mu1}, our bisection search (\texttt{bisection\_istar\_c.py}) across $\mu_1 \in [0.00, 0.20]$ demonstrates that $I^*_c$ increases monotonically with $\mu_1$. When linear rotational damping is omitted ($\mu_1 = 0.00$) or set to the empirically tuned value $\mu_1 = 0.01$ used in some open-source implementations, the critical threshold drops to $I^*_c = 0.9578$ ($-20.18\%$) and $I^*_c = 0.9703$ ($-19.14\%$), prematurely forcing intermediate-inertia plates ($I^* \approx 1.06$) into tumbling. In contrast, using the theoretical value $\mu_1 = 0.20$ from Andersen \textit{et al.} (2005b) Eq.~(3.9) yields $I^*_c = 1.213 \pm 0.003$ ($1.2172$ on the sensitivity grid), matching the experimental transition midpoint $I^*_c = 1.20 \pm 0.10$ within $+1.08\%$ ($+1.43\%$).
 
-In the 25-point logarithmic $I^*$ sweep across $I^* \in [0.05, 5.0]$ (Figure~\ref{fig:f06}, run at $\mu_1 = 0.01, \theta_0 = 5^\circ, \Delta\theta = 0.1^\circ$), mean vertical descent speed increases monotonically across the fluttering regime ($0.050 \le I^* \le 0.889$) from $0.0326\,\mathrm{m/s}$ to $0.5638\,\mathrm{m/s}$ while lateral drift remains bounded ($|X_f| \le 0.4575\,\mathrm{m}$). Crossing into the tumbling window ($1.077 \le I^* \le 1.305$) triggers a sharp surge in lateral drift to $|X_f| = 1.5692\,\mathrm{m}$, followed by transitional/mixed chaos above $I^* \ge 1.581$. Power spectral density (PSD) analysis of $\theta(t)$ across the fluttering regime (Figure~\ref{fig:f07}) confirms that oscillation energy is concentrated in a sharp limit-cycle fundamental peak ($f_{\mathrm{dominant}} = 0.0287\,\mathrm{Hz}$, $\mathrm{PSD} = 7.027$) with higher harmonics strongly suppressed.
+In the 25-point logarithmic $I^*$ sweep across $I^* \in [0.05, 5.0]$ (Figure~\ref{fig:f06}, run at $\mu_1 = 0.01, \theta_0 = 5^\circ, \Delta\theta = 0.1^\circ$), mean vertical descent speed increases monotonically across the fluttering regime ($0.050 \le I^* \le 0.889$) from $0.0326\,\mathrm{m/s}$ to $0.5638\,\mathrm{m/s}$ while lateral drift remains bounded ($|X_f| \le 0.4575\,\mathrm{m}$). Crossing into the tumbling window ($1.077 \le I^* \le 1.305$) triggers a sharp surge in lateral drift to $|X_f| = 1.5692\,\mathrm{m}$, followed by transitional/mixed chaos above $I^* \ge 1.581$. Power spectral density (PSD) analysis of $\theta(t)$ across the fluttering regime (Figure~\ref{fig:f07}) confirms that oscillation energy is concentrated in a sharp limit-cycle fundamental peak ($f_{\mathrm{dominant}} = 0.77\,\mathrm{Hz}$) with oscillation energy concentrated in the $0.4\text{--}1.2\,\mathrm{Hz}$ flutter band.
 
 \begin{figure}[t]
     \centering
@@ -231,7 +231,7 @@ Figure~\ref{fig:f09} shows the 19-point release angle sweep across $\theta_0 \in
 \midrule
 Low ($0.20$)  & $+76.47$  & $\mathbf{105.83}$ & $[-169.5, +316.3]$   & $485.8$  & $6.90\times$ \\
 Mid ($0.80$)  & $+2.80$   & $\mathbf{15.34}$  & $[-20.0, +24.0]$     & $44.0$   & $1.00\times$ \\
-High ($3.50$) & $+105.92$ & $\mathbf{713.64}$ & $[-1155.2, +1372.9]$ & $2528.0$ & $\mathbf{46.52\times}$ \\
+High ($3.50$) & $+105.92$ & $\mathbf{713.64}$ (pop: $706$) & $[-1155.2, +1372.9]$ & $2528.0$ & $\mathbf{46.52\times}$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -244,7 +244,7 @@ Figure~\ref{fig:f03} and Table~\ref{tab:coins} evaluate nine real-world and desi
 \begin{figure}[t]
     \centering
     \includegraphics[width=\columnwidth]{../results/paper_figures/F03_coin_trajectories.pdf}
-    \caption{Multi-panel catalog coin trajectories over a $0.38\,\mathrm{m}$ water tank depth (\texttt{F03\_coin\_trajectories}, 2D quasi-steady ODE simulation): (1) Pakistani Rs 10 ($I^*=0.423$, tight flutter), (2) Pakistani Rs 5 ($I^*=0.600$, moderate flutter), (3) Brass $24\times 3.5$ ($I^*=1.242$, unidirectional tumbling), and (4) Tungsten $24\times 3.0$ ($I^*=2.411$, mixed chaos).}
+    \caption{Multi-panel $3 \times 3$ trajectory grid for all 9 catalog coins simulated over the first 60 dimensionless time units ($a/U_0$) at $\mu_1 = 0.20$ and $\theta_0 = 5^\circ$ (\texttt{F03\_coin\_trajectories}, 2D quasi-steady ODE simulation).}
     \label{fig:f03}
 \end{figure}
 
@@ -271,12 +271,12 @@ Figure~\ref{fig:f03} and Table~\ref{tab:coins} evaluate nine real-world and desi
 \end{table}
 
 \subsection{Stage 2 Results: 2D WCSPH--FSI Comparison \& Explicit Viscosity Sweep}
-Figures~\ref{fig:f11}, \ref{fig:f12}, and \ref{fig:f13} present the results of our C++20 2D WCSPH--FSI solver. Over the initial $0.35\,\mathrm{s}$ drop horizon (Figure~\ref{fig:f11}), the two-way coupled SPH plate qualitatively reproduces the initial Munk pitching onset and oscillation ranking across matched $I^*$ cases. Crucially, Figure~\ref{fig:f12} demonstrates what the fixed-coefficient ODE cannot: holding $I^* = 0.65$ fixed while varying dynamic viscosity $\mu$ across $\mathrm{Re} \in \{25, 100, 300, 800\}$ directly suppresses high-frequency pitching oscillations at low Reynolds number ($\mathrm{Re} = 25$), whereas higher Reynolds numbers ($\mathrm{Re} \ge 300$) sustain vortex-induced rocking.
+Figures~\ref{fig:f11}, \ref{fig:f12}, and \ref{fig:f13} present the results of our C++20 2D WCSPH--FSI solver. Over the initial $0.50\,\mathrm{s}$ drop horizon (Figure~\ref{fig:f11}), the two-way coupled SPH plate qualitatively reproduces the initial Munk pitching onset and oscillation ranking across matched $I^*$ cases. Crucially, Figure~\ref{fig:f12} demonstrates what the fixed-coefficient ODE cannot: holding $I^* = 0.65$ fixed while varying dynamic viscosity $\mu$ across $\mathrm{Re} \in \{25, 100, 300, 800\}$ directly suppresses high-frequency pitching oscillations at low Reynolds number ($\mathrm{Re} = 25$), whereas higher Reynolds numbers ($\mathrm{Re} \ge 300$) sustain vortex-induced rocking.
 
 \begin{figure}[t]
     \centering
     \includegraphics[width=\columnwidth]{../results/paper_figures/F11_sph_vs_ode_tilt.pdf}
-    \caption{Direct time-history comparison of orientation tilt angle $\theta(t)$ between 2D WCSPH--FSI and the 2D quasi-steady ODE over the initial $0.35\,\mathrm{s}$ drop duration (\texttt{F11\_sph\_vs\_ode\_tilt}).}
+    \caption{Direct time-history comparison of orientation tilt angle $\theta(t)$ between 2D WCSPH--FSI and the 2D quasi-steady ODE over the initial $0.50\,\mathrm{s}$ drop duration (\texttt{F11\_sph\_vs\_ode\_tilt}).}
     \label{fig:f11}
 \end{figure}
 
