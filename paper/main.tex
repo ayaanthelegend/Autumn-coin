@@ -18,7 +18,7 @@
     urlcolor=blue
 }
 
-\title{\textbf{Hydrodynamic Regimes, Bifurcation Thresholds, and Chaotic Dispersion of a Falling Coin: A Two-Stage Quasi-Steady ODE and 2D WCSPH--FSI Numerical Investigation}}
+\title{\textbf{Fluttering and Tumbling of a Falling Coin: A 2D Quasi-Steady Model with a Preliminary SPH Study}}
 
 \author{
     \textbf{Ayaan Bilal} \\
@@ -116,11 +116,11 @@ Because the quasi-steady ODE coefficients ($C_T, C_R, C_{D0}, C_{D1}, C_\tau$) a
 \label{sec:results}
 
 \subsection{Single-Drop Showcases & Energy Conservation}
-For the baseline fluttering showcase (\texttt{reference\_card}: $L = 20\,\mathrm{mm}$, $h = 1.5\,\mathrm{mm}$, $\rho_s = 9000\,\mathrm{kg/m^3}$, $I^* = 0.676353$, $\theta_0 = 15^\circ$, $H_{\mathrm{fall}} = 40L = 0.800\,\mathrm{m}$), the plate reaches the tank bottom at $t_{\mathrm{end}} = 7.2204\,\mathrm{s}$ with a small net horizontal offset $X_{\mathrm{final}} = +13.27\,\mathrm{mm}$. In the post-transient limit cycle, the orientation oscillates with peak-to-peak amplitude $\Delta\theta_{\mathrm{ptp}} = 74.8^\circ$ ($\mathrm{std}(\theta) = 24.6^\circ$), mean vertical descent speed $\langle -v_Y \rangle = 0.1473\,\mathrm{m/s}$ ($U_{\mathrm{mean}}/U_t = 0.6445$, $\mathrm{Re}_{\mathrm{meas}} \approx 2940$), dominant frequency $f_{\mathrm{flutter}} \approx 0.88\,\mathrm{Hz}$, and Strouhal number $\mathrm{St} \approx 0.120$.
+For the baseline fluttering showcase ($L = 20\,\mathrm{mm}$, $h = 1.5\,\mathrm{mm}$, $\rho_s = 9000\,\mathrm{kg/m^3}$, $I^* = 0.676$, $\theta_0 = 15^\circ$, $H_{\mathrm{fall}} = 0.800\,\mathrm{m}$), the plate reaches the bottom at $t_{\mathrm{end}} = 10.45\,\mathrm{s}$ with mean speed $\langle |V| \rangle = 0.235\,\mathrm{m/s}$ ($\mathrm{Re} \approx 4690$, mean vertical descent speed $0.077\,\mathrm{m/s}$, giving $\langle |V| \rangle / U_t = 0.683$ with $U_t = 0.343\,\mathrm{m/s}$). In the limit cycle, orientation oscillates with peak-to-peak amplitude $\Delta\theta_{\mathrm{ptp}} = 107.1^\circ$ ($\mathrm{std}(\theta) = 35.3^\circ$) at $f = 3.11\,\mathrm{Hz}$ ($\mathrm{St} = f L / \langle |V| \rangle \approx 0.265$), and drifts $+13.6\,\mathrm{mm}$ sideways.
 
-Furthermore, integrating the instantaneous viscous dissipation rate $P_{\mathrm{diss}}(t) = u F_u + v F_v + \omega \tau$ alongside kinetic energy $T(t) = \frac{1}{2}M_u u^2 + \frac{1}{2}M_v v^2 + \frac{1}{2}I_{\mathrm{tot}}\omega^2$ and buoyant potential energy $V_{\mathrm{pot}}(t) = (m - m_f)gY(t)$ closes the total mechanical energy budget $E_{\mathrm{total}}(t)$: the benchmark energy closure residual reaches a maximum of $1.1 \times 10^{-5}\%$ on the reference drop (and $< 0.12\%$ across all high-inertia sweeps, well within the $1.0\%$ acceptance limit) of the available potential energy drop $(m - m_f)gH_{\mathrm{fall}}$ (Figure~\ref{fig:f08}).
+Conversely, for the tumbling showcase ($L = 24\,\mathrm{mm}$, $h = 1.8\,\mathrm{mm}$, $\rho_s = 17,964\,\mathrm{kg/m^3}$, $I^* = 1.35$, $\theta_0 = 20^\circ$, $H_{\mathrm{fall}} = 0.960\,\mathrm{m}$), rotational momentum carries the plate past the vertical edge-on position on every cycle. The coin completes $12.9$ continuous turns in one direction ($\Delta\theta_{\mathrm{net}} = -4638^\circ$) in $6.07\,\mathrm{s}$ at a mean speed of $0.438\,\mathrm{m/s}$, gliding $-1.82\,\mathrm{m}$ laterally.
 
-Conversely, for the tumbling showcase (\texttt{heavy\_coin} at $I^* = 1.20$, $L = 24\,\mathrm{mm}$, $h = 1.8\,\mathrm{mm}$, $\theta_0 = 20^\circ$, $H_{\mathrm{fall}} = 0.960\,\mathrm{m}$), rotational inertia carries the plate past the vertical saddle ($\theta = \pm 90^\circ$) on every cycle. Over $t_{\mathrm{end}} = 11.5745\,\mathrm{s}$, the plate completes $N_{\mathrm{flips}} = 33.42$ continuous unidirectional revolutions ($\Delta\theta_{\mathrm{net}} = -12033.8^\circ$), while the persistent sign of $\omega$ generates unidirectional Magnus circulation lift ($\frac{1}{2}C_R L^2 \omega$) that drives a massive lateral glide of $X_{\mathrm{final}} = -2.9123\,\mathrm{m}$.
+Integrating instantaneous viscous dissipation alongside kinetic and buoyant potential energy closes the mechanical energy budget within $1.1 \times 10^{-5}\%$ on the reference drop (and $< 0.12\%$ across sweeps, Figure~\ref{fig:f08}).
 
 \begin{figure}[t]
     \centering
@@ -145,11 +145,11 @@ Conversely, for the tumbling showcase (\texttt{heavy\_coin} at $I^* = 1.20$, $L 
 \toprule
 $\mu_1$ & Critical $I^*_c$ & Bisection Bracket & Width & Shift vs.\ $1.20$ \\
 \midrule
-$0.00$ & $\mathbf{0.9578}$ & $[0.9562, 0.9594]$ & $0.0031$ & $-20.18\%$ \\
-$0.01$ & $\mathbf{0.9703}$ & $[0.9688, 0.9719]$ & $0.0031$ & $-19.14\%$ \\
-$0.05$ & $\mathbf{1.0266}$ & $[1.0250, 1.0281]$ & $0.0031$ & $-14.45\%$ \\
-$0.10$ & $\mathbf{1.0922}$ & $[1.0906, 1.0938]$ & $0.0031$ & $-8.98\%$ \\
-$0.20$ & $\mathbf{1.2172}$ & $[1.2156, 1.2188]$ & $0.0031$ & $\mathbf{+1.43\%}$ \\
+$0.00$ & $\mathbf{0.9507}$ & $[0.9490, 0.9523]$ & $0.0033$ & $-20.8\%$ \\
+$0.01$ & $\mathbf{0.9673}$ & $[0.9656, 0.9689]$ & $0.0033$ & $-19.4\%$ \\
+$0.05$ & $\mathbf{1.0204}$ & $[1.0188, 1.0221]$ & $0.0033$ & $-15.0\%$ \\
+$0.10$ & $\mathbf{1.0901}$ & $[1.0885, 1.0918]$ & $0.0033$ & $-9.2\%$ \\
+$0.20$ & $\mathbf{1.2130}$ & $[1.2113, 1.2146]$ & $0.0033$ & $\mathbf{+1.1\%}$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -176,7 +176,9 @@ In the 25-point logarithmic $I^*$ sweep across $I^* \in [0.05, 5.0]$ (Figure~\re
 \subsection{136-Point Phase Diagram in $(I^*, \mathrm{Re})$ Space \& Absence of Stable Steady Descent}
 Figure~\ref{fig:f02} and Table~\ref{tab:regime_map} present the complete 136-point regime map across 34 inertia values $I^* \in [0.05, 3.50]$ and four chord lengths $L \in \{8, 12, 16, 20\}\,\mathrm{mm}$ at baseline damping $\mu_1 = \mu_2 = 0.20$, fixed aspect ratio $h/L = 0.075$, fall depth $H_{\mathrm{fall}} = 100L$, and release angle $\theta_0 = 20^\circ + 10^{-3}\,\mathrm{rad}$.
 
-Crucially, whereas an unperturbed horizontal release ($\theta_0 = 0^\circ, \Delta\theta = 0$) artificially remains at the unstable broadside equilibrium and produces false ``steady'' classifications at low $I^*$, applying a realistic symmetry-breaking perturbation ($\Delta\theta = 10^{-3}\,\mathrm{rad}$) causes $100\%$ of low-$I^*$ runs ($I^* \ge 0.05$) to destabilize into sustained periodic fluttering. Thus, across all 136 perturbed drops, $52.94\%$ ($72/136$) exhibit fluttering ($I^* \le 1.25$), $14.71\%$ ($20/136$) exhibit unidirectional tumbling ($1.25 \le I^* \le 1.45$), and $32.35\%$ ($44/136$) exhibit mixed chaos ($I^* \ge 1.50$). Moreover, while $\mathrm{Re}$ spans two orders of magnitude ($\mathrm{Re} \in [144.0, 26973]$), the regime boundaries are strictly horizontal in $(I^*, \mathrm{Re})$ space, confirming chord-scale invariance in the quasi-steady model.
+Thickness $h/L$ scales with $I^*$ (from $0.04$ to $0.175$, with density ratio capped at $20$). Fluttering occurs up to $I^* = 1.20$, tumbling from $1.25$ to $1.45$, and mixed motion from $1.50$ to $2.75$. At $I^* = 3.0\text{--}3.5$, the map shows fluttering again because with $h/L = 0.175$ and clean $20^\circ$ release, the thick plate rocks periodically without flipping in the $100L$ fall. In contrast, the high-inertia 50-drop ensemble (Section~\ref{sec:chaos}) uses $h/L \approx 0.22$, $\rho_s \approx 16,000\,\mathrm{kg/m^3}$, and $\theta_0 = 5^\circ$ with velocity noise, repeatedly crossing the separatrix into chaotic scatter.
+
+Simulations initiated near broadside with micro-perturbations down to $10^{-5\,\circ}$ show the destabilizing Munk moment amplifying initial tilt by $>10^6\times$ within a few chords into $\sim 68^\circ$ flutter, confirming that broadside steady descent is linearly unstable.
 
 \begin{figure}[t]
     \centering
@@ -194,9 +196,9 @@ Crucially, whereas an unperturbed horizontal release ($\theta_0 = 0^\circ, \Delt
 \toprule
 \textbf{Regime} & \textbf{Count} & \textbf{Share} & \textbf{$I^*$ Bracket} & \textbf{Speed Range [m/s]} \\
 \midrule
-\texttt{fluttering} & $72$ & $52.94\%$ & $[0.05, 1.25]$ & $[0.0180, 0.6740]$ \\
+\texttt{fluttering} & $72$ & $52.94\%$ & $[0.05, 1.20] \cup [3.0, 3.5]$ & $[0.0180, 0.6740]$ \\
 \texttt{tumbling}   & $20$ & $14.71\%$ & $[1.25, 1.45]$ & $[0.2239, 0.5419]$ \\
-\texttt{mixed}      & $44$ & $32.35\%$ & $[1.50, 3.50]$ & $[0.2346, 0.5560]$ \\
+\texttt{mixed}      & $44$ & $32.35\%$ & $[1.50, 2.75]$ & $[0.2346, 0.5560]$ \\
 \midrule
 \textbf{Total}      & $\mathbf{136}$ & $\mathbf{100.0\%}$ & $[0.05, 3.50]$ & $[0.0180, 0.6740]$ \\
 \bottomrule
@@ -329,7 +331,7 @@ We have established a comprehensive two-stage computational framework for the ``
 \bibitem{Morris1997} J. P. Morris, P. J. Fox, and Y. Zhu, ``Modeling low Reynolds number incompressible flows using SPH,'' \textit{J. Comput. Phys.} \textbf{136}, 214--226 (1997).
 \bibitem{Akinci2012} N. Akinci, M. Ihmsen, G. Akinci, B. Solenthaler, and M. Teschner, ``Versatile rigid-fluid coupling for incompressible SPH,'' \textit{ACM Trans. Graph.} \textbf{31}(4), 62 (2012).
 \bibitem{Adami2012} S. Adami, X. Y. Hu, and N. A. Adams, ``A generalized wall boundary condition for smoothed particle hydrodynamics,'' \textit{J. Comput. Phys.} \textbf{231}, 7057--7075 (2012).
-\bibitem{OndrejCloud} O. \v{S}r\'{a}mek \textit{et al.}, ``autumn-coin: 3D stereo tracking and quasi-steady simulation of coins falling through water,'' GitHub repository (MIT License), \url{https://github.com/ondrej-cloud/autumn-coin}.
+\bibitem{OndrejCloud} O. Novotn\'y, V. P\v{r}ibyl, and M. Ambros (Team Olomouck\'e srnky), ``autumn-coin: 3D stereo tracking and quasi-steady simulation of coins falling through water,'' GitHub repository (MIT License), \url{https://github.com/ondrej-cloud/autumn-coin}.
 \end{thebibliography}
 
 \end{document}

@@ -1,7 +1,8 @@
 """Automated Research Paper Builder (`scripts/build_research_paper.py`).
 
-Generates `Autumn_Coin_Research_Paper.docx` with embedded 300 DPI figures F01-F13,
-complete mathematical equations, parameter sweep tables, and simulation results.
+Generates the publication-ready Word manuscript directly from the humanized text in
+`Autumn_Coin_Research_Paper_v3.docx` with all verified data, resolved check notes,
+complete mathematical equations, parameter sweep tables, and embedded 300 DPI figures F01-F13.
 """
 
 from pathlib import Path
@@ -109,8 +110,8 @@ def build_paper():
     p_title.paragraph_format.space_before = Pt(0)
     p_title.paragraph_format.space_after = Pt(6)
     r_t = p_title.add_run(
-        "Hydrodynamic Regimes, Bifurcation Thresholds, and Chaotic Dispersion of a Falling Coin:\n"
-        "A Two-Stage Quasi-Steady ODE and 2D WCSPH–FSI Numerical Investigation"
+        "Fluttering and Tumbling of a Falling Coin:\n"
+        "A 2D Quasi-Steady Model with a Preliminary SPH Study"
     )
     r_t.bold = True
     r_t.font.size = Pt(15)
@@ -120,7 +121,7 @@ def build_paper():
     p_auth.paragraph_format.space_before = Pt(0)
     p_auth.paragraph_format.space_after = Pt(14)
     r_a = p_auth.add_run(
-        "Ayaan Bilal\nInternational Young Physicists' Tournament (IYPT 2026) — Problem 12: 'Autumn Coin'"
+        "Ayaan Bilal\nInternational Young Physicists’ Tournament (IYPT) 2026, Problem 12: “Autumn Coin”"
     )
     r_a.font.size = Pt(10.5)
     r_a.italic = True
@@ -130,287 +131,336 @@ def build_paper():
     h_abs.paragraph_format.space_before = Pt(10)
     h_abs.paragraph_format.space_after = Pt(4)
     p_abs = doc.add_paragraph(
-        "The motion of a coin descending through a quiescent Newtonian liquid exhibits rich nonlinear "
-        "fluid–structure interaction (FSI) regimes—including periodic fluttering, unidirectional autorotative "
-        "tumbling, and chaotic mixed reversals—analogous to a falling autumn leaf. In this computational "
-        "investigation, we determine how the falling dynamics depend on the dimensionless moment of inertia "
-        "I* = (ρ_s h)/(ρ_f L), Reynolds number Re, linear rotational damping μ₁, aspect ratio h/L, and "
-        "initial release angle θ₀. First, we formulate a two-dimensional (2D) six-degree-of-freedom "
-        "Kirchhoff added-mass and quasi-steady aerodynamic model following Andersen, Pesavento, and Wang (2005a,b) "
-        "with a five-state stationary regime classifier. High-precision bisection searches prove that the theoretical linear rotational "
-        "damping coefficient μ₁ = 0.20 yields a critical flutter-to-tumble bifurcation threshold of I*_c = 1.213 ± 0.003 "
-        "(at θ₀ = 20°, h/L = 0.075), matching the published experimental transition midpoint I*_c = 1.20 ± 0.10 "
-        "within +1.08%, whereas an empirically under-damped setting (μ₁ = 0.01) prematurely shifts the threshold by "
-        "−19.14% to I*_c = 0.9703. Across a 136-point (I*, Re) phase diagram (I* ∈ [0.05, 3.50], L ∈ {8, 12, 16, 20} mm, "
-        "Δθ = 10⁻³ rad), we show that broadside steady descent is an unstable saddle point under physical "
-        "perturbation: 52.94% of drops exhibit stable periodic fluttering (I* ≤ 1.25), 14.71% exhibit unidirectional "
-        "tumbling (1.25 ≤ I* ≤ 1.45), and 32.35% enter mixed heteroclinic chaos (I* ≥ 1.50). Monte Carlo ensembles "
-        "(N = 50 drops per regime) reveal that while phase-space contraction onto the fluttering limit cycle at I* = 0.80 "
-        "confines landing scatter to an arcsine distribution with σ_X = 15.34 mm, heteroclinic separatrix crossings "
-        "at I* = 3.50 amplify landing dispersion by 46.52× to σ_X = 713.64 mm. Second, because the quasi-steady ODE "
-        "lacks explicit fluid viscosity μ, we implement a 2D Weakly Compressible Smoothed Particle Hydrodynamics (WCSPH) "
-        "solver with Akinci et al. (2012) rigid-boundary coupling, reporting both its qualitative capture of low-Re "
-        "viscous damping and its boundary-layer discretization limitations."
+        "A coin sinking through water does not fall straight. Depending on how heavy it is, it can flutter from side to side, "
+        "tumble over and over in one direction, or move irregularly between the two, much like an autumn leaf. This paper looks at "
+        "how these motions depend on the dimensionless moment of inertia I* = ρ_s h / (ρ_f L), the linear rotational damping μ₁, "
+        "and the release angle θ₀.\n\n"
+        "I use a two-dimensional quasi-steady model of a falling elliptical plate, following Andersen, Pesavento and Wang (2005), "
+        "and sort each simulated drop into steady, fluttering, tumbling or mixed motion. With μ₁ = 0.20 the model switches from "
+        "fluttering to tumbling at I*_c ≈ 1.21 (h/L = 0.075, θ₀ = 20°), which is inside the experimental value of 1.20 ± 0.10. "
+        "With μ₁ = 0.01 the threshold drops by about 19% to 0.97, so the damping term clearly matters. In 50-drop ensembles, "
+        "the scatter in landing position grows from 15 mm at I* = 0.80 to 714 mm at I* = 3.50.\n\n"
+        "The quasi-steady model has no fluid viscosity, so I also wrote a 2D SPH solver. It shows the expected trend of viscous "
+        "damping, but it over-predicts cylinder drag by about five times and is not grid-converged. I therefore treat the SPH "
+        "results as qualitative only."
     )
     p_abs.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
 
     # Section 1
-    doc.add_heading("1. Introduction & Governing Dimensionless Groups", level=1)
+    doc.add_heading("1. Introduction", level=1)
     doc.add_paragraph(
-        "When a thin coin or flat plate descends under gravity through water, potential-flow convective acceleration "
-        "around its edges generates a destabilizing Munk pitching moment (m₁₁ − m₂₂) u v that turns the body broadside "
-        "to the flow (Field et al., 1997; Belmonte et al., 1998; Pesavento & Wang, 2004; Andersen et al., 2005a,b). "
-        "As the tilted coin slides sideways, leading- and trailing-edge shear layers shed vortices that produce "
-        "Kutta–Joukowski circulation lift, arresting the descent at a turning cusp. Depending on the ratio of solid "
-        "rotational inertia to displaced fluid inertia, the coin either reverses into periodic side-to-side fluttering, "
-        "flips past the vertical saddle (θ = ±90°) into continuous unidirectional tumbling, or enters mixed "
-        "chaotic reversals."
+        "When a thin coin or plate sinks in water, the flow around its edges pushes it toward a broadside orientation. "
+        "This is the Munk moment, (m₁₁ − m₂₂)uv (Field et al., 1997; Belmonte et al., 1998; Pesavento & Wang, 2004; "
+        "Andersen et al., 2005a,b). As the tilted coin slides sideways, vortices shed from its edges create a circulation "
+        "and a lift force that stops the slide. What happens next depends on how the coin’s own inertia compares with the "
+        "inertia of the water it displaces. A light coin turns back and flutters. A heavier one rotates past the vertical and "
+        "tumbles in one direction. Near the boundary between the two, the motion can be irregular."
     )
     doc.add_paragraph(
-        "A common error in analyses of this problem is defining the dimensionless inertia as I / (m R²), which reduces "
-        "to a geometric constant (1/4 or 1/2) for any homogeneous disk or ellipse and cancels out ρ_s, ρ_f, and h/L. "
-        "For a 2D elliptical cross-section of chord L = 2a and thickness h = 2b, the true governing dimensionless groups are:"
+        "For an elliptical cross-section with chord L = 2a and thickness h = 2b, the motion is controlled by these dimensionless groups:"
     )
-    add_equation(doc, "I* = (ρ_s h) / (ρ_f L),    β = h / L,    Re = (ρ_f ⟨|V|⟩ L) / μ,    St = (f_dominant L) / ⟨|V|⟩", "1")
-    add_equation(doc, "U_t = √((ρ_s/ρ_f − 1) g h),    U_0 = U_t / √2,    τ_0 = a / U_0 = L / √(2 (ρ_s/ρ_f − 1) g h)", "2")
+    add_equation(doc, "I* = (ρ_s h) / (ρ_f L),    β = h / L,    Re = (ρ_f ⟨|V|⟩ L) / μ,    St = (f L) / ⟨|V|⟩", "1")
+    doc.add_paragraph("The velocity and time scales are:")
+    add_equation(doc, "U_t = √((ρ_s/ρ_f − 1) g h),    U_0 = U_t / √2,    τ_0 = a / U_0", "2")
+    doc.add_paragraph(
+        "Defining inertia as I/(mR²) would not work here. For any uniform disk or ellipse it equals a constant (1/4 or 1/2), "
+        "so it says nothing about density or thickness. The model is also two-dimensional, which strictly describes a long "
+        "plate or card rather than a disk. I use it as a first approximation for a coin and come back to this in Section 5."
+    )
 
     # Section 2
-    doc.add_heading("2. Mathematical & Numerical Methodology", level=1)
-    doc.add_heading("2.1 Stage 1: Coupled 2D Kirchhoff–Andersen Quasi-Steady ODEs", level=2)
+    doc.add_heading("2. Method", level=1)
+    doc.add_heading("2.1 The quasi-steady model", level=2)
     doc.add_paragraph(
-        "The coin cross-section is modeled as an ellipse with semi-major axis a = L/2, semi-minor axis b = h/2, "
-        "area A = π a b, solid mass per unit span m = ρ_s A, displaced fluid mass m_f = ρ_f A, and solid moment "
-        "of inertia I_solid = (1/4) m (a² + b²). The potential-flow added-mass components (Lamb, 1932; Andersen et al., 2005a) are:"
+        "The coin cross-section is an ellipse with semi-axes a = L/2 and b = h/2. Per unit span, its area is A = πab, "
+        "its mass is m = ρ_s A, the mass of displaced fluid is m_f = ρ_f A, and its moment of inertia is "
+        "I_solid = m(a² + b²)/4. The added-mass terms from potential flow (Lamb, 1932; Andersen et al., 2005a) are:"
     )
     add_equation(doc, "m_11 = π ρ_f b²,    m_22 = π ρ_f a²,    I_a = (1/8) π ρ_f (a² − b²)²", "3")
     doc.add_paragraph(
-        "With total virtual masses M_u = m + m₁₁, M_v = m + m₂₂, and I_tot = I_solid + I_a, the 6-DOF state vector "
-        "q = [X, Y, θ, u, v, ω]ᵀ evolves according to the lab kinematics and Kirchhoff dynamic equations "
-        "(Andersen, Pesavento & Wang, 2005b, Eqs. 3.1–3.3):"
+        "Adding these to the coin gives M_u = m + m₁₁, M_v = m + m₂₂ and I_tot = I_solid + I_a. The state is "
+        "q = [X, Y, θ, u, v, ω], where (u, v) is the velocity in the body frame. This is a three-degree-of-freedom system "
+        "(X, Y, θ) written as six first-order equations. Following Andersen et al. (2005b):"
     )
-    add_equation(doc, "dX/dt = u cos(θ) − v sin(θ),    dY/dt = u sin(θ) + v cos(θ),    dθ/dt = ω", "4")
-    add_equation(doc, "M_u (du/dt) = M_v v ω − ρ_f Γ v − F_u − (m − m_f) g sin(θ)", "5")
-    add_equation(doc, "M_v (dv/dt) = −M_u u ω + ρ_f Γ u − F_v − (m − m_f) g cos(θ)", "6")
+    add_equation(doc, "dX/dt = u cosθ − v sinθ,    dY/dt = u sinθ + v cosθ,    dθ/dt = ω", "4")
+    add_equation(doc, "M_u (du/dt) = M_v v ω − ρ_f Γ v − F_u − (m − m_f) g sinθ", "5")
+    add_equation(doc, "M_v (dv/dt) = −M_u u ω + ρ_f Γ u − F_v − (m − m_f) g cosθ", "6")
     add_equation(doc, "I_tot (dω/dt) = (m_11 − m_22) u v − τ", "7")
     doc.add_paragraph(
-        "With angle of attack α = atan2(−v, u), the quasi-steady circulation Γ, angle-dependent viscous drag "
-        "C_D(α), and dissipative rotational torque τ follow Eqs. (3.7)–(3.9) of Andersen et al. (2005b):"
+        "The angle of attack is α = atan2(−v, u). The circulation, drag and rotational torque are:"
     )
-    add_equation(doc, "Γ = −C_T L (u v / |V|) + 0.5 C_R L² ω,    C_L(α) = C_T sin(2α)   [C_T = 1.2, C_R = π]", "8")
-    add_equation(doc, "C_D(α) = C_D0 − C_D1 cos(2α),    (F_u, F_v) = 0.5 ρ_f L C_D(α) |V| (u, v)   [C_D0 = 1.4, C_D1 = 1.0]", "9")
-    add_equation(doc, "τ = 0.5 C_τ ρ_f L⁴ |ω| ω + (π / 8) ρ_f L³ U_char μ₁ ω   [C_τ = π μ₂ / 8 = 0.07854, μ₁ = 0.20]", "10")
-
-    doc.add_heading("2.2 Numerical Integrator & Five-State Regime Classifier", level=2)
+    add_equation(doc, "Γ = −C_T L (u v / |V|) + 0.5 C_R L² ω,    C_T = 1.2,    C_R = π", "8")
+    add_equation(doc, "C_D(α) = C_D0 − C_D1 cos 2α,    (F_u, F_v) = 0.5 ρ_f L C_D(α) |V| (u, v),    C_D0 = 1.4,    C_D1 = 1.0", "9")
+    add_equation(doc, "τ = 0.5 C_τ ρ_f L⁴ |ω| ω + (π / 8) ρ_f L³ U_char μ₁ ω,    C_τ = 0.07854,    μ₁ = 0.20", "10")
     doc.add_paragraph(
-        "The system is integrated via SciPy's 8th-order Dormand–Prince solver (DOP853, rtol = 10⁻⁹, atol = 10⁻¹¹, "
-        "dt_out = 0.001 s). After discarding the initial transient t < max(20 τ₀, 0.20 t_end) and Y > Y₀ − 0.20 H_fall, "
-        "the five-state classifier checks stationarity (requiring window ≥ 30 τ₀, cycles ≥ 2.0, and relative amplitude "
-        "drift between the middle and final thirds ≤ 15%; otherwise labeling 'undetermined') before branching into "
-        "'steady' (std(θ) < 1°), 'tumbling' (net rotation ≥ 720° with reversal < 180° or spin ratio "
-        "|⟨ω⟩|/⟨|ω|⟩ ≥ 0.70), 'fluttering' (ptp < 300°, net rotation < 360°), or 'mixed' (chaotic reversals)."
+        "Here U_char = U₀ = √((ρ_s/ρ_f − 1) g h / 2). I use ρ_f = 998 kg/m³, μ = 10⁻³ Pa·s and g = 9.81 m/s²."
     )
 
-    doc.add_heading("2.3 Stage 2: 2D WCSPH–FSI & Multi-Platform Visualizers", level=2)
+    doc.add_heading("2.2 Integration and regime classification", level=2)
     doc.add_paragraph(
-        "To probe explicit viscosity effects, we implemented a C++20 2D Weakly Compressible SPH solver with "
-        "a 2D Wendland C² kernel (h_sml = 1.3 dx, exact gradient prefactor −35/(4 π h⁴)), Tait EOS (γ = 7, c₀ = 10 U_max), "
-        "Morris laminar viscosity, and Akinci et al. (2012) ghost boundary particles with Adami et al. (2012) hydrostatic "
-        "pressure extrapolation, integrated via a Symplectic Kick–Drift–Kick scheme with Picard iteration. We also built "
-        "a hardware-accelerated desktop visualizer and a zero-dependency HTML5 web visualizer (visualizer.html) with verified numerical parity."
+        "I integrate the equations with the SciPy DOP853 solver (rtol = 10⁻⁹, atol = 10⁻¹¹, output step 0.001 s). "
+        "The start of each run is discarded as a transient: times below max(20τ₀, 0.2 t_end) and the first 20% of the "
+        "fall height. The rest is accepted only if it is stationary, meaning it is at least 30τ₀ long, covers at least "
+        "two cycles, and the oscillation amplitude changes by no more than 15% between the middle and last thirds. "
+        "Otherwise the run is labelled “undetermined”. Accepted runs are classified as follows:\n\n"
+        "• Steady: the standard deviation of θ is below 1°.\n"
+        "• Tumbling: net rotation of at least 720°, with either no reversal larger than 180° or a spin ratio |⟨ω⟩|/⟨|ω|⟩ of at least 0.70.\n"
+        "• Fluttering: peak-to-peak θ below 300° and net rotation below 360°.\n"
+        "• Mixed: everything else, meaning irregular reversals."
+    )
+
+    doc.add_heading("2.3 The SPH solver", level=2)
+    doc.add_paragraph(
+        "To test the effect of viscosity I wrote a 2D weakly compressible SPH solver in C++20. It uses a Wendland C² kernel "
+        "(smoothing length 1.3 dx), a Tait equation of state (γ = 7, c₀ = 10 U_max), Morris laminar viscosity, and ghost boundary "
+        "particles (Akinci et al., 2012) with Adami et al. (2012) pressure extrapolation. Time stepping is kick–drift–kick with "
+        "Picard iteration for the coupling to the rigid body. I also built a desktop visualizer and a browser version (visualizer.html), "
+        "which matched the Python model in my checks."
     )
 
     # Section 3
-    doc.add_heading("3. Numerical Simulation Results", level=1)
-    doc.add_heading("3.1 Single-Drop Showcases & Energy Conservation", level=2)
+    doc.add_heading("3. Results from the quasi-steady model", level=1)
+    doc.add_heading("3.1 Two example drops and an energy check", level=2)
     doc.add_paragraph(
-        "In our fluttering showcase (L = 20 mm, h = 1.5 mm, ρ_s = 9000 kg/m³, I* = 0.676, θ₀ = 15°, "
-        "H_fall = 0.800 m), the coin descends in t_end = 7.2204 s with mean vertical speed 0.1473 m/s (U_mean/U_t = 0.6445, "
-        "Re_meas ≈ 2940), oscillating in a stable limit cycle with peak-to-peak amplitude 74.8° (std = 24.6°), dominant "
-        "frequency f = 0.88 Hz (St ≈ 0.120), and net lateral drift X_final = +13.27 mm. In contrast, our tumbling showcase "
-        "(L = 24 mm, h = 1.8 mm, I* = 1.20, θ₀ = 20°, H_fall = 0.960 m) completes 33.42 continuous "
-        "unidirectional revolutions (Δθ_net = −12033.8°) over 11.5745 s, gliding laterally to X_final = −2.9123 m."
+        "Fluttering drop. L = 20 mm, h = 1.5 mm, ρ_s = 9000 kg/m³ (I* = 0.676), θ₀ = 15°, fall height 0.800 m. "
+        "The coin takes 10.45 s to fall at a mean speed ⟨|V|⟩ of 0.235 m/s (Re ≈ 4690; vertical descent speed 0.077 m/s, "
+        "giving ⟨|V|⟩/U_t = 0.683 with U_t = 0.343 m/s). Its angle oscillates in a steady cycle with a peak-to-peak amplitude "
+        "of 107.1° (standard deviation 35.3°) at 3.11 Hz, corresponding to a Strouhal number of St = fL/⟨|V|⟩ ≈ 0.265, "
+        "and it drifts 13.6 mm sideways."
     )
     doc.add_paragraph(
-        "Integrating the instantaneous viscous dissipation rate alongside kinetic and buoyant potential energy reconciles "
-        "the total mechanical energy budget: the benchmark energy closure residual reaches a maximum of 1.1 × 10⁻⁵ % on the "
-        "reference drop (and < 0.12% across all high-inertia sweeps, well within the 1.0% acceptance limit) of the available "
-        "potential energy drop (Figure 1)."
+        "Tumbling drop. L = 24 mm, h = 1.8 mm, ρ_s = 17,964 kg/m³ (I* = 1.35), θ₀ = 20°, fall height 0.960 m. "
+        "Because this inertia lies clearly above the critical threshold, rotational momentum carries the plate past the vertical "
+        "edge-on position on every half-cycle. The coin completes 12.9 continuous turns in one direction (net rotation −4638°) "
+        "in 6.07 s at a mean speed of 0.438 m/s, and persistent lift drives it 1.82 m sideways."
+    )
+    doc.add_paragraph(
+        "As an energy check, kinetic energy, buoyant potential energy and the work lost to viscous dissipation add up to the "
+        "available potential energy drop within 1.1 × 10⁻⁵ % on the reference drop, and within 0.12% across the high-inertia sweeps "
+        "(Figure 1). This tests the accuracy of the integration. It does not test the physics of the model."
     )
     add_figure_block(
         doc, "F08_energy_budget.png",
-        "Figure 1 (F08_energy_budget): Mechanical energy budget reconciliation for a falling plate (2D quasi-steady ODE simulation), "
-        "closing kinetic T(t), buoyant potential V_pot(t), and cumulative dissipated work W_diss(t) within 1.1 × 10⁻⁵ % on the reference drop "
-        "(and < 0.12% across high-inertia sweeps, well within the 1.0% acceptance threshold)."
+        "Figure 1. Energy budget for a falling plate in the quasi-steady model: kinetic energy T(t), buoyant potential energy V_pot(t) "
+        "and cumulative dissipated work W_diss(t) closing within 1.1 × 10⁻⁵ % on the reference drop."
     )
 
-    doc.add_heading("3.2 Critical Inertia Threshold I*_c & Linear Damping Sensitivity (μ₁)", level=2)
+    doc.add_heading("3.2 The flutter-to-tumble threshold and the damping coefficient", level=2)
     doc.add_paragraph(
-        "A central finding of our study is the role of the linear rotational damping coefficient μ₁. Our bisection search "
-        "across μ₁ ∈ [0.00, 0.20] demonstrates that I*_c increases monotonically with μ₁. When linear rotational damping is "
-        "omitted (μ₁ = 0.00) or set to the empirically tuned value μ₁ = 0.01, the critical threshold drops to I*_c = 0.9578 (−20.18%) "
-        "and I*_c = 0.9703 (−19.14%), prematurely forcing intermediate-inertia plates into tumbling. In contrast, using the "
-        "theoretical value μ₁ = 0.20 yields I*_c = 1.213 ± 0.003, matching the experimental transition midpoint I*_c = 1.20 ± 0.10 "
-        "within +1.08%."
+        "The parameter that matters most in the model is the linear rotational damping μ₁. I located the flutter-to-tumble "
+        "threshold I*_c by bisection for μ₁ between 0 and 0.20 (Table 1 and Figure 2). The threshold rises steadily with μ₁. "
+        "With no linear damping it is 0.951, about 21% below the experimental midpoint of 1.20. With μ₁ = 0.01 it is 0.967 (−19%). "
+        "Coins in that range would tumble when they should flutter."
+    )
+    doc.add_paragraph(
+        "With μ₁ = 0.20, the baseline value from Andersen et al. (2005b), the threshold is 1.213. That is 1.1% above the "
+        "experimental midpoint and well inside its uncertainty of ±0.10. The damping coefficients in models like this are "
+        "calibrated against data, so this agreement is a consistency check, not an independent prediction."
     )
     add_figure_block(
         doc, "F01_regime_vs_istar.png",
-        "Figure 2 (F01_regime_vs_istar): (a) Inertial regime strip across I* ∈ [0.05, 3.50] at baseline damping μ₁ = 0.20. "
-        "(b) High-resolution zoom of the critical transition bracket I* ∈ [0.95, 1.90]. (c) Monotonic shift of the critical "
-        "threshold I*_c across linear damping μ₁ ∈ [0.0, 0.20] compared against the Andersen et al. (2005b) experimental bracket [1.10, 1.30]."
+        "Figure 2. (a) Regimes over I* from 0.05 to 3.50 at μ₁ = 0.20. (b) Zoom on the transition, I* from 0.95 to 1.90. "
+        "(c) Shift of the threshold with μ₁, compared with the experimental bracket [1.10, 1.30] of Andersen et al. (2005b)."
     )
     add_styled_table(
         doc,
-        "Table 1: Bisection Search for Critical Flutter-to-Tumble Threshold I*_c Across Linear Damping μ₁ (θ₀ = 20°, h/L = 0.075).",
-        ["Damping μ₁", "Critical Threshold I*_c", "Lower Bound", "Upper Bound", "Bracket Width", "% Shift vs. 1.20 Midpoint"],
+        "Table 1. Bisection result for the flutter-to-tumble threshold at different linear damping μ₁ (θ₀ = 20°, h/L = 0.075).",
+        ["Damping μ₁", "Threshold I*_c", "Lower bound", "Upper bound", "Bracket width", "Shift vs. 1.20"],
         [
-            ["0.00 (Undamped)", "0.9578", "0.9562", "0.9594", "0.0031", "−20.18%"],
-            ["0.01 (Tuned Defect)", "0.9703", "0.9688", "0.9719", "0.0031", "−19.14%"],
-            ["0.05", "1.0266", "1.0250", "1.0281", "0.0031", "−14.45%"],
-            ["0.10", "1.0922", "1.0906", "1.0938", "0.0031", "−8.98%"],
-            ["0.20 (Andersen Baseline)", "1.2172 (1.213 ± 0.003)", "1.2156", "1.2188", "0.0031", "+1.43% (+1.08%)"],
+            ["0.00 (none)", "0.9507", "0.9490", "0.9523", "0.0033", "−20.8%"],
+            ["0.01", "0.9673", "0.9656", "0.9689", "0.0033", "−19.4%"],
+            ["0.05", "1.0204", "1.0188", "1.0221", "0.0033", "−15.0%"],
+            ["0.10", "1.0901", "1.0885", "1.0918", "0.0033", "−9.2%"],
+            ["0.20 (baseline)", "1.2130", "1.2113", "1.2146", "0.0033", "+1.1%"],
         ]
     )
     add_figure_block(
         doc, "F06_istar_sweep.png",
-        "Figure 3 (F06_istar_sweep): 25-point logarithmic I* sweep showing mean descent velocity and lateral landing drift surge in the tumbling window."
+        "Figure 3. Mean descent speed and sideways drift over a 25-point logarithmic sweep of I*. Both jump in the tumbling window."
     )
     add_figure_block(
         doc, "F07_flutter_spectrum.png",
-        "Figure 4 (F07_flutter_spectrum): Normalized FFT power spectral density of orientation angle θ(t) peaking at f = 0.77 Hz, with oscillation energy concentrated in the 0.4–1.2 Hz flutter band."
+        "Figure 4. Power spectrum of θ(t) for a light fluttering plate from the initial point of the I* sweep "
+        "(I* = 0.05, L = 24 mm, h = 0.96 mm, θ₀ = 5°). The dominant peak is at 0.77 Hz with most of the energy between "
+        "0.4 and 1.2 Hz, whereas the heavier, thicker reference coin in Section 3.1 flutters at 3.11 Hz."
     )
 
-    doc.add_heading("3.3 136-Point Phase Diagram in (I*, Re) Space & Instability of Steady Descent", level=2)
+    doc.add_heading("3.3 Regime map over I* and Re", level=2)
     doc.add_paragraph(
-        "Across our 136-point phase diagram (34 I* values in [0.05, 3.50] across 4 chord lengths L ∈ {8, 12, 16, 20} mm "
-        "at μ₁ = 0.20, h/L = 0.075, H_fall = 100L, θ₀ = 20° + 10⁻³ rad), applying a realistic release perturbation "
-        "causes 100% of low-I* drops to destabilize into periodic fluttering. Thus, pure steady broadside descent is an "
-        "unstable saddle point for falling coins in water: 52.94% of drops exhibit fluttering, 14.71% exhibit tumbling, "
-        "and 32.35% exhibit mixed chaos."
+        "I ran 34 values of I* between 0.05 and 3.50 at four chord lengths (8, 12, 16 and 20 mm), which makes 136 drops. "
+        "All used μ₁ = 0.20, a fall height of 100L, and a release angle of 20° plus a perturbation of 10⁻³ rad (Figure 5, Table 2). "
+        "The thickness changes along with I* (h/L runs from 0.04 to 0.175, and the density ratio is capped at 20). "
+        "Fluttering occurs up to I* = 1.20, tumbling from 1.25 to 1.45, and mixed motion from 1.50 to 2.75. "
+        "At I* = 3.0 to 3.5 the map shows fluttering again. This occurs because the map uses h/L = 0.175 and a clean 20° release, "
+        "where the thicker plate rocks periodically without tumbling past the vertical in the 100L fall. In contrast, the "
+        "high-inertia 50-drop ensemble in Section 3.4 uses a different geometry (h/L ≈ 0.22, ρ_s ≈ 16,000 kg/m³) released near vertical "
+        "(θ₀ = 5°) with random velocity noise, which repeatedly tips the coin across the separatrix and produces chaotic scatter."
+    )
+    doc.add_paragraph(
+        "Two points about this map need to be stated plainly. First, Re is not an independent variable in this model. "
+        "The coefficients do not depend on Re, so for a given I* and h/L the dimensionless motion is identical at every chord length. "
+        "The four chord lengths only change the scale, and with it Re. This is why all counts in Table 2 are multiples of four. "
+        "In effect there are 34 distinct runs, and the map shows regimes against I* alone."
+    )
+    doc.add_paragraph(
+        "Second, none of the 136 drops ended in steady broadside descent. To test whether broadside descent is truly unstable "
+        "rather than just inaccessible from 20°, I simulated drops starting near broadside with micro-perturbations down to 10⁻⁵ deg. "
+        "In every case, the destabilizing Munk moment amplified the initial tilt by over 10⁶ times within a few chord lengths, "
+        "growing into full fluttering with an amplitude of ~68°. Steady descent is therefore linearly unstable for coins in water."
     )
     add_figure_block(
         doc, "F02_regime_map_Re_istar.png",
-        "Figure 5 (F02_regime_map_Re_istar): 136-point 2D regime map in (I*, Re) space across L = 8, 12, 16, 20 mm (2D quasi-steady ODE simulation)."
+        "Figure 5. Regime map in (I*, Re) for L = 8, 12, 16 and 20 mm."
     )
     add_styled_table(
         doc,
-        "Table 2: Aggregated Regime Distribution Across the 136-Point (I*, Re) Phase Diagram (μ₁ = 0.20).",
-        ["Regime", "Point Count", "Share (%)", "I* Range", "Measured Re Range", "Mean Descent Speed [m/s]"],
+        "Table 2. Regimes found in the 136-drop map (μ₁ = 0.20). The share of drops in each regime depends on how I* was sampled, so I give counts rather than percentages.",
+        ["Regime", "I* range", "Drops", "Mean descent speed [m/s]"],
         [
-            ["fluttering", "72", "52.94%", "[0.05, 1.25]", "[144.0, 13452.5]", "[0.0180, 0.6740]"],
-            ["tumbling", "20", "14.71%", "[1.25, 1.45]", "[1787.8, 10816.9]", "[0.2239, 0.5419]"],
-            ["mixed", "44", "32.35%", "[1.50, 3.50]", "[1872.8, 11098.2]", "[0.2346, 0.5560]"],
-            ["Total", "136", "100.0%", "[0.05, 3.50]", "[144.0, 26973.0]", "[0.0180, 0.6740]"],
+            ["Fluttering", "0.05 to 1.20 and 3.0 to 3.5", "72", "0.0180 to 0.6740"],
+            ["Tumbling", "1.25 to 1.45", "20", "0.2239 to 0.5419"],
+            ["Mixed", "1.50 to 2.75", "44", "0.2346 to 0.5560"],
+            ["Total", "0.05 to 3.50", "136", "0.0180 to 0.6740"],
         ]
     )
 
-    doc.add_heading("3.4 Initial Release Angle Sweep & Monte Carlo Chaotic Dispersion", level=2)
+    doc.add_heading("3.4 Release angle and landing scatter", level=2)
     doc.add_paragraph(
-        "Testing release angles across θ₀ ∈ [0°, 90°] reveals that non-zero angles rapidly contract onto the "
-        "fluttering limit-cycle attractor at low and intermediate inertia (I* = 0.20, 0.80). At high inertia (I* = 3.50), "
-        "50-drop Monte Carlo ensembles with microscopic perturbations (σ_θ = 0.5°, σ_v = 10⁻⁴ m/s) "
-        "amplify landing dispersion by 46.52× (sample standard deviation σ_X = 15.34 mm at I* = 0.80 to 713.64 mm at I* = 3.50) "
-        "due to repeated heteroclinic separatrix crossings."
+        "For release angles from 0° to 90°, the coin settles quickly onto the fluttering cycle at low and intermediate "
+        "inertia (I* = 0.20 and 0.80; Figure 6). I then dropped 50 coins at each of three values of I*, with small random "
+        "perturbations (σ_θ = 0.5°, σ_v = 10⁻⁴ m/s), and recorded where they landed (Figure 7, Table 3)."
+    )
+    doc.add_paragraph(
+        "At I* = 0.80 the landing positions spread by σ_X = 15.3 mm. The motion is a periodic cycle, so the spread is set "
+        "mostly by the phase of the cycle at landing, which gives an arcsine-shaped histogram. At I* = 3.50 (where the "
+        "ensemble code sets h/L = 0.219, h = 5.25 mm, and ρ_s = 15,968 kg/m³ for L = 24 mm), the spread is 714 mm, which is "
+        "46.5 times larger. This is consistent with sensitive dependence on initial conditions in the mixed regime. It does "
+        "not prove chaos, which would need a Lyapunov exponent, and heavy coins also drift much farther sideways, which "
+        "inflates the spread by itself. A tumbling case near I* = 1.35 would be a useful control."
     )
     add_figure_block(
         doc, "F09_release_angle_sweep.png",
-        "Figure 6 (F09_release_angle_sweep): Release angle sensitivity across θ₀ ∈ [0°, 90°] for I* = 0.20, 0.80, and 3.50."
+        "Figure 6. Sensitivity to the release angle θ₀ from 0° to 90° at I* = 0.20, 0.80 and 3.50."
     )
     add_figure_block(
         doc, "F10_landing_scatter.png",
-        "Figure 7 (F10_landing_scatter): Monte Carlo landing dispersion histograms (50 drops per case) demonstrating the 46.52× chaotic amplification at I* = 3.50 (sample standard deviation σ_X = 713.64 mm, population standard deviation σ_pop = 706 mm matching the figure legend)."
+        "Figure 7. Landing-position histograms from 50-drop ensembles. At I* = 3.50 the sample standard deviation is 714 mm; the legend shows the population value, 706 mm."
     )
     add_styled_table(
         doc,
-        "Table 3: Monte Carlo Chaos Ensemble Dispersion Statistics (N = 50 Drops per Case, σ_θ = 0.5°, σ_v = 10⁻⁴ m/s; reporting both sample σ_X and population σ_pop).",
-        ["Ensemble Case", "Nominal I*", "Mean Landing X [mm]", "Std Dev σ_X [mm]", "Min / Max X [mm]", "Total Span [mm]", "Dispersion Ratio"],
+        "Table 3. Landing scatter in the 50-drop ensembles (σ_θ = 0.5°, σ_v = 10⁻⁴ m/s). Sample σ_X is given first, population σ in brackets.",
+        ["Case", "I*", "Mean X [mm]", "σ_X [mm]", "Min / Max X [mm]", "Span [mm]", "Ratio"],
         [
-            ["Low Inertia", "0.20", "+76.47", "105.83 (pop: 104.8)", "[−169.53, +316.31]", "485.84", "6.90×"],
-            ["Mid Inertia (Limit Cycle)", "0.80", "+2.80", "15.34 (pop: 15.2)", "[−20.02, +23.97]", "43.99", "1.00× (Baseline)"],
-            ["High Inertia (Chaotic)", "3.50", "+105.92", "713.64 (pop: 706)", "[−1155.16, +1372.85]", "2528.00", "46.52×"],
+            ["Low inertia", "0.20", "+76.47", "105.83 (104.8)", "−169.53 / +316.31", "485.84", "6.90×"],
+            ["Mid inertia (limit cycle)", "0.80", "+2.80", "15.34 (15.2)", "−20.02 / +23.97", "43.99", "1.00× (baseline)"],
+            ["High inertia (mixed)", "3.50", "+105.92", "713.64 (706)", "−1155.16 / +1372.85", "2528.00", "46.52×"],
         ]
     )
 
-    doc.add_heading("3.5 Catalog of Real-World & Design Coins", level=2)
+    doc.add_heading("3.5 Nine example coins", level=2)
     doc.add_paragraph(
-        "Evaluating nine catalog coins across release angles and damping values highlights the practical predictive power "
-        "of the dimensionless framework. Circulation coins (Pakistani Rs 10 and Rs 5) flutter stably, whereas brass coins "
-        "straddle the critical bifurcation boundary."
+        "Finally I applied the model to nine coins (Table 4, Figure 8). Two are real Pakistani circulation coins, the Rs 10 and "
+        "the Rs 5. The other seven are hypothetical design coins in different metals. The lighter coins, including both "
+        "Pakistani coins, flutter. A 24 × 3.0 mm brass coin flutters at μ₁ = 0.20 but tumbles at μ₁ = 0.01, and a 24 × 3.5 mm "
+        "brass coin tumbles at both. The steel, lead and tungsten coins move irregularly. Each coin has its own h/L, which "
+        "differs from the 0.075 used in Section 3.2 (the 3.5 mm brass coin has h/L = 0.146, for example), so their position "
+        "relative to the threshold in Table 1 is not a direct comparison."
     )
     add_figure_block(
         doc, "F03_coin_trajectories.png",
-        "Figure 8 (F03_coin_trajectories): Multi-panel 3 × 3 trajectory grid for all 9 catalog coins simulated over the first 60 dimensionless time units (a/U₀) at baseline linear damping μ₁ = 0.20 and release angle θ₀ = 5° (+10⁻³ rad perturbation). The panels illustrate the progressive regime transition: light coins (acrylic, aluminium, Pakistani Rs 10 and Rs 5) exhibit stable periodic fluttering; intermediate brass (24 × 3.0 mm) flutters at μ₁ = 0.20; thicker brass (24 × 3.5 mm) transitions to unidirectional tumbling; and dense coins (steel, lead, tungsten) display chaotic mixed reversals with broad lateral excursions."
+        "Figure 8. Trajectories of the nine coins over the first 60 dimensionless time units (a/U₀), with μ₁ = 0.20 and θ₀ = 5° "
+        "(plus 10⁻³ rad). Acrylic, aluminium and both Pakistani coins flutter, and so does the 3.0 mm brass coin. The 3.5 mm brass coin "
+        "tumbles. Steel, lead and tungsten move irregularly."
     )
     add_styled_table(
         doc,
-        "Table 4: Summary of 9 Catalog Real-World and Design Coins Across Release Angles (5°, 20°, 45°, 90°) and Damping (μ₁ = 0.20 vs. 0.01).",
-        ["Coin Identifier", "I*", "ρ_s / ρ_f", "Regime (μ₁ = 0.20)", "Regime (μ₁ = 0.01)", "Damping Switch Effect"],
+        "Table 4. The nine example coins, released at 5°, 20°, 45° and 90°, with μ₁ = 0.20 and 0.01.",
+        ["Coin", "I*", "ρ_s/ρ_f", "Regime (μ₁ = 0.20)", "Regime (μ₁ = 0.01)", "Effect of damping"],
         [
-            ["design_acrylic_24x1.2", "0.0591", "1.18", "fluttering", "undetermined (5°) / fluttering", "Horizon switch at 5°"],
-            ["design_aluminium_24x1.5", "0.1691", "2.71", "fluttering", "fluttering", "Identical"],
-            ["pk_rs10", "0.4232", "7.19", "fluttering", "fluttering", "Identical"],
-            ["pk_rs5_2002", "0.5999", "6.86", "fluttering", "fluttering", "Identical"],
-            ["design_brass_24x3.0", "1.0646", "8.52", "fluttering", "tumbling", "Switch: flutter → tumble"],
-            ["design_brass_24x3.5", "1.2421", "8.52", "tumbling", "tumbling", "Identical"],
-            ["design_steel_24x4.5", "1.4748", "7.87", "mixed", "mixed", "Identical"],
-            ["design_lead_24x3.5", "1.6571", "11.36", "mixed", "mixed", "Identical"],
-            ["design_tungsten_24x3.0", "2.4111", "19.29", "mixed", "mixed", "Identical"],
+            ["design_acrylic_24x1.2", "0.0591", "1.18", "fluttering", "undetermined at 5°, fluttering otherwise", "Run too short at 5°"],
+            ["design_aluminium_24x1.5", "0.1691", "2.71", "fluttering", "fluttering", "None"],
+            ["pk_rs10", "0.4232", "7.19", "fluttering", "fluttering", "None"],
+            ["pk_rs5_2002", "0.5999", "6.86", "fluttering", "fluttering", "None"],
+            ["design_brass_24x3.0", "1.0646", "8.52", "fluttering", "tumbling", "Flutter to tumble"],
+            ["design_brass_24x3.5", "1.2421", "8.52", "tumbling", "tumbling", "None"],
+            ["design_steel_24x4.5", "1.4748", "7.87", "mixed", "mixed", "None"],
+            ["design_lead_24x3.5", "1.6571", "11.36", "mixed", "mixed", "None"],
+            ["design_tungsten_24x3.0", "2.4111", "19.29", "mixed", "mixed", "None"],
         ]
     )
 
     # Section 4
-    doc.add_heading("4. Stage 2 (2D WCSPH–FSI), Literature Validation & Limitations", level=1)
+    doc.add_heading("4. Comparison with the literature and the SPH study", level=1)
+    doc.add_heading("4.1 Literature", level=2)
     doc.add_paragraph(
-        "Benchmarking our 2D quasi-steady ODE predictions against experimental literature demonstrates that our baseline "
-        "prediction I*_c = 1.213 ± 0.003 agrees within +1.08% with Andersen et al. (2005b) experimental cards (1.20 ± 0.10). "
-        "Flutter Strouhal numbers decrease from 0.776 to 0.154, crossing the Belmonte et al. (1998) benchmark band (0.18–0.22) "
-        "near I* ≈ 0.75. Differences between 2D predictions and 3D coin tracking in the ondrej-cloud dataset (Šrámek et al.) "
-        "and Field et al. (1997) stem from 3D tip-vortex induced drag and out-of-plane pitching degrees of freedom."
+        "The threshold of 1.213 lies within the experimental value of 1.20 ± 0.10 reported by Andersen et al. (2005b). "
+        "The flutter Strouhal number in the sweep falls from 0.776 to 0.154 as I* increases, passing through the 0.18 to 0.22 "
+        "band of Belmonte et al. (1998) near I* = 0.75 (Figure 9). The reference drop in Section 3.1 gives St ≈ 0.265 at "
+        "I* = 0.676 when evaluated using total speed ⟨|V|⟩, which fits squarely into this fluttering range. "
+        "Differences from 3D coin experiments (Field et al., 1997) and from the 3D tracking data in the ondrej-cloud "
+        "repository are expected, because of tip vortices and rotation out of the plane. A direct comparison with that dataset "
+        "is left for future work."
     )
     add_figure_block(
         doc, "F05_literature_comparison.png",
-        "Figure 9 (F05_literature_comparison): Validation of 2D ODE predictions against Andersen et al. (2005b) descent velocity ratios U_mean/U_t "
-        "and Belmonte et al. (1998) Strouhal numbers St ≈ 0.18–0.22."
+        "Figure 9. Model predictions compared with the descent-speed ratios U_mean/U_t of Andersen et al. (2005b) and the Strouhal band 0.18 to 0.22 of Belmonte et al. (1998)."
     )
 
-    # Analytical discussion of Stage 2 SPH simulations
+    doc.add_heading("4.2 SPH results", level=2)
     doc.add_paragraph(
-        "To explore physical mechanisms beyond the constant-coefficient ODE, our Stage 2 2D WCSPH–FSI solver directly "
-        "resolves the Navier–Stokes flow field and fluid–structure coupling. As depicted in Figure 10 (F11), direct comparison "
-        "of orientation tilt θ(t) over a 0.50 s drop confirms that 2D WCSPH reproduces the qualitative onset of motion for both "
-        "fluttering (I* = 0.68) and tumbling (I* = 1.35) plates, tracking the initial Munk pitching excursion and turnaround before "
-        "numerical boundary dissipation attenuates peak amplitude. Crucially, Figure 11 (F12) demonstrates the explicit role of fluid "
-        "viscosity at fixed inertia I* = 0.65 across Re_in ∈ {25, 100, 300, 800}: strong viscous diffusion at Re_in = 25 rapidly damps "
-        "pitching oscillations into a monotonic −60° steady glide, whereas lower viscosities (Re_in ≥ 100) sustain dynamic vortex shedding "
-        "and periodic pitch reversals. Finally, Figure 12 (F13) transparently benchmarks the 7-test SPH verification ladder. The solver "
-        "readily passes continuum benchmarks—including Wendland C² partition of unity (Test 1), hydrostatic equilibrium and Archimedes "
-        "buoyancy with 0.0012% error (Test 2), Couette shear velocity profile with 0.23% error and Taylor–Green vortex decay with "
-        "ν_meas/ν = 0.9071 (Test 3), and low-inertia added-mass stability at I* = 0.05 (Test 6). However, the method exhibits clear "
-        "discretization limitations on thin immersed boundaries: fixed-cylinder drag (Test 5) is over-predicted by ~5× (C_D = 10.96 at "
-        "Re = 20 and 8.11 at Re = 40) due to coarse boundary-layer shear sampling, and the spatial convergence study (Test 7) reveals a "
-        "23.2% descent speed disparity between L/16 and L/20 grids because the physical plate thickness spans only N_h = 0.9–1.5 particles. "
-        "Thus, the SPH results serve as qualitative proof of viscous damping rather than high-precision aerodynamic drag benchmarks."
+        "The SPH solver resolves the Navier–Stokes flow directly, so it can show something the ODE cannot: the effect of fluid "
+        "viscosity. Figure 10 compares the tilt θ(t) over the first 0.5 s for a fluttering plate (I* = 0.68) and a tumbling plate "
+        "(I* = 1.35). The SPH runs reproduce the start of the motion, the first pitching swing and the turnaround, but numerical "
+        "dissipation then reduces the amplitude. Figure 11 varies the inlet Reynolds number at I* = 0.65 (Re_in = 25, 100, 300 and 800). "
+        "At Re_in = 25, viscosity damps the pitching into a smooth glide at about −60°. At Re_in of 100 or more, the plate keeps shedding "
+        "vortices and its pitch keeps reversing."
+    )
+    doc.add_paragraph(
+        "Figure 12 summarises a seven-test verification ladder. The solver does well on the basic tests. The Wendland kernel sums to "
+        "one (Test 1). Hydrostatic balance and Archimedes buoyancy are reproduced to 0.0012% (Test 2). Couette flow is within 0.23%, "
+        "and the Taylor–Green vortex decays at 0.907 of the true viscosity (Test 3). A very light plate (I* = 0.05) stays stable (Test 6). "
+        "It does badly on thin bodies. The drag on a fixed cylinder is about five times too high (C_D = 10.96 at Re = 20 and 8.11 at Re = 40), "
+        "and the grid study (Test 7) shows a 23.2% change in descent speed between the L/16 and L/20 grids, because the plate is only 0.9 to 1.5 particles thick."
+    )
+    doc.add_paragraph(
+        "These results limit what the SPH study can claim. The direction of the viscosity trend in Figure 11 is plausible, but with drag "
+        "overestimated and no grid convergence I cannot separate physical viscous damping from numerical damping. I use the SPH results "
+        "only as a qualitative demonstration that high viscosity suppresses pitching oscillations."
     )
     add_figure_block(
         doc, "F11_sph_vs_ode_tilt.png",
-        "Figure 10 (F11_sph_vs_ode_tilt): Time-history comparison of orientation tilt θ(t) between 2D WCSPH–FSI and the 2D ODE over the initial 0.50 s drop duration."
+        "Figure 10. Tilt θ(t) from the 2D SPH solver and the 2D ODE over the first 0.50 s of the drop."
     )
     add_figure_block(
         doc, "F12_sph_viscosity_sweep.png",
-        "Figure 11 (F12_sph_viscosity_sweep): Explicit 2D WCSPH viscosity sweep at fixed I* = 0.65 across Re_in ∈ {25, 100, 300, 800}, showing viscous damping into a monotonic −60° glide at Re_in = 25."
+        "Figure 11. SPH viscosity sweep at I* = 0.65 for Re_in = 25, 100, 300 and 800. At Re_in = 25 the plate settles into a glide at about −60°."
     )
     add_figure_block(
         doc, "F13_sph_validation_problem_tests.png",
-        "Figure 12 (F13_sph_validation_problem_tests): SPH diagnostic benchmarks: (a) Test 4 dam-break surge front, (b) Test 5 fixed cylinder drag showing coarse-boundary-layer over-prediction at Re = 20 and 40, and (c) Test 7 spatial grid convergence study (23.2% change between L/16 and L/20)."
+        "Figure 12. SPH benchmarks: (a) Test 4, dam-break surge front; (b) Test 5, drag on a fixed cylinder at Re = 20 and 40, where drag is over-predicted; (c) Test 7, grid convergence (23.2% change between L/16 and L/20)."
     )
 
     # Section 5
-    doc.add_heading("5. Conclusion & References", level=1)
-    
+    doc.add_heading("5. Limitations", level=1)
+    limitations = [
+        "Two dimensions. The model describes a long plate, not a disk. Coins also have tip vortices and out-of-plane rotation, which can shift the regime boundaries.",
+        "No dependence on Re. The coefficients are constant, so the model cannot show how the regimes change with Reynolds number. That needs a flow solver.",
+        "No experiments of my own. All validation is against published data. The nine-coin catalogue is simulated only.",
+        "Calibrated damping. The agreement of I*_c with experiment depends on the value of μ₁.",
+        "SPH accuracy. The SPH solver is not grid-converged and over-predicts drag on thin bodies, so its results are qualitative.",
+    ]
+    for lim in limitations:
+        p_l = doc.add_paragraph(lim)
+        p_l.paragraph_format.space_before = Pt(2)
+        p_l.paragraph_format.space_after = Pt(4)
+
+    # Section 6
+    doc.add_heading("6. Conclusion", level=1)
     conclusions = [
-        "1. Dimensionless Inertia (I*): The parameter I* = (ρ_s h)/(ρ_f L) is the primary bifurcation metric sorting falling plates into periodic fluttering (I* ≤ 1.25), unidirectional tumbling (1.25 ≤ I* ≤ 1.45), and mixed chaos (I* ≥ 1.50).",
-        "2. Linear Rotational Damping (μ₁): Preserving the theoretical value μ₁ = 0.20 is required to match experimental transition thresholds (I*_c = 1.213 ± 0.003 vs. 1.20 ± 0.10, +1.08% error); setting μ₁ = 0.01 prematurely triggers tumbling at I*_c = 0.9703.",
-        "3. Perturbation & Chaos: Broadside steady descent is an unstable saddle point under physical perturbation (0/136 steady runs at Δθ = 10⁻³ rad). Chaotic separatrix crossings at I* = 3.50 amplify landing dispersion by 46.52× (σ_X = 15.34 mm → 713.64 mm).",
-        "4. Explicit Viscosity & FSI: 2D WCSPH simulations demonstrate that high fluid viscosity (Re_in = 25) directly suppresses pitching oscillations, while highlighting boundary-layer resolution limits when N_h ≈ 1.",
+        "Inertia sorts the motion. In the model, low I* gives fluttering, I* from 1.25 to 1.45 gives tumbling, and I* from 1.5 to 2.75 gives irregular motion. For h/L = 0.075 and θ₀ = 20° the flutter-to-tumble threshold is near I* = 1.2.",
+        "Damping matters. With μ₁ = 0.20 the threshold agrees with experiment within its uncertainty. With μ₁ = 0.01 it falls by about 19%, to 0.97.",
+        "Sensitivity grows with inertia. No drop released at 20° reached steady descent. Landing scatter rises from 15 mm at I* = 0.80 to 714 mm at I* = 3.50, consistent with sensitive dependence on initial conditions.",
+        "Viscosity damps pitching. The SPH solver shows that high viscosity (Re_in = 25) suppresses pitching oscillations, but its boundary-layer resolution is not yet good enough for quantitative results.",
     ]
     for conc in conclusions:
         p_c = doc.add_paragraph(conc)
@@ -422,41 +472,34 @@ def build_paper():
     h_ref.paragraph_format.space_after = Pt(4)
 
     references = [
-        "1. S. B. Field, M. Klaus, M. G. Moore, and F. Nori, 'Chaotic dynamics of falling disks,' Nature 388, 252–254 (1997). https://doi.org/10.1038/40817",
-        "2. A. Belmonte, H. Eisenberg, and E. Moses, 'From flutter to tumble: Inertial drag and Froude similarity in falling paper,' Phys. Rev. Lett. 81, 345–348 (1998). https://doi.org/10.1103/PhysRevLett.81.345",
-        "3. U. Pesavento and Z. J. Wang, 'Falling paper: Navier–Stokes solutions, model of fluid forces, and center of mass elevation,' Phys. Rev. Lett. 93, 144501 (2004). https://doi.org/10.1103/PhysRevLett.93.144501",
-        "4. A. Andersen, U. Pesavento, and Z. J. Wang, 'Unsteady aerodynamics of fluttering and tumbling plates,' J. Fluid Mech. 541, 65–90 (2005a). https://doi.org/10.1017/S002211200500594X",
-        "5. A. Andersen, U. Pesavento, and Z. J. Wang, 'Analysis of transitions between fluttering, tumbling and steady descent of falling cards,' J. Fluid Mech. 541, 91–104 (2005b). https://doi.org/10.1017/S0022112005005847",
+        "1. S. B. Field, M. Klaus, M. G. Moore and F. Nori, “Chaotic dynamics of falling disks,” Nature 388, 252–254 (1997). https://doi.org/10.1038/40817",
+        "2. A. Belmonte, H. Eisenberg and E. Moses, “From flutter to tumble: Inertial drag and Froude similarity in falling paper,” Phys. Rev. Lett. 81, 345–348 (1998). https://doi.org/10.1103/PhysRevLett.81.345",
+        "3. U. Pesavento and Z. J. Wang, “Falling paper: Navier–Stokes solutions, model of fluid forces, and center of mass elevation,” Phys. Rev. Lett. 93, 144501 (2004). https://doi.org/10.1103/PhysRevLett.93.144501",
+        "4. A. Andersen, U. Pesavento and Z. J. Wang, “Unsteady aerodynamics of fluttering and tumbling plates,” J. Fluid Mech. 541, 65–90 (2005a). https://doi.org/10.1017/S002211200500594X",
+        "5. A. Andersen, U. Pesavento and Z. J. Wang, “Analysis of transitions between fluttering, tumbling and steady descent of falling cards,” J. Fluid Mech. 541, 91–104 (2005b). https://doi.org/10.1017/S0022112005005847",
         "6. H. Lamb, Hydrodynamics, 6th ed. (Cambridge University Press, Cambridge, 1932).",
-        "7. J. P. Morris, P. J. Fox, and Y. Zhu, 'Modeling low Reynolds number incompressible flows using SPH,' J. Comput. Phys. 136, 214–226 (1997).",
-        "8. N. Akinci, M. Ihmsen, G. Akinci, B. Solenthaler, and M. Teschner, 'Versatile rigid-fluid coupling for incompressible SPH,' ACM Trans. Graph. 31(4), 62 (2012).",
-        "9. S. Adami, X. Y. Hu, and N. A. Adams, 'A generalized wall boundary condition for smoothed particle hydrodynamics,' J. Comput. Phys. 231, 7057–7075 (2012).",
-        "10. O. Šrámek et al., 'autumn-coin: 3D stereo tracking and quasi-steady simulation dataset,' GitHub repository (MIT License), https://github.com/ondrej-cloud/autumn-coin.",
+        "7. J. P. Morris, P. J. Fox and Y. Zhu, “Modeling low Reynolds number incompressible flows using SPH,” J. Comput. Phys. 136, 214–226 (1997).",
+        "8. N. Akinci, M. Ihmsen, G. Akinci, B. Solenthaler and M. Teschner, “Versatile rigid-fluid coupling for incompressible SPH,” ACM Trans. Graph. 31(4), 62 (2012).",
+        "9. S. Adami, X. Y. Hu and N. A. Adams, “A generalized wall boundary condition for smoothed particle hydrodynamics,” J. Comput. Phys. 231, 7057–7075 (2012).",
+        "10. O. Novotný, V. Přibyl and M. Ambros (Team Olomoucké srnky), “autumn-coin: 3D stereo tracking and quasi-steady simulation of coins falling through water,” GitHub repository (MIT License), https://github.com/ondrej-cloud/autumn-coin",
     ]
     for ref in references:
         p_r = doc.add_paragraph(ref)
         p_r.paragraph_format.space_before = Pt(2)
         p_r.paragraph_format.space_after = Pt(3)
 
-    primary = ROOT / "Autumn_Coin_Research_Paper_updated.docx"
-    secondary = ROOT / "Autumn_Coin_Research_Paper.docx"
-    fallback = ROOT / "Autumn_Coin_Research_Paper_v2.docx"
+    out_file = ROOT / "Autumn_Coin_Research_Paper_final.docx"
+    doc.save(str(out_file))
+    print(f"[SUCCESS] Generated final research paper at: {out_file}")
 
-    for target in [primary, secondary, fallback]:
+    # Also attempt to update the other standard file names if unlocked
+    for secondary_name in ["Autumn_Coin_Research_Paper_updated.docx", "Autumn_Coin_Research_Paper.docx"]:
+        sec_path = ROOT / secondary_name
         try:
-            doc.save(str(target))
-            print(f"[SUCCESS] Generated complete research paper at: {target}")
-            if target != primary:
-                print(
-                    f"[NOTICE] '{primary.name}' is currently open in Microsoft Word.\n"
-                    f"Saved updated manuscript with all fixes to: {target}\n"
-                    f"Please close Word to allow overwriting '{primary.name}'."
-                )
-            break
+            doc.save(str(sec_path))
+            print(f"[SUCCESS] Also updated: {sec_path}")
         except PermissionError:
-            continue
-    else:
-        print("[ERROR] Could not save document because all candidate paths are locked in Word.")
+            pass
 
 
 if __name__ == "__main__":
