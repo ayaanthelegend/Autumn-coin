@@ -349,11 +349,12 @@ TestReport run_test_4() {
     csv.close();
 
     double final_x_norm = max_x_front / W0;
-    rep.passed = (final_x_norm >= 1.8 && final_x_norm <= 3.2);
+    // Martin & Moyce (1952) source is unverified in references.md; test is qualitative only
+    rep.passed = false;
 
     std::ostringstream ss;
     ss << "Final X_front / W0: " << std::fixed << std::setprecision(2) << final_x_norm
-       << " (Benchmark: ~2.2 at tau ~ 2.0)";
+       << " at tau ~ 1.96 (QUALITATIVE: Martin & Moyce 1952 unverified in references.md; demonstration only, not counted as validation)";
     rep.summary_metrics = ss.str();
     return rep;
 }
@@ -442,20 +443,20 @@ TestReport run_test_5() {
     double cd_re20 = test_re(20.0);
     double cd_re40 = test_re(40.0);
 
-    // Qualitative viscous scaling verification for impulsive start-up (Re=20 drag > Re=40 drag)
-    bool pass_20 = (cd_re20 > 0.0 && !std::isnan(cd_re20));
-    bool pass_40 = (cd_re40 > 0.0 && !std::isnan(cd_re40) && cd_re20 > cd_re40);
+    // Pass only if CD(20) in [2.0, 2.2] and CD(40) in [1.5, 1.7]
+    bool pass_20 = (cd_re20 >= 2.0 && cd_re20 <= 2.2);
+    bool pass_40 = (cd_re40 >= 1.5 && cd_re40 <= 1.7);
     rep.passed = pass_20 && pass_40;
 
     std::ofstream csv(rep.csv_path);
     csv << "Re,CD_measured_t002s,steady_benchmark,drag_ordering_valid,status\n";
-    csv << "20," << cd_re20 << ",2.0-2.2,YES," << (pass_20 ? "PASS" : "FAIL") << "\n";
-    csv << "40," << cd_re40 << ",1.5-1.7,YES," << (pass_40 ? "PASS" : "FAIL") << "\n";
+    csv << "20," << cd_re20 << ",2.0-2.2," << (cd_re20 > cd_re40 ? "YES" : "NO") << "," << (pass_20 ? "PASS" : "FAIL") << "\n";
+    csv << "40," << cd_re40 << ",1.5-1.7," << (cd_re20 > cd_re40 ? "YES" : "NO") << "," << (pass_40 ? "PASS" : "FAIL") << "\n";
     csv.close();
 
     std::ostringstream ss;
-    ss << "Early-time CD(Re=20): " << std::fixed << std::setprecision(2) << cd_re20
-       << " > CD(Re=40): " << cd_re40 << " (consistent viscous scaling; steady limit ~2.1 / ~1.6)";
+    ss << "Measured CD(Re=20): " << std::fixed << std::setprecision(2) << cd_re20
+       << " (bench 2.0-2.2), CD(Re=40): " << cd_re40 << " (bench 1.5-1.7) [FAIL: ~5x above developed steady benchmark]";
     rep.summary_metrics = ss.str();
     return rep;
 }

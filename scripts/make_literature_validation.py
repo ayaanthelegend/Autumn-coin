@@ -7,9 +7,9 @@ References:
     2. Andersen, A., Pesavento, U., & Wang, Z. J. (2005b).
        Analysis of transitions between fluttering, tumbling and steady descent of falling cards.
        J. Fluid Mech., 541, 91-104. DOI: 10.1017/S0022112005005847.
-    3. Field, S., Klaus, M., Moore, M. G., & O'Reilly, F. (1997).
+    3. Field, S. B., Klaus, M., Moore, M. G., & Nori, F. (1997).
        Chaotic dynamics of falling disks.
-       Phys. Rev. Lett., 78(10), 1896-1899. DOI: 10.1103/PhysRevLett.78.1896.
+       Nature, 388(6639), 252-254. DOI: 10.1038/40817.
     4. ondrej-cloud/autumn-coin (2026).
        3D stereo video tracking of coins falling through water (fluttering & tumbling).
        GitHub repository: https://github.com/ondrej-cloud/autumn-coin (MIT License).
@@ -122,18 +122,7 @@ def run_literature_validation(
     ax0 = axs[0]
     re_mesh = np.logspace(2.3, 4.3, 300)
 
-    # 3D disk boundaries from Field et al. (1997) and ondrej-cloud:
-    # Scaled to equivalent 2D plate inertia I*_2D = (64 / pi) * I*_3D
-    y_3d_flutter_chaos = 0.012 + 0.15 * np.exp(-re_mesh / 2000.0)
-    y_3d_chaos_tumble  = 0.025 + 0.20 * np.exp(-re_mesh / 2000.0)
-
-    y_2d_flutter_chaos = geom_factor_3D_to_2D * y_3d_flutter_chaos
-    y_2d_chaos_tumble  = geom_factor_3D_to_2D * y_3d_chaos_tumble
-
-    # Shaded literature zones (converted to 2D scale)
-    ax0.fill_between(re_mesh, 0.05, y_2d_flutter_chaos, color="#2ca02c", alpha=0.10, label="Field et al. (1997) Flutter Zone")
-    ax0.fill_between(re_mesh, y_2d_flutter_chaos, y_2d_chaos_tumble, color="#ff7f0e", alpha=0.15, label="Field et al. (1997) Chaotic Transition")
-    ax0.fill_between(re_mesh, y_2d_chaos_tumble, 5.0, color="#d62728", alpha=0.10, label="Field et al. (1997) Tumbling Zone")
+    # (Invented analytic exponential zones removed per scientific audit)
 
     # Shaded quasi-steady extrapolation limit Re > 5000
     ax0.axvspan(5000.0, 25000.0, color="gray", alpha=0.12, label="Extrapolated (Re > 5000)")
@@ -176,12 +165,12 @@ def run_literature_validation(
     ax1 = axs[1]
     ax1.plot(ode_i_stars, ode_u_ratio, "o-", color="#1f77b4", lw=1.8, markersize=5, label=r"2D Quasi-Steady ODE ($U_{\mathrm{mean}} / U_t$)")
 
-    # Benchmark Card 1 and Card 2 from Andersen et al. (2005b)
-    ax1.errorbar([1.14], [0.54], yerr=[0.05], fmt="s", color="#2ca02c", markersize=8, capsize=4, elinewidth=1.5, label="Andersen et al. (2005b) Card 1 (Flutter)")
-    ax1.errorbar([1.38], [0.62], yerr=[0.06], fmt="D", color="#d62728", markersize=8, capsize=4, elinewidth=1.5, label="Andersen et al. (2005b) Card 2 (Tumble)")
+    # Benchmark Card 1 and Card 2 from Andersen et al. (2005b) (as cited, unchecked)
+    ax1.errorbar([1.14], [0.54], yerr=[0.05], fmt="s", color="#2ca02c", markersize=8, capsize=4, elinewidth=1.5, label="Andersen et al. (2005b) Card 1 (Flutter, as cited, unchecked)")
+    ax1.errorbar([1.38], [0.62], yerr=[0.06], fmt="D", color="#d62728", markersize=8, capsize=4, elinewidth=1.5, label="Andersen et al. (2005b) Card 2 (Tumble, as cited, unchecked)")
 
-    # Literature transition band I*_c ~ 1.1 - 1.3
-    ax1.axvspan(1.1, 1.3, color="#ff7f0e", alpha=0.18, label=r"Literature $I^*_c$ Transition Band ($1.1 - 1.3$)")
+    # Literature transition band I*_c ~ 1.1 - 1.3 (as cited, unchecked)
+    ax1.axvspan(1.1, 1.3, color="#ff7f0e", alpha=0.18, label=r"Literature $I^*_c$ Transition Band ($1.1 - 1.3$, as cited, unchecked)")
 
     ax1.set_xscale("log")
     ax1.set_ylim(0.2, 1.1)
@@ -198,9 +187,9 @@ def run_literature_validation(
     if np.any(flutter_mask):
         ax2.plot(ode_i_stars[flutter_mask], ode_st[flutter_mask], "s-", color="#2ca02c", lw=1.8, markersize=6, label=r"2D ODE Fluttering $St$")
 
-    # Literature St ranges
-    ax2.axhspan(0.18, 0.22, color="gray", alpha=0.20, label=r"Literature Card/Strip Range ($St \approx 0.18 - 0.22$)")
-    ax2.axhline(0.20, color="black", ls="--", lw=1.2, label=r"Belmonte et al. (1998) / Andersen (2005a) $St \approx 0.20$")
+    # Literature St ranges (as cited, unchecked)
+    ax2.axhspan(0.18, 0.22, color="gray", alpha=0.20, label=r"Literature Card/Strip Range ($St \approx 0.18 - 0.22$, as cited, unchecked)")
+    ax2.axhline(0.20, color="black", ls="--", lw=1.2, label=r"Belmonte et al. (1998) / Andersen (2005a) $St \approx 0.20$ (as cited, unchecked)")
 
     ax2.set_xscale("log")
     ax2.set_ylim(0.05, 0.40)

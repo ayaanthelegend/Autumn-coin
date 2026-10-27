@@ -281,6 +281,78 @@ def check_tone_and_terminology(prs: Presentation):
     print("  -> PASSED: No prohibited phrases, obsolete I*_c values, or bare unchecked equation labels.")
 
 
+
+
+def check_no_synthetic_figures():
+    print("[Check 13/16] Checking that no scripts or presentations reference synthetic figures...")
+    forbidden_tokens = ["sph_vs_ode_overlay.png", "vorticity_wake_snapshot.png", "generate_presentation_figures"]
+    scan_dirs = [ROOT / "scripts", ROOT / "scripts_sph", ROOT / "tools", ROOT]
+    for d in scan_dirs:
+        for py_path in d.glob("*.py"):
+            if py_path.resolve() == Path(__file__).resolve():
+                continue
+            t = py_path.read_text(encoding="utf-8", errors="ignore")
+            for tok in forbidden_tokens:
+                assert tok not in t, f"Forbidden synthetic figure reference '{tok}' found in {py_path.name}"
+    print("  -> PASSED: Zero synthetic figure references across all repository scripts.")
+
+
+def check_paper_figures_present():
+    print("[Check 14/16] Checking that all paper figures used by the presentation exist on disk...")
+    pres_text = (ROOT / "scripts" / "make_presentation.py").read_text(encoding="utf-8")
+    paper_figs = re.findall(r'F\d+_\w+\.png', pres_text)
+    assert len(paper_figs) > 0, "No paper figures (F*.png) found in make_presentation.py"
+    paper_fig_dir = ROOT / "results" / "paper_figures"
+    for fig_name in sorted(set(paper_figs)):
+        fig_path = paper_fig_dir / fig_name
+        assert fig_path.exists(), f"Presentation paper figure missing from results/paper_figures/: {fig_name}"
+    print(f"  -> PASSED: All {len(set(paper_figs))} presentation paper figures verified on disk.")
+
+
+def check_summary_sph_test5_matches_csv():
+    print("[Check 15/16] Checking SUMMARY_SPH.md Test 5 row against test5_cylinder_drag.csv...")
+    sum_path = ROOT / "results_sph" / "SUMMARY_SPH.md"
+    csv_path = ROOT / "results_sph" / "validation" / "test5_cylinder_drag.csv"
+    assert sum_path.exists(), "SUMMARY_SPH.md missing"
+    assert csv_path.exists(), "test5_cylinder_drag.csv missing"
+    
+    sum_text = sum_path.read_text(encoding="utf-8")
+    t5_lines = [l for l in sum_text.splitlines() if "Test 5" in l]
+    assert len(t5_lines) > 0, "Test 5 row missing in SUMMARY_SPH.md"
+    t5_line = t5_lines[0]
+    
+    df5 = pd.read_csv(csv_path)
+    cd_col = "CD_measured_t002s" if "CD_measured_t002s" in df5.columns else df5.columns[1]
+    cd20 = float(df5[df5["Re"] == 20][cd_col].iloc[0])
+    cd40 = float(df5[df5["Re"] == 40][cd_col].iloc[0])
+    status20 = str(df5[df5["Re"] == 20]["status"].iloc[0])
+    status40 = str(df5[df5["Re"] == 40]["status"].iloc[0])
+    
+    assert f"{cd20:.2f}" in t5_line, f"CD(20) = {cd20:.2f} not found in SUMMARY_SPH.md Test 5 row: {t5_line}"
+    assert f"{cd40:.2f}" in t5_line, f"CD(40) = {cd40:.2f} not found in SUMMARY_SPH.md Test 5 row: {t5_line}"
+    assert "FAIL" in t5_line, f"Test 5 row must show FAIL status in SUMMARY_SPH.md: {t5_line}"
+    assert status20 == "FAIL" and status40 == "FAIL", "CSV status must be FAIL for Test 5"
+    print(f"  -> PASSED: SUMMARY_SPH.md Test 5 dynamically matches CSV ({cd20:.2f}, {cd40:.2f}, FAIL).")
+
+
+def check_no_oreilly(prs: Presentation):
+    print("[Check 16/16] Checking presentation and literature scripts for prohibited 'O\'Reilly' citation...")
+    for idx, slide in enumerate(prs.slides):
+        text = get_slide_text(slide)
+        assert "o'reilly" not in text.lower() and "oreilly" not in text.lower(), f"Prohibited 'O\'Reilly' citation found on Slide {idx + 1}"
+    
+    check_files = [
+        ROOT / "scripts" / "make_literature_validation.py",
+        ROOT / "scripts" / "make_summary.py",
+        ROOT / "references.md",
+    ]
+    for p in check_files:
+        if p.exists():
+            txt = p.read_text(encoding="utf-8")
+            assert "o'reilly" not in txt.lower() and "oreilly" not in txt.lower(), f"Prohibited 'O\'Reilly' citation found in {p.name}"
+    print("  -> PASSED: Prohibited 'O\'Reilly' citation absent across deck, scripts, and references.md.")
+
+
 def main():
     print("=" * 70)
     print("      AUTUMN COIN: DIRECT PPTX PRESENTATION & CODE AUDITOR")
@@ -300,9 +372,13 @@ def main():
     check_slide_24(prs)
     check_sph_cases()
     check_tone_and_terminology(prs)
+    check_no_synthetic_figures()
+    check_paper_figures_present()
+    check_summary_sph_test5_matches_csv()
+    check_no_oreilly(prs)
 
     print("=" * 70)
-    print("  ALL 12 PRESENTATION AND DATA CONSISTENCY AUDITS PASSED CLEANLY!")
+    print("  ALL 16 PRESENTATION AND DATA CONSISTENCY AUDITS PASSED CLEANLY!")
     print("=" * 70)
 
 

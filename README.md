@@ -2,8 +2,8 @@
 
 [![Python Tests](https://img.shields.io/badge/pytest-23%20passed-brightgreen.svg)]()
 [![C++ Core Tests](https://img.shields.io/badge/catch2-10%20passed-brightgreen.svg)]()
-[![SPH Validation](https://img.shields.io/badge/sph_tests-6%2F7%20passed%20(Test%207%20FAIL)-orange.svg)]()
-[![Presentation Audit](https://img.shields.io/badge/slide_audit-12%2F12%20passed-brightgreen.svg)]()
+[![SPH Validation](https://img.shields.io/badge/sph_tests-4%2F7%20passed%20(Test%205%2C7%20FAIL)-orange.svg)]()
+[![Presentation Audit](https://img.shields.io/badge/slide_audit-16%2F16%20passed-brightgreen.svg)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 An end-to-end computational and theoretical investigation of **IYPT 2026 Problem 12: Autumn Coin**, investigating the complex trajectory bifurcation (steady descent, periodic fluttering, chaotic tumble-glide, and autorotation) of coins and planar plates falling through viscous fluids.
@@ -167,6 +167,40 @@ python scripts/check_slide_numbers.py  # Runs automated audit across all 22 slid
 ```
 
 ---
+
+
+---
+
+## Figures
+
+The complete suite of publication-ready figures (F01–F13) is defined in [`scripts/make_paper_figures.py`](scripts/make_paper_figures.py) and outputted to `results/paper_figures/` as 300 DPI PNGs and vectorized PDFs:
+
+| Figure ID | File Name | Description | Source Data |
+| :--- | :--- | :--- | :--- |
+| **F01** | `F01_regime_vs_istar.png` | Regime strip across $I^*$ and $\mu_1$ sensitivity (full range, zoom $[0.95, 1.9]$, onset $I^*_c$) | `results/regime_vs_istar.csv`, `results/mu1_sensitivity.csv` |
+| **F02** | `F02_regime_map_Re_istar.png` | Phase diagram in $(Re, I^*)$ plane with $Re > 5000$ extrapolation shading | `results/regime_map.csv` |
+| **F03** | `F03_coin_trajectories.png` | Trajectory sweeps for real coins & benchmark plates (runs 2D ODE simulation) | Live simulation & `config/coin_sets.yaml` |
+| **F05** | `F05_literature_comparison.png` | Literature validation (phase diagram vs 3D coins, descent speed vs Andersen cards, Strouhal scaling) | `results/literature_validation.csv` |
+| **F06** | `F06_istar_sweep.png` | Inertia $I^*$ parametric sweep (regime, mean descent speed, lateral drift) | `results/sweeps/i_star_sweep/i_star_sweep.csv` |
+| **F07** | `F07_flutter_spectrum.png` | Power spectral density (PSD) & dominant pitching frequency | `results/sweeps/i_star_sweep/` |
+| **F08** | `F08_energy_budget.png` | Continuous energy budget closure ($E_k + E_p$ vs cumulative dissipation) | `results/sweeps/i_star_sweep/energy_budget_reconciliation.csv` |
+| **F09** | `F09_release_angle_sweep.png` | Initial release angle $	heta_0 \in [0^\circ, 90^\circ]$ sweep | `results/sweeps/release_angle_sweep/` |
+| **F10** | `F10_landing_scatter.png` | Monte Carlo landing position histograms across low, mid, and high inertia | `results/sweeps/chaos_ensemble/` |
+| **F11** | `F11_sph_vs_ode_tilt.png` | SPH vs ODE tilt dynamics overlay showing 0.35–0.50 s run length (< 1 flutter period) | `results_sph/drops/sph_*.csv` & live ODE |
+| **F12** | `F12_sph_viscosity_sweep.png` | SPH explicit Navier-Stokes viscosity sweep ($Re_{	ext{in}} \in \{25, 100, 300, 800\}$) | `results_sph/comparison/viscosity_sweep_Re.csv` |
+| **F13** | `F13_sph_validation_problem_tests.png` | SPH validation problem tests (Test 4 qualitative, Test 5 ~5x benchmark FAIL, Test 7 grid study FAIL) | `results_sph/validation/*.csv` |
+
+### Regenerating Figures
+
+To regenerate all paper figures with a single command:
+```bash
+PYTHONPATH=src python scripts/make_paper_figures.py
+```
+To regenerate specific figures:
+```bash
+PYTHONPATH=src python scripts/make_paper_figures.py F01 F03 F11 F13
+```
+> **Computational Note:** Figures **F03** and **F11** execute live numerical simulations (taking approximately one minute on one CPU core); all other figures read directly from pre-computed CSV datasets.
 
 ## Key Findings & Highlights
 

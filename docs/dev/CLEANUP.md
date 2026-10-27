@@ -51,6 +51,25 @@ Run the following PowerShell command to measure `.git` directory size:
 ```
 
 ### Step 3.3: Execute `git-filter-repo` Commands
+Run `git filter-repo` to permanently purge historical binaries, frame dumps, and build caches across all commits. You can run this as a single atomic command:
+
+```powershell
+# Atomic one-pass purge of historical binaries, heavy frames, and temporary caches
+git filter-repo `
+  --path-glob "*.obj" `
+  --path-glob "*.o" `
+  --path-glob "*.exe" `
+  --path-glob "*.pdb" `
+  --path-glob "*.ilk" `
+  --path results_sph/frames `
+  --path results_sph/drops/frames `
+  --path slides_export `
+  --path autumn-coin-cpp/imgui.ini `
+  --path imgui.ini `
+  --invert-paths --force
+```
+
+Or execute sequentially:
 Run `git filter-repo` to permanently purge historical binaries, frame dumps, and build caches across all commits:
 
 ```powershell
