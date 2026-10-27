@@ -21,9 +21,8 @@
 \title{\textbf{Hydrodynamic Regimes, Bifurcation Thresholds, and Chaotic Dispersion of a Falling Coin: A Two-Stage Quasi-Steady ODE and 2D WCSPH--FSI Numerical Investigation}}
 
 \author{
-    \textbf{Ayaan} \\
-    \small International Young Physicists' Tournament (IYPT 2026) -- Problem 12: ``Autumn Coin'' \\
-    \small Karachi, Pakistan $\cdot$ Repository Commit: \texttt{c5e3a3d}
+    \textbf{Ayaan Bilal} \\
+    \small International Young Physicists' Tournament (IYPT 2026) -- Problem 12: ``Autumn Coin''
 }
 \date{October 2026}
 
@@ -32,7 +31,7 @@
 \maketitle
 
 \begin{abstract}
-The motion of a coin descending through a quiescent Newtonian liquid exhibits rich nonlinear fluid--structure interaction (FSI) regimes---including periodic fluttering, unidirectional autorotative tumbling, and chaotic mixed reversals---analogous to a falling autumn leaf. In this computational investigation, we determine how the falling dynamics depend on the dimensionless moment of inertia $I^* = (\rho_s h)/(\rho_f L)$, Reynolds number $\mathrm{Re}$, linear rotational damping $\mu_1$, aspect ratio $h/L$, and initial release angle $\theta_0$. First, we formulate and verify a two-dimensional (2D) six-degree-of-freedom Kirchhoff added-mass and quasi-steady aerodynamic model following Andersen, Pesavento, and Wang (2005a,b), protected by a 23-test automated verification suite, a 641-assertion C++20 parity engine, and a five-state stationary regime classifier. High-precision bisection searches prove that the theoretical linear rotational damping coefficient $\mu_1 = 0.20$ yields a critical flutter-to-tumble bifurcation threshold of $I^*_c = 1.213 \pm 0.003$ (at $\theta_0 = 20^\circ, h/L = 0.075$), matching the published experimental transition midpoint $I^*_c = 1.20 \pm 0.10$ within $+1.08\%$, whereas an empirically under-damped setting ($\mu_1 = 0.01$) prematurely shifts the threshold by $-19.14\%$ to $I^*_c = 0.9703$. Across a 136-point $(I^*, \mathrm{Re})$ phase diagram ($I^* \in [0.05, 3.50]$, $L \in \{8, 12, 16, 20\}\,\mathrm{mm}$, $\Delta\theta = 10^{-3}\,\mathrm{rad}$), we show that broadside steady descent is an unstable saddle point under physical perturbation: $52.94\%$ of drops exhibit stable periodic fluttering ($I^* \le 1.25$), $14.71\%$ exhibit unidirectional tumbling ($1.25 \le I^* \le 1.45$), and $32.35\%$ enter mixed heteroclinic chaos ($I^* \ge 1.50$). Monte Carlo ensembles ($N = 50$ drops per regime) reveal that while phase-space contraction onto the fluttering limit cycle at $I^* = 0.80$ confines landing scatter to an arcsine distribution with $\sigma_X = 15.34\,\mathrm{mm}$, heteroclinic separatrix crossings at $I^* = 3.50$ amplify landing dispersion by $46.52\times$ to $\sigma_X = 713.64\,\mathrm{mm}$. Second, because the quasi-steady ODE lacks explicit fluid viscosity $\mu$, we implement a 2D Weakly Compressible Smoothed Particle Hydrodynamics (WCSPH) solver with Akinci \textit{et al.} (2012) rigid-boundary coupling and subject it to a seven-stage verification ladder, transparently reporting both its qualitative capture of low-$\mathrm{Re}$ viscous damping and its boundary-layer discretization limitations.
+The motion of a coin descending through a quiescent Newtonian liquid exhibits rich nonlinear fluid--structure interaction (FSI) regimes---including periodic fluttering, unidirectional autorotative tumbling, and chaotic mixed reversals---analogous to a falling autumn leaf. In this computational investigation, we determine how the falling dynamics depend on the dimensionless moment of inertia $I^* = (\rho_s h)/(\rho_f L)$, Reynolds number $\mathrm{Re}$, linear rotational damping $\mu_1$, aspect ratio $h/L$, and initial release angle $\theta_0$. First, we formulate a two-dimensional (2D) six-degree-of-freedom Kirchhoff added-mass and quasi-steady aerodynamic model following Andersen, Pesavento, and Wang (2005a,b) with a five-state stationary regime classifier. High-precision bisection searches prove that the theoretical linear rotational damping coefficient $\mu_1 = 0.20$ yields a critical flutter-to-tumble bifurcation threshold of $I^*_c = 1.213 \pm 0.003$ (at $\theta_0 = 20^\circ, h/L = 0.075$), matching the published experimental transition midpoint $I^*_c = 1.20 \pm 0.10$ within $+1.08\%$, whereas an empirically under-damped setting ($\mu_1 = 0.01$) prematurely shifts the threshold by $-19.14\%$ to $I^*_c = 0.9703$. Across a 136-point $(I^*, \mathrm{Re})$ phase diagram ($I^* \in [0.05, 3.50]$, $L \in \{8, 12, 16, 20\}\,\mathrm{mm}$, $\Delta\theta = 10^{-3}\,\mathrm{rad}$), we show that broadside steady descent is an unstable saddle point under physical perturbation: $52.94\%$ of drops exhibit stable periodic fluttering ($I^* \le 1.25$), $14.71\%$ exhibit unidirectional tumbling ($1.25 \le I^* \le 1.45$), and $32.35\%$ enter mixed heteroclinic chaos ($I^* \ge 1.50$). Monte Carlo ensembles ($N = 50$ drops per regime) reveal that while phase-space contraction onto the fluttering limit cycle at $I^* = 0.80$ confines landing scatter to an arcsine distribution with $\sigma_X = 15.34\,\mathrm{mm}$, heteroclinic separatrix crossings at $I^* = 3.50$ amplify landing dispersion by $46.52\times$ to $\sigma_X = 713.64\,\mathrm{mm}$. Second, because the quasi-steady ODE lacks explicit fluid viscosity $\mu$, we implement a 2D Weakly Compressible Smoothed Particle Hydrodynamics (WCSPH) solver with Akinci \textit{et al.} (2012) rigid-boundary coupling, reporting both its qualitative capture of low-$\mathrm{Re}$ viscous damping and its boundary-layer discretization limitations.
 \end{abstract}
 
 \section{Introduction}
@@ -113,40 +112,15 @@ Equations (\ref{eq:kinematics})--(\ref{eq:dom}) are integrated using SciPy's 8th
 \subsection{Stage 2: 2D WCSPH--FSI & Real-Time Visualizers}
 Because the quasi-steady ODE coefficients ($C_T, C_R, C_{D0}, C_{D1}, C_\tau$) are constants, dynamic viscosity $\mu$ does not enter Eqs.~(\ref{eq:du})--(\ref{eq:dom}) directly. To introduce explicit viscosity, we built a C++20 2D Weakly Compressible SPH solver (\texttt{cpp\_sph/}) solving the continuity and momentum equations with a 2D Wendland $C^2$ kernel ($h_{\mathrm{sml}} = 1.3\Delta x$, exact gradient prefactor $-35/(4\pi h_{\mathrm{sml}}^4)$), a stiff Tait equation of state ($\gamma = 7, c_0 = 10 U_{\max}$), Morris \textit{et al.} (1997) laminar viscosity ($\alpha_{\mathrm{art}} = 0$ default), and Akinci \textit{et al.} (2012) ghost boundary particles with Adami \textit{et al.} (2012) hydrostatic pressure extrapolation, integrated via a synchronous Symplectic Kick--Drift--Kick scheme with Picard acceleration iteration. In addition, we developed a C++20 Raylib/ImGui desktop visualizer (\texttt{autumn-coin-cpp/}) and a zero-dependency HTML5/Canvas web visualizer (\texttt{visualizer.html}) with exact numerical parity to the Python solver.
 
-\begin{table*}[t]
-\centering
-\caption{Summary of the multi-tier verification suites across Python (\texttt{pytest}), C++20 (\texttt{Doctest}), Node.js VM, and the 2D WCSPH--FSI validation ladder.}
-\label{tab:verification}
-\footnotesize
-\begin{tabular}{llp{6.2cm}ll}
-\toprule
-\textbf{Suite / Test ID} & \textbf{Module / Benchmark} & \textbf{Verified Physical / Mathematical Property} & \textbf{Measured Residual / Metric} & \textbf{Status} \\
-\midrule
-Pytest 1--3 & \texttt{test\_added\_mass.py} & Circular limit ($a=b \implies m_{11}=m_{22}, I_a=0$) \& thin-plate limit ($b\to 0$) & $< 10^{-15}$ (circle), $< 10^{-12}$ (thin) & \textbf{PASS} \\
-Pytest 4--5 & \texttt{test\_dimensions\_and\_lift.py} & RHS dimensional consistency \& peak $C_L(45^\circ) = C_T = 1.2000$ & Error $< 10^{-12}$ & \textbf{PASS} \\
-Pytest 6--7 & \texttt{test\_energy.py} & Total mechanical energy closure $T + V_{\mathrm{pot}} + W_{\mathrm{diss}}$ (flutter \& tumble) & $0.12\%\,\Delta E_{\mathrm{pot}}$ ($< 1.0\%$ limit) & \textbf{PASS} \\
-Pytest 8--10 & \texttt{test\_forces.py} & Unforced Kirchhoff $T$ and $\mathbf{P}_{\mathrm{lab}}$ conservation; reflection symmetry & Drift $< 10^{-10}$; exact sign parity & \textbf{PASS} \\
-Pytest 11--12 & \texttt{test\_numerics.py} & \texttt{DOP853} tolerance tightening ($10^{-6} \to 10^{-9}$) \& seed bit-reproducibility & Monotonic; byte-identical & \textbf{PASS} \\
-Pytest 13--14 & \texttt{test\_reference\_repro.py} & Reproduction of Andersen \textit{et al.} (2005b) cards ($I^*=1.1, 1.4, 1.6$) \& $\mu_1$ switch & Max error $0.073a, 0.060a, 0.008a \le 0.3a$ & \textbf{PASS} \\
-Pytest 15--22 & \texttt{test\_regimes.py} & Ordering, $\pm 10\%$ threshold stability, $180^\circ$ parity, $2\times$ horizon \& chord invariance & $100\%$ label invariance & \textbf{PASS} \\
-Pytest 23 & \texttt{test\_terminal\_velocity.py} & Broadside terminal speed vs.\ analytical balance $(m-m_f)g = \frac{1}{2}\rho_f(C_{D0}+C_{D1})LU^2$ & Error $< 1.0\%$ & \textbf{PASS} \\
-\midrule
-C++ Parity & \texttt{autumn-coin-cpp} & 10 Doctest suites (641 assertions): RK4/DOP853 parity, energy, symmetries & $641 / 641$ assertions passed & \textbf{PASS} \\
-JS VM Parity & \texttt{tests\_js/test\_core.mjs} & Standalone HTML5 \texttt{<CORE>} engine vs.\ Andersen cards \& 9-coin catalog & $100\%$ parity with Python CSVs & \textbf{PASS} \\
-\midrule
-SPH Test 1 & Wendland $C^2$ Kernel & Partition of unity $|\sum V W - 1| < 0.01$ \& linear gradient $\|\mathbf{L}-\mathbf{I}\|_\infty < 0.02$ & $0.00814$ and $0.01717$ & \textbf{PASS} \\
-SPH Test 2 & Hydrostatics \& Buoyancy & Hydrostatic pressure RMS $< 5\%$ \& Archimedes buoyancy error $< 5\%$ & RMS $0.00\%$; Buoyancy $0.0012\%$ & \textbf{PASS} \\
-SPH Test 3 & Viscous Operators & Planar Couette flow $L_2 < 5\%$ \& Taylor--Green vortex decay $\nu_{\mathrm{meas}}/\nu \in [0.85, 1.15]$ & Couette $0.23\%$; TG ratio $0.9071$ & \textbf{PASS} \\
-SPH Test 4 & 2D Dam-Break Surge & Dimensionless surge front $X_{\mathrm{front}}/W_0$ evolution at $\tau = 1.961$ & $X_{\mathrm{front}}/W_0 = 3.00$ & \textbf{QUALITATIVE} \\
-SPH Test 5 & Cylinder Drag ($\mathrm{Re}=20,40$) & Steady drag $C_D(20) \approx 2.0\text{--}2.2$, $C_D(40) \approx 1.5\text{--}1.7$ & $C_D(20)=10.96, C_D(40)=8.11$ ($5\times$ high) & \textbf{FAIL} \\
-SPH Test 6 & Low-$I^*$ FSI Stability & 2000 KDK steps at $I^* = 0.05$ ($m_{22} \gg m$) without divergence & Stable ($v_y=-0.957\,\mathrm{m/s}$) & \textbf{PASS} \\
-SPH Test 7 & Grid Convergence & Medium-to-Fine grid velocity/tilt difference $\le 5.0\%$ at $h_{\mathrm{sml}}/\Delta x = 1.3$ & $\epsilon_{23} = 23.2\%$ ($>5\%$ threshold) & \textbf{FAIL} \\
-\bottomrule
-\end{tabular}
-\end{table*}
+\section{Simulation Results \& Parametric Sweeps}
+\label{sec:results}
 
-\section{Solver Verification \& Validation Ladder}
-Table~\ref{tab:verification} summarizes all verification benchmarks across our four execution environments. In the Python ODE solver, all 23 unit tests pass with zero failures. In particular, Figure~\ref{fig:f08} demonstrates that integrating the instantaneous viscous dissipation rate $P_{\mathrm{diss}}(t) = u F_u + v F_v + \omega \tau$ alongside kinetic energy $T(t) = \frac{1}{2}M_u u^2 + \frac{1}{2}M_v v^2 + \frac{1}{2}I_{\mathrm{tot}}\omega^2$ and buoyant potential energy $V_{\mathrm{pot}}(t) = (m - m_f)gY(t)$ closes the total mechanical energy budget $E_{\mathrm{total}}(t)$ to within $0.12\%$ of the available potential energy drop $(m - m_f)gH_{\mathrm{fall}}$. Furthermore, our implementation reproduces the three canonical falling-card trajectories of Andersen \textit{et al.} (2005b) ($I^* = 1.1$ fluttering, $I^* = 1.4$ tumbling, and $I^* = 1.6$ mixed) with maximum trajectory errors of $0.073a$, $0.060a$, and $0.008a$, respectively.
+\subsection{Single-Drop Showcases & Energy Conservation}
+For the baseline fluttering showcase (\texttt{reference\_card}: $L = 20\,\mathrm{mm}$, $h = 1.5\,\mathrm{mm}$, $\rho_s = 9000\,\mathrm{kg/m^3}$, $I^* = 0.676353$, $\theta_0 = 15^\circ$, $H_{\mathrm{fall}} = 40L = 0.800\,\mathrm{m}$), the plate reaches the tank bottom at $t_{\mathrm{end}} = 7.2204\,\mathrm{s}$ with a small net horizontal offset $X_{\mathrm{final}} = +13.27\,\mathrm{mm}$. In the post-transient limit cycle, the orientation oscillates with peak-to-peak amplitude $\Delta\theta_{\mathrm{ptp}} = 74.8^\circ$ ($\mathrm{std}(\theta) = 24.6^\circ$), mean vertical descent speed $\langle -v_Y \rangle = 0.1473\,\mathrm{m/s}$ ($U_{\mathrm{mean}}/U_t = 0.6445$, $\mathrm{Re}_{\mathrm{meas}} \approx 2940$), dominant frequency $f_{\mathrm{flutter}} \approx 0.88\,\mathrm{Hz}$, and Strouhal number $\mathrm{St} \approx 0.120$.
+
+Furthermore, integrating the instantaneous viscous dissipation rate $P_{\mathrm{diss}}(t) = u F_u + v F_v + \omega \tau$ alongside kinetic energy $T(t) = \frac{1}{2}M_u u^2 + \frac{1}{2}M_v v^2 + \frac{1}{2}I_{\mathrm{tot}}\omega^2$ and buoyant potential energy $V_{\mathrm{pot}}(t) = (m - m_f)gY(t)$ closes the total mechanical energy budget $E_{\mathrm{total}}(t)$ within $0.12\%$ of the available potential energy drop $(m - m_f)gH_{\mathrm{fall}}$ (Figure~\ref{fig:f08}).
+
+Conversely, for the tumbling showcase (\texttt{heavy\_coin} at $I^* = 1.20$, $L = 24\,\mathrm{mm}$, $h = 1.8\,\mathrm{mm}$, $\theta_0 = 20^\circ$, $H_{\mathrm{fall}} = 0.960\,\mathrm{m}$), rotational inertia carries the plate past the vertical saddle ($\theta = \pm 90^\circ$) on every cycle. Over $t_{\mathrm{end}} = 11.5745\,\mathrm{s}$, the plate completes $N_{\mathrm{flips}} = 33.42$ continuous unidirectional revolutions ($\Delta\theta_{\mathrm{net}} = -12033.8^\circ$), while the persistent sign of $\omega$ generates unidirectional Magnus circulation lift ($\frac{1}{2}C_R L^2 \omega$) that drives a massive lateral glide of $X_{\mathrm{final}} = -2.9123\,\mathrm{m}$.
 
 \begin{figure}[t]
     \centering
@@ -154,14 +128,6 @@ Table~\ref{tab:verification} summarizes all verification benchmarks across our f
     \caption{Total mechanical energy reconciliation (\texttt{F08\_energy\_budget}, 2D quasi-steady ODE simulation) showing kinetic energy $T(t)$, potential energy $V_{\mathrm{pot}}(t)$, cumulative dissipated work $W_{\mathrm{diss}}(t)$, and total mechanical energy $E_{\mathrm{total}}(t)$ closing within $0.12\%$ of $\Delta E_{\mathrm{pot}}$.}
     \label{fig:f08}
 \end{figure}
-
-\section{Simulation Results \& Parametric Sweeps}
-\label{sec:results}
-
-\subsection{Single-Drop Showcases: Periodic Fluttering vs.\ Tumbling Autorotation}
-For the baseline fluttering showcase (\texttt{reference\_card}: $L = 20\,\mathrm{mm}$, $h = 1.5\,\mathrm{mm}$, $\rho_s = 9000\,\mathrm{kg/m^3}$, $I^* = 0.676353$, $\theta_0 = 15^\circ$, $H_{\mathrm{fall}} = 40L = 0.800\,\mathrm{m}$), the plate reaches the tank bottom at $t_{\mathrm{end}} = 7.2204\,\mathrm{s}$ with a small net horizontal offset $X_{\mathrm{final}} = +13.27\,\mathrm{mm}$. In the post-transient limit cycle, the orientation oscillates with peak-to-peak amplitude $\Delta\theta_{\mathrm{ptp}} = 74.8^\circ$ ($\mathrm{std}(\theta) = 24.6^\circ$), mean vertical descent speed $\langle -v_Y \rangle = 0.1473\,\mathrm{m/s}$ ($U_{\mathrm{mean}}/U_t = 0.6445$, $\mathrm{Re}_{\mathrm{meas}} \approx 2940$), dominant frequency $f_{\mathrm{flutter}} \approx 0.88\,\mathrm{Hz}$, and Strouhal number $\mathrm{St} \approx 0.120$.
-
-Conversely, for the tumbling showcase (\texttt{heavy\_coin} at $I^* = 1.20$, $L = 24\,\mathrm{mm}$, $h = 1.8\,\mathrm{mm}$, $\theta_0 = 20^\circ$, $H_{\mathrm{fall}} = 0.960\,\mathrm{m}$), rotational inertia carries the plate past the vertical saddle ($\theta = \pm 90^\circ$) on every cycle. Over $t_{\mathrm{end}} = 11.5745\,\mathrm{s}$, the plate completes $N_{\mathrm{flips}} = 33.42$ continuous unidirectional revolutions ($\Delta\theta_{\mathrm{net}} = -12033.8^\circ$), while the persistent sign of $\omega$ generates unidirectional Magnus circulation lift ($\frac{1}{2}C_R L^2 \omega$) that drives a massive lateral glide of $X_{\mathrm{final}} = -2.9123\,\mathrm{m}$.
 
 \begin{figure}[t]
     \centering
@@ -324,7 +290,7 @@ Figures~\ref{fig:f11}, \ref{fig:f12}, and \ref{fig:f13} present the results of o
 \begin{figure}[t]
     \centering
     \includegraphics[width=\columnwidth]{../results/paper_figures/F13_sph_validation_problem_tests.pdf}
-    \caption{SPH verification ladder diagnostic benchmarks (\texttt{F13\_sph\_validation\_problem\_tests}): (a) Test 4 dam-break surge front, (b) Test 5 cylinder drag showing the $5\times$ coarse-boundary-layer over-prediction at $\mathrm{Re}=20, 40$, and (c) Test 7 spatial grid convergence study ($\epsilon_{23} = 23.2\%$).}
+    \caption{SPH diagnostic benchmarks (\texttt{F13\_sph\_validation\_problem\_tests}): (a) Test 4 dam-break surge front, (b) Test 5 cylinder drag showing coarse-boundary-layer over-prediction at $\mathrm{Re}=20, 40$, and (c) Test 7 spatial grid convergence study ($\epsilon_{23} = 23.2\%$).}
     \label{fig:f13}
 \end{figure}
 
@@ -334,7 +300,7 @@ Figure~\ref{fig:f05} benchmarks our 2D ODE predictions against experimental lite
     \item \textbf{Critical Inertia Threshold ($I^*_c$):} Our baseline prediction $I^*_c = 1.213 \pm 0.003$ agrees within $+1.08\%$ with the Andersen \textit{et al.} (2005b) experimental card transition midpoint $I^*_c = 1.20 \pm 0.10$ \cite{Andersen2005b}.
     \item \textbf{Strouhal Number ($\mathrm{St}$):} Across the fluttering regime, $\mathrm{St}$ decreases monotonically from $0.776$ ($I^* = 0.08$) and $0.394$ ($I^* = 0.39$) to $0.244$ ($I^* = 0.71$) and $0.154$ ($I^* = 0.87$), intersecting the Belmonte \textit{et al.} (1998) experimental strip band $\mathrm{St} \approx 0.18\text{--}0.22$ in the developed mid-flutter regime near $I^* \approx 0.75$ \cite{Belmonte1998}.
     \item \textbf{2D vs.\ 3D Descent Speed \& Stability Boundary:} Our 2D model predicts dimensionless descent speeds $U_{\mathrm{mean}}/U_t \approx 0.95$ ($I^* = 1.14$) and $0.79$ ($I^* = 1.38$), exceeding the experimental card values ($0.54$ and $0.62$) by $40\text{--}60\%$. Similarly, while our 2D model predicts that coins with $I^* \approx 0.42\text{--}0.60$ flutter, 3D stereo-tracked coin drops in the \texttt{ondrej-cloud} dataset (1 CZK, 5 CZK, 10 CZK) \cite{OndrejCloud} and Field \textit{et al.} (1997) \cite{Field1997} frequently exhibit 3D tumbling or chaotic coning at these inertia values. This difference arises because a 2D infinite-span strip lacks 3D tip-vortex induced drag and out-of-plane azimuthal pitching/yawing degrees of freedom, which destabilize planar flutter into 3D helical tumbling.
-    \item \textbf{SPH Resolution Limits (Tests 5 \& 7):} As documented in Table~\ref{tab:verification} and Figure~\ref{fig:f13}, while our 2D WCSPH solver passes kernel consistency, hydrostatics, Archimedes buoyancy ($0.0012\%$ error), Couette shear ($0.23\%$), Taylor--Green vortex decay ($\nu_{\mathrm{meas}}/\nu = 0.9071$), and low-$I^*$ added-mass stability ($I^* = 0.05$), its coarse boundary discretization yields $C_D(20) = 10.96$ and $C_D(40) = 8.11$ ($\sim 5\times$ higher than DNS cylinder benchmarks) and a $23.2\%$ medium-to-fine grid difference in Test 7. Accordingly, the SPH results are strictly used for qualitative short-horizon FSI trends rather than DNS-grade drag predictions.
+    \item \textbf{SPH Resolution Limits (Tests 5 \& 7):} As shown in Figure~\ref{fig:f13}, while our 2D WCSPH solver passes basic hydrostatics and added-mass stability, its coarse boundary discretization yields $C_D(20) = 10.96$ and $C_D(40) = 8.11$ ($\sim 5\times$ higher than DNS cylinder benchmarks) and a $23.2\%$ medium-to-fine grid difference. Accordingly, the SPH results are strictly used for qualitative short-horizon FSI trends rather than DNS-grade drag predictions.
 \end{enumerate}
 
 \begin{figure}[t]
@@ -345,12 +311,12 @@ Figure~\ref{fig:f05} benchmarks our 2D ODE predictions against experimental lite
 \end{figure}
 
 \section{Conclusion}
-We have established a fully verified two-stage computational framework for the ``Autumn Coin'' problem:
+We have established a comprehensive two-stage computational framework for the ``Autumn Coin'' problem:
 \begin{enumerate}
     \item \textbf{Dimensionless Inertia ($I^*$):} $I^* = (\rho_s h)/(\rho_f L)$ is the primary bifurcation parameter sorting falling coins into periodic fluttering ($I^* \le 1.25$), unidirectional tumbling ($1.25 \le I^* \le 1.45$, where lateral drift surges past $1.5\,\mathrm{m}$), and mixed chaos ($I^* \ge 1.50$).
     \item \textbf{Linear Rotational Damping ($\mu_1$):} Retaining the theoretical linear damping $\mu_1 = 0.20$ is essential to reproduce the experimental transition threshold ($I^*_c = 1.213 \pm 0.003$, $+1.08\%$ error vs.\ Andersen \textit{et al.}'s $1.20$ midpoint).
     \item \textbf{Perturbation Sensitivity \& Chaos:} Unperturbed steady descent is linearly unstable for coins in water ($0/136$ steady runs under $\Delta\theta = 10^{-3}\,\mathrm{rad}$), and crossing from the fluttering limit cycle ($I^* = 0.80$) into the chaotic regime ($I^* = 3.50$) amplifies landing scatter by $46.52\times$ ($\sigma_X = 15.34\,\mathrm{mm} \to 713.64\,\mathrm{mm}$).
-    \item \textbf{Explicit Viscosity (2D WCSPH--FSI):} Direct SPH simulations confirm that high fluid viscosity ($\mathrm{Re} = 25$) damps pitching oscillations at fixed $I^* = 0.65$, while transparently establishing the resolution requirements for future 3D FSI extensions.
+    \item \textbf{Explicit Viscosity (2D WCSPH--FSI):} Direct SPH simulations confirm that high fluid viscosity ($\mathrm{Re} = 25$) damps pitching oscillations at fixed $I^* = 0.65$, while establishing the resolution requirements for future 3D FSI extensions.
 \end{enumerate}
 
 \begin{thebibliography}{9}
