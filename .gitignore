@@ -49,3 +49,7 @@ shared_bundle/
 !results_sph/SUMMARY_SPH.md
 !results_sph/comparison/*.csv
 !results_sph/validation/*.csv
+
+# Office temporary lock files
+~$*
+*.tmp
