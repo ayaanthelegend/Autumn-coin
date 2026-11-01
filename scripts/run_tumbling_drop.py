@@ -15,7 +15,7 @@ from autumn.plotting import plot_single_drop, save_figure_and_csv
 def plot_tumbling_comparison(res_clean, res_chaotic, out_dir: Path | str) -> None:
     """Generate side-by-side comparison of clean unidirectional tumbling vs chaotic alternating tumbling."""
     fig, axs = plt.subplots(2, 2, figsize=(13, 9))
-    fig.suptitle("Falling Dynamics: Unidirectional Tumbling vs Chaotic Alternating Tumbling (2D quasi-steady model simulation)", fontsize=13)
+    fig.suptitle("Falling Dynamics: Unidirectional Tumbling vs Chaotic Alternating Tumbling", fontsize=13)
 
     # 1. Clean unidirectional tumbling trajectory (X-Y)
     ax0 = axs[0, 0]

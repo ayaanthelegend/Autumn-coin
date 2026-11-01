@@ -6,38 +6,43 @@
   <title>Autumn Coin: Real-Time 2D Physics Visualizer</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
+    html, body {
+      height: 100vh;
+      max-height: 100vh;
+      overflow: hidden;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       background: #FFFFFF;
       color: #14181F;
-      overflow-x: hidden;
-      min-height: 100vh;
+    }
+    body {
       display: flex;
       flex-direction: column;
     }
     header {
       background: #F4F7FB;
       border-bottom: 1px solid #D2D9E4;
-      padding: 8px 16px;
+      padding: 3px 10px;
       display: flex;
       flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
-      gap: 8px;
-      min-height: 48px;
+      gap: 6px;
+      height: 38px;
+      min-height: 38px;
+      flex-shrink: 0;
     }
     .header-title {
-      font-size: 15px;
+      font-size: 13.5px;
       font-weight: 700;
       color: #0E2A54;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
     .honesty-banner {
-      font-size: 11.5px;
+      font-size: 10.5px;
       font-weight: 600;
-      padding: 3px 10px;
+      padding: 2px 7px;
       border-radius: 4px;
       background: #E8EEF8;
       color: #174284;
@@ -46,22 +51,22 @@
     .top-controls {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
+      gap: 4px;
       align-items: center;
     }
     button {
       background: #FFFFFF;
       color: #14181F;
       border: 1px solid #C4CDDC;
-      border-radius: 5px;
-      padding: 5px 11px;
-      font-size: 12px;
+      border-radius: 4px;
+      padding: 3px 8px;
+      font-size: 11px;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.15s ease;
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 3px;
     }
     button:hover:not(:disabled) {
       background: #F0F4FA;
@@ -87,14 +92,22 @@
       color: #FFFFFF;
       border-color: #085166;
     }
+    .nav-sep {
+      width: 1px;
+      height: 16px;
+      background: #CBD5E1;
+      margin: 0 1px;
+    }
     #main-container {
       display: flex;
       flex: 1;
-      height: calc(100vh - 48px);
+      height: calc(100vh - 38px);
+      width: 100vw;
       overflow: hidden;
     }
     #viewport-container {
-      flex: 1;
+      flex: 1 1 68%;
+      min-width: 0;
       position: relative;
       background: #FFFFFF;
       border-right: 1px solid #D2D9E4;
@@ -102,7 +115,7 @@
       align-items: center;
       justify-content: center;
       overflow: hidden;
-      min-height: 380px;
+      height: 100%;
     }
     #simCanvas {
       display: block;
@@ -115,51 +128,196 @@
     #sphDisclaimer {
       display: none;
       position: absolute;
-      top: 14px;
-      left: 16px;
+      top: 10px;
+      left: 10px;
       background: rgba(254, 242, 242, 0.96);
       color: #991B1B;
       border: 1px solid #F87171;
-      padding: 6px 14px;
-      border-radius: 5px;
+      padding: 5px 12px;
+      border-radius: 4px;
       font-weight: 700;
-      font-size: 12px;
+      font-size: 11px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-      z-index: 10;
+      z-index: 25;
     }
+
+    /* Floating HUD Overlay on Canvas */
+    .canvas-hud {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(203, 213, 225, 0.9);
+      border-radius: 6px;
+      padding: 6px 9px;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+      z-index: 20;
+      min-width: 220px;
+      pointer-events: auto;
+      transition: opacity 0.2s ease;
+    }
+    .hud-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 5px;
+      gap: 6px;
+    }
+    .hud-title-wrap {
+      display: flex;
+      align-items: baseline;
+      gap: 5px;
+    }
+    .hud-title {
+      font-size: 10px;
+      font-weight: 700;
+      color: #0F172A;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .hud-sub {
+      font-size: 8.5px;
+      color: #64748B;
+      text-transform: uppercase;
+    }
+    .hud-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 3px 8px;
+      font-size: 10.5px;
+    }
+    .hud-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px dotted rgba(226, 232, 240, 0.85);
+      padding-bottom: 1px;
+      gap: 4px;
+    }
+    .hud-label {
+      color: #64748B;
+      font-size: 9.5px;
+      font-weight: 500;
+    }
+    .hud-val {
+      font-weight: 600;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 10px;
+      color: #0F172A;
+    }
+    .canvas-hud-pill {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(203, 213, 225, 0.85);
+      border-radius: 14px;
+      padding: 3px 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 20;
+      font-size: 9.5px;
+      color: #475569;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+      user-select: none;
+    }
+    .hud-key kbd {
+      background: #E2E8F0;
+      padding: 1px 3px;
+      border-radius: 3px;
+      font-size: 8.5px;
+      font-weight: 700;
+      color: #0F172A;
+    }
+
+    /* Right Sidebar */
     #sidebar {
-      width: 450px;
-      background: #FAFCFE;
-      padding: 14px 16px;
-      overflow-y: auto;
+      flex: 0 0 32%;
+      width: 32%;
+      min-width: 330px;
+      max-width: 440px;
+      height: 100%;
+      background: #F8FAFC;
+      border-left: 1px solid #D2D9E4;
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      border-left: 1px solid #E2E8F0;
+      overflow: hidden;
+    }
+    .sidebar-tab-bar {
+      display: flex;
+      background: #EBF1F6;
+      padding: 3px;
+      gap: 2px;
+      border-bottom: 1px solid #CBD5E1;
+      flex-shrink: 0;
+    }
+    .sidebar-tab-btn {
+      flex: 1;
+      padding: 5px 2px;
+      font-size: 10.5px;
+      font-weight: 600;
+      color: #475569;
+      background: transparent;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      text-align: center;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .sidebar-tab-btn:hover {
+      color: #0F172A;
+      background: rgba(255, 255, 255, 0.6);
+    }
+    .sidebar-tab-btn.active {
+      background: #FFFFFF;
+      color: #0F172A;
+      font-weight: 700;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .sidebar-tab-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 7px 9px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .tab-pane {
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .tab-pane.active {
+      display: flex;
     }
     .panel-box {
       background: #FFFFFF;
       border: 1px solid #DDE3ED;
-      border-radius: 6px;
-      padding: 12px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+      border-radius: 5px;
+      padding: 7px 9px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.02);
     }
     .panel-title {
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 700;
       color: #475569;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      margin-bottom: 8px;
+      margin-bottom: 5px;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
     .regime-badge {
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 700;
-      padding: 3px 8px;
-      border-radius: 4px;
+      padding: 2px 6px;
+      border-radius: 3px;
       text-transform: uppercase;
       letter-spacing: 0.3px;
     }
@@ -169,59 +327,54 @@
     .badge-mixed { background: #FEF3C7; color: #92400E; border: 1px solid #FCD34D; }
     .badge-undetermined { background: #F1F5F9; color: #475569; border: 1px solid #94A3B8; }
     .badge-analyzing { background: #F1F5F9; color: #475569; border: 1px solid #CBD5E1; }
-    .telemetry-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 6px 12px;
-      font-size: 12px;
-    }
-    .metric-item {
+    .compact-btn-row {
       display: flex;
-      justify-content: space-between;
-      border-bottom: 1px dotted #E2E8F0;
-      padding-bottom: 2px;
+      gap: 4px;
     }
-    .metric-label {
-      color: #64748B;
+    .flex-btn {
+      flex: 1;
+      justify-content: center;
+      text-align: center;
+      padding: 3px 5px;
     }
-    .metric-value {
-      font-weight: 600;
-      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-      color: #0F172A;
+    .two-col-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 8px;
     }
     .strip-chart-canvas {
       width: 100%;
-      height: 85px;
+      height: 62px;
       background: #F8FAFC;
       border: 1px solid #E2E8F0;
       border-radius: 4px;
       display: block;
-      margin-top: 4px;
+      margin-top: 2px;
     }
     #chartTraj {
       width: 100%;
-      height: 220px;
+      height: 170px;
       background: #FFFFFF;
       border: 1px solid #CBD5E1;
       border-radius: 4px;
       display: block;
-      margin-top: 6px;
+      margin-top: 3px;
     }
     .slider-row {
-      margin-bottom: 9px;
+      margin-bottom: 5px;
     }
     .slider-label {
       display: flex;
       justify-content: space-between;
-      font-size: 12px;
-      margin-bottom: 3px;
+      font-size: 10.5px;
+      margin-bottom: 2px;
       color: #334155;
       font-weight: 500;
     }
     input[type=range] {
       width: 100%;
-      height: 5px;
-      border-radius: 3px;
+      height: 4px;
+      border-radius: 2px;
       background: #CBD5E1;
       outline: none;
       -webkit-appearance: none;
@@ -229,20 +382,20 @@
     input[type=range]::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      width: 14px;
-      height: 14px;
+      width: 12px;
+      height: 12px;
       border-radius: 50%;
       background: #1E40AF;
       cursor: pointer;
     }
     select, input[type=number], input[type=text] {
       width: 100%;
-      padding: 6px 10px;
-      font-size: 12px;
+      padding: 4px 7px;
+      font-size: 11px;
       color: #0F172A;
       background: #FFFFFF;
       border: 1px solid #CBD5E1;
-      border-radius: 5px;
+      border-radius: 4px;
       outline: none;
     }
     select:focus, input[type=number]:focus {
@@ -252,47 +405,64 @@
     .info-card {
       background: #F8FAFC;
       border: 1px solid #E2E8F0;
-      border-radius: 5px;
-      padding: 8px 10px;
-      font-size: 11px;
+      border-radius: 4px;
+      padding: 6px 8px;
+      font-size: 10px;
       color: #334155;
-      line-height: 1.45;
-      margin-top: 6px;
+      line-height: 1.4;
+      margin-top: 4px;
     }
     .info-card strong {
       color: #0F172A;
+    }
+    .card-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px 6px;
     }
     .toggle-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 4px 0;
-      border-bottom: 1px dotted #E2E8F0;
-      font-size: 11.5px;
+      padding: 2px 0;
+      font-size: 10.5px;
     }
-    .toggle-row:last-child {
-      border-bottom: none;
+    .toggle-item {
+      font-size: 10px;
     }
-    .toggle-row label {
+    .toggle-item label, .toggle-row label {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
       cursor: pointer;
       color: #334155;
       font-weight: 500;
     }
+    .start-mode-row {
+      margin-top: 5px;
+      font-size: 10.5px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .start-mode-row label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+    }
     .speed-btn-group {
       display: flex;
-      gap: 4px;
-      margin-top: 5px;
+      gap: 3px;
+      margin-top: 3px;
     }
     .speed-btn {
       flex: 1;
-      padding: 4px 6px;
-      font-size: 11px;
+      padding: 2px 4px;
+      font-size: 9.5px;
       background: #F8FAFC;
       border: 1px solid #CBD5E1;
-      border-radius: 4px;
+      border-radius: 3px;
       cursor: pointer;
       display: flex;
       justify-content: center;
@@ -306,20 +476,31 @@
       color: #FFFFFF;
       border-color: #0369A1;
     }
+    .scale-ticks {
+      display: flex;
+      justify-content: space-between;
+      font-size: 9px;
+      color: #64748B;
+      margin-top: 1px;
+    }
+    .lit-tick {
+      color: #1E40AF;
+      font-weight: bold;
+    }
     .vector-legend {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px 12px;
-      font-size: 11px;
-      margin-top: 6px;
+      gap: 4px 8px;
+      font-size: 10px;
+      margin-top: 4px;
     }
     .legend-item {
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 4px;
       cursor: pointer;
       user-select: none;
-      padding: 2px 4px;
+      padding: 1px 3px;
       border-radius: 3px;
       transition: background 0.15s, opacity 0.15s;
     }
@@ -331,7 +512,7 @@
       text-decoration: line-through;
     }
     .legend-swatch {
-      width: 12px;
+      width: 10px;
       height: 3px;
       border-radius: 1px;
     }
@@ -340,19 +521,19 @@
     .legend-drag { background: #DC2626; }
     .legend-chord { background: #475569; }
     .legend-trail { background: #3B82F6; }
-    .legend-vort { background: #E11D48; border-radius: 50%; width: 8px; height: 8px; }
+    .legend-vort { background: #E11D48; border-radius: 50%; width: 7px; height: 7px; }
     .shortcut-list {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 4px 8px;
-      font-size: 11px;
+      gap: 3px 6px;
+      font-size: 10px;
       color: #475569;
     }
     .shortcut-key {
       font-weight: 700;
       color: #0F172A;
       background: #E2E8F0;
-      padding: 1px 4px;
+      padding: 1px 3px;
       border-radius: 3px;
     }
     .warning-box {
@@ -360,9 +541,9 @@
       border: 1px solid #FCD34D;
       color: #92400E;
       border-radius: 4px;
-      padding: 6px 8px;
-      font-size: 11px;
-      margin-top: 6px;
+      padding: 4px 6px;
+      font-size: 9.5px;
+      margin-top: 4px;
       display: none;
     }
     /* Comparison Modal */
@@ -389,7 +570,7 @@
       overflow: hidden;
     }
     .modal-header {
-      padding: 12px 18px;
+      padding: 10px 14px;
       border-bottom: 1px solid #E2E8F0;
       display: flex;
       justify-content: space-between;
@@ -397,7 +578,7 @@
       background: #F8FAFC;
     }
     .modal-body {
-      padding: 14px;
+      padding: 10px;
       overflow-y: auto;
       flex: 1;
       display: flex;
@@ -413,26 +594,47 @@
 
     /* Responsive Stacking for <= 900px */
     @media (max-width: 900px) {
+      body {
+        height: auto;
+        min-height: 100vh;
+        overflow-x: hidden;
+        overflow-y: auto;
+      }
       header {
         height: auto;
-        padding: 8px 12px;
+        min-height: auto;
+        padding: 6px 10px;
+      }
+      .top-controls {
+        gap: 3px;
       }
       #main-container {
         flex-direction: column;
         height: auto;
-        overflow-y: auto;
+        overflow-y: visible;
+        width: 100%;
       }
       #viewport-container {
-        height: 52vh;
-        min-height: 340px;
+        height: 50vh;
+        min-height: 320px;
+        flex: 0 0 50vh;
         border-right: none;
         border-bottom: 1px solid #D2D9E4;
       }
       #sidebar {
+        flex: none;
         width: 100%;
+        max-width: 100%;
+        height: auto;
         border-left: none;
         overflow-y: visible;
-        padding: 12px;
+      }
+      .canvas-hud {
+        max-width: calc(100% - 20px);
+        font-size: 9.5px;
+      }
+      .canvas-hud-pill {
+        display: none;
       }
     }
   </style>
@@ -448,267 +650,316 @@
     <div class="top-controls">
       <button id="btnModeA" class="active" onclick="switchMode(0)">Mode A: ODE</button>
       <button id="btnModeB" onclick="switchMode(1)">Mode B: Illustration</button>
-      <div style="width: 1px; height: 20px; background: #CBD5E1; margin: 0 2px;"></div>
-      <button class="preset-btn" id="btnPreset1" onclick="applyPreset(1)" disabled title="No steady descent found with a perturbed release (see results/coin_regimes.csv); theta0 = 0 exactly is an unstable symmetric equilibrium.">[1] Steady</button>
-      <button class="preset-btn" id="btnPreset2" onclick="applyPreset(2)">[2] Flutter</button>
-      <button class="preset-btn" id="btnPreset3" onclick="applyPreset(3)">[3] Tumble</button>
-      <button class="preset-btn" id="btnPreset4" onclick="applyPreset(4)">[4] Mixed</button>
-      <div style="width: 1px; height: 20px; background: #CBD5E1; margin: 0 2px;"></div>
-      <button id="btnCompare" onclick="openCompareModal()">📊 [G] Compare Coins</button>
+      <div class="nav-sep"></div>
+      <button class="preset-btn" id="btnPreset1" data-preset="1" onclick="applyPreset(1)" disabled title="No steady descent found with a perturbed release; theta0 = 0 is an unstable symmetric equilibrium.">[1] Steady</button>
+      <button class="preset-btn" id="btnPreset2" data-preset="2" onclick="applyPreset(2)">[2] Flutter</button>
+      <button class="preset-btn" id="btnPreset3" data-preset="3" onclick="applyPreset(3)">[3] Tumble</button>
+      <button class="preset-btn" id="btnPreset4" data-preset="4" onclick="applyPreset(4)">[4] Mixed</button>
+      <div class="nav-sep"></div>
+      <button id="btnCompare" onclick="openCompareModal()">📊 Compare</button>
       <button id="btnSloMo" class="active" onclick="toggleSloMo()" title="Toggle Slow Motion Mode">⏱️ Slo-Mo (0.30x)</button>
       <button id="btnPlay" onclick="togglePause()">[Space] Pause</button>
       <button onclick="resetDrop()">[R] Reset</button>
-      <button id="btnEnsemble" onclick="toggleEnsemble()">[E] Ensemble (15)</button>
+      <button id="btnEnsemble" onclick="toggleEnsemble()">[E] Ensemble</button>
       <button onclick="saveScreenshot()">[P] Screenshot</button>
     </div>
   </header>
 
   <div id="main-container">
+    <!-- Left Column: Simulation Viewport (~68% width) -->
     <div id="viewport-container">
       <div id="sphDisclaimer">ILLUSTRATIVE ANIMATION: not the C++ SPH solver</div>
+
+      <!-- Floating HUD Overlay directly on top of Canvas -->
+      <div id="canvasHud" class="canvas-hud">
+        <div class="hud-header">
+          <div class="hud-title-wrap">
+            <span class="hud-title">🍁 Telemetry</span>
+            <span class="hud-sub">Live ODE HUD</span>
+          </div>
+          <span class="regime-badge badge-analyzing" id="regimeBadge">ANALYSING...</span>
+        </div>
+        <div class="hud-grid">
+          <div class="hud-item"><span class="hud-label">Time t:</span><span class="hud-val" id="valTime">0.00 s</span></div>
+          <div class="hud-item"><span class="hud-label">Inertia I*:</span><span class="hud-val" id="valIStar">0.17</span></div>
+          <div class="hud-item"><span class="hud-label">Pos X:</span><span class="hud-val" id="valX">0.0 mm</span></div>
+          <div class="hud-item"><span class="hud-label">Pos Y:</span><span class="hud-val" id="valY">0.0 mm</span></div>
+          <div class="hud-item"><span class="hud-label">Speed |V|:</span><span class="hud-val" id="valSpeed">0.00 m/s</span></div>
+          <div class="hud-item"><span class="hud-label">Descent v<sub>Y</sub>:</span><span class="hud-val" id="valVy">0.00 m/s</span></div>
+          <div class="hud-item"><span class="hud-label">Tilt &theta;:</span><span class="hud-val" id="valTheta">5.0&deg;</span></div>
+          <div class="hud-item"><span class="hud-label">Spin &omega;:</span><span class="hud-val" id="valOmega">0.0 rad/s</span></div>
+          <div class="hud-item"><span class="hud-label">Re<sub>in</sub>:</span><span class="hud-val" id="valReIn">3802</span></div>
+          <div class="hud-item"><span class="hud-label">Visc &mu;:</span><span class="hud-val" id="valMu">0.0010 Pa&middot;s</span></div>
+        </div>
+      </div>
+
+      <!-- Top-Right Canvas Keybinds Pill -->
+      <div class="canvas-hud-pill">
+        <span class="hud-key"><kbd>Space</kbd> Pause</span>
+        <span class="hud-key"><kbd>R</kbd> Reset</span>
+        <span class="hud-key"><kbd>Tab</kbd> Mode</span>
+        <span class="hud-key"><kbd>1-4</kbd> Presets</span>
+      </div>
+
       <canvas id="simCanvas"></canvas>
     </div>
 
+    <!-- Right Column: Sidebar (~32% width) with Compact Tabbed Architecture -->
     <div id="sidebar">
-      <!-- 1. Live Regime & Telemetry -->
-      <div class="panel-box">
-        <div class="panel-title">
-          <span>Telemetry Readout</span>
-          <span class="regime-badge badge-analyzing" id="regimeBadge">ANALYSING...</span>
-        </div>
-        <div class="telemetry-grid">
-          <div class="metric-item"><span class="metric-label">Time t:</span><span class="metric-value" id="valTime">0.00 s</span></div>
-          <div class="metric-item"><span class="metric-label">Inertia I*:</span><span class="metric-value" id="valIStar">0.17</span></div>
-          <div class="metric-item"><span class="metric-label">Position X:</span><span class="metric-value" id="valX">0.0 mm</span></div>
-          <div class="metric-item"><span class="metric-label">Position Y:</span><span class="metric-value" id="valY">0.0 mm</span></div>
-          <div class="metric-item"><span class="metric-label">Tilt &theta;:</span><span class="metric-value" id="valTheta">5.0&deg;</span></div>
-          <div class="metric-item"><span class="metric-label">Spin &omega;:</span><span class="metric-value" id="valOmega">0.0 rad/s</span></div>
-          <div class="metric-item"><span class="metric-label">Speed |V|:</span><span class="metric-value" id="valSpeed">0.00 m/s</span></div>
-          <div class="metric-item"><span class="metric-label">Descent v<sub>Y</sub>:</span><span class="metric-value" id="valVy">0.00 m/s</span></div>
-          <div class="metric-item"><span class="metric-label">Re<sub>in</sub>:</span><span class="metric-value" id="valReIn">3802</span></div>
-          <div class="metric-item"><span class="metric-label">Viscosity &mu;:</span><span class="metric-value" id="valMu">0.0010 Pa&middot;s</span></div>
-        </div>
-
-        <div class="vector-legend" id="vectorLegend">
-          <div class="legend-item" id="legVel" onclick="toggleVelocity()" title="Click to toggle Velocity vector">
-            <div class="legend-swatch legend-vel"></div> Velocity <b>V</b>
-          </div>
-          <div class="legend-item" id="legLift" onclick="toggleLift()" title="Click to toggle Circulation Lift vector">
-            <div class="legend-swatch legend-lift"></div> Lift <b>F<sub>L</sub></b>
-          </div>
-          <div class="legend-item" id="legDrag" onclick="toggleDrag()" title="Click to toggle Fluid Drag vector">
-            <div class="legend-swatch legend-drag"></div> Drag <b>F<sub>D</sub></b>
-          </div>
-          <div class="legend-item" id="legChord" onclick="toggleChord()" title="Click to toggle Chord Director">
-            <div class="legend-swatch legend-chord"></div> Chord Director
-          </div>
-          <div class="legend-item" id="legTrail" onclick="toggleTrail()" title="Click to toggle Path Trail">
-            <div class="legend-swatch legend-trail"></div> Path Trail
-          </div>
-          <div class="legend-item" id="legVort" onclick="toggleVortices()" title="Click to toggle Vortex Rings">
-            <div class="legend-swatch legend-vort"></div> Vortex Rings
-          </div>
-          <div style="font-size: 10px; color: #64748B; margin-top: 4px; padding-left: 2px; width: 100%;">Force arrows: sqrt-scaled (clamped &le; 120 px)</div>
-        </div>
+      <!-- Segmented Tab Bar at Top of Sidebar -->
+      <div class="sidebar-tab-bar" role="tablist">
+        <button class="sidebar-tab-btn active" id="tabBtn-sim" onclick="switchSidebarTab('sim')" role="tab">Sim/Run</button>
+        <button class="sidebar-tab-btn" id="tabBtn-coins" onclick="switchSidebarTab('coins')" role="tab">Coins &amp; Physics</button>
+        <button class="sidebar-tab-btn" id="tabBtn-visuals" onclick="switchSidebarTab('visuals')" role="tab">Visuals</button>
+        <button class="sidebar-tab-btn" id="tabBtn-analytics" onclick="switchSidebarTab('analytics')" role="tab">Analytics</button>
       </div>
 
-      <!-- 2. Coin Selection & Catalog Panel -->
-      <div class="panel-box">
-        <div class="panel-title">Coin &amp; Geometry Catalog</div>
-
-        <div style="margin-bottom: 8px;">
-          <select id="selCoin" onchange="onCoinSelect(this.value)">
-            <optgroup label="Reference Thin Plates (h/L = 0.01)">
-              <option value="ref_1.1">Reference Plate I* = 1.1 (Flutter)</option>
-              <option value="ref_1.4">Reference Plate I* = 1.4 (Tumble)</option>
-              <option value="ref_1.6">Reference Plate I* = 1.6 (Mixed)</option>
-            </optgroup>
-            <optgroup label="Pakistani Rupee Coins (demo values, replace with measurements)">
-              <option value="pk_rs10">Rs 10 (2015-2022, brass) - demo</option>
-              <option value="pk_rs5_2002">Rs 5 (2002, cupronickel) - demo</option>
-              <option value="pk_rs5_2015" disabled>Rs 5 (2015, small brass) - disabled (missing thickness)</option>
-            </optgroup>
-            <optgroup label="Design Discs (hypothetical)">
-              <option value="design_acrylic_24x1.2">Acrylic 24x1.2 mm (I* = 0.059)</option>
-              <option value="design_aluminium_24x1.5" selected>Aluminium 24x1.5 mm (I* = 0.169)</option>
-              <option value="design_brass_24x3.0">Brass 24x3.0 mm (I* = 1.065)</option>
-              <option value="design_brass_24x3.5">Brass 24x3.5 mm (I* = 1.242)</option>
-              <option value="design_steel_24x4.5">Steel 24x4.5 mm (I* = 1.475)</option>
-              <option value="design_lead_24x3.5">Lead 24x3.5 mm (I* = 1.657)</option>
-              <option value="design_tungsten_24x3.0">Tungsten 24x3.0 mm (I* = 2.411)</option>
-            </optgroup>
-            <optgroup label="Custom & Free Mode">
-              <option value="custom_coin">Custom Coin (specify mass &amp; dimensions)</option>
-              <option value="free_istar">Free I* Parameter Slider</option>
-            </optgroup>
-          </select>
-        </div>
-
-        <!-- Custom Coin Input Fields -->
-        <div id="customCoinInputs" style="display: none; background: #F8FAFC; border: 1px solid #E2E8F0; padding: 8px; border-radius: 4px; margin-bottom: 8px;">
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;">
-            <div>
-              <label style="font-size: 10px; color: #64748B;">Mass [g]</label>
-              <input type="number" id="custMass" value="6.0" step="0.1" min="0.1" oninput="onCustomCoinChange()">
+      <div class="sidebar-tab-content">
+        <!-- 1. [Sim/Run] Tab -->
+        <div class="tab-pane active" id="tabPane-sim" role="tabpanel">
+          <div class="panel-box">
+            <div class="panel-title">Playback &amp; Run Controls</div>
+            <div class="compact-btn-row">
+              <button class="flex-btn" id="btnPlayTab" onclick="togglePause()">[Space] Pause</button>
+              <button class="flex-btn" onclick="resetDrop()">[R] Reset</button>
+              <button class="flex-btn" onclick="stepPhysicsFrame()">[S] Step</button>
+              <button class="flex-btn" id="btnEnsembleTab" onclick="toggleEnsemble()">[E] Ensemble (15)</button>
             </div>
-            <div>
-              <label style="font-size: 10px; color: #64748B;">Diameter [mm]</label>
-              <input type="number" id="custDiam" value="24.0" step="0.5" min="1.0" oninput="onCustomCoinChange()">
+
+            <div style="margin-top: 6px;">
+              <div style="font-size: 10px; font-weight: 600; color: #475569; margin-bottom: 3px;">Regime Presets</div>
+              <div class="compact-btn-row">
+                <button class="preset-btn flex-btn" data-preset="1" onclick="applyPreset(1)" disabled title="No steady descent found with a perturbed release.">[1] Steady</button>
+                <button class="preset-btn flex-btn" data-preset="2" onclick="applyPreset(2)">[2] Flutter</button>
+                <button class="preset-btn flex-btn" data-preset="3" onclick="applyPreset(3)">[3] Tumble</button>
+                <button class="preset-btn flex-btn" data-preset="4" onclick="applyPreset(4)">[4] Mixed</button>
+              </div>
             </div>
-            <div>
-              <label style="font-size: 10px; color: #64748B;">Thick. [mm]</label>
-              <input type="number" id="custThick" value="2.0" step="0.1" min="0.1" oninput="onCustomCoinChange()">
+
+            <div class="slider-row" style="margin-top: 6px; margin-bottom: 2px;">
+              <div class="slider-label"><span>Playback Speed</span><span id="labelSpeed">0.30x (Slo-Mo)</span></div>
+              <input type="range" id="sliderSpeed" min="0.05" max="2.0" step="0.05" value="0.30" oninput="onSpeedChange(this.value)">
+              <div class="speed-btn-group">
+                <button class="speed-btn" onclick="setSpeed(0.10)">0.1x</button>
+                <button class="speed-btn active" id="spdBtn03" onclick="setSpeed(0.30)">0.3x (Slo-Mo)</button>
+                <button class="speed-btn" id="spdBtn05" onclick="setSpeed(0.50)">0.5x</button>
+                <button class="speed-btn" id="spdBtn10" onclick="setSpeed(1.00)">1.0x Real</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-box">
+            <div class="panel-title">Release Angle &amp; Perturbation</div>
+            <div class="two-col-grid">
+              <div class="slider-row" style="margin-bottom: 2px;">
+                <div class="slider-label"><span>Angle &theta;<sub>0</sub></span><span id="labelTheta0">5.0&deg;</span></div>
+                <input type="range" id="sliderTheta0" min="0" max="360" step="1" value="5" oninput="onTheta0Change(this.value)">
+              </div>
+              <div class="slider-row" style="margin-bottom: 2px;">
+                <div class="slider-label"><span>Perturb &delta;&theta;</span><span id="labelPerturb">0.0&deg;</span></div>
+                <input type="range" id="sliderPerturb" min="0.0" max="5.0" step="0.1" value="0.0" oninput="onPerturbChange(this.value)">
+              </div>
+            </div>
+
+            <div id="symmWarning" class="warning-box">
+              ⚠️ Symmetric release (&theta;<sub>0</sub> &in; {0&deg;, 90&deg;, 180&deg;, 270&deg;}) with zero perturbation: unstable saddle point where direction is determined purely by floating-point roundoff.
+            </div>
+
+            <div class="start-mode-row">
+              <span style="font-weight: 600; color: #475569;">Start Mode:</span>
+              <label><input type="radio" name="startMode" value="rest" checked onchange="onStartModeChange(this.value)"> From Rest</label>
+              <label><input type="radio" name="startMode" value="ref" onchange="onStartModeChange(this.value)"> Ref (v = -U<sub>0</sub>)</label>
+            </div>
+          </div>
+
+          <div class="panel-box">
+            <div class="panel-title">Hydrodynamic Damping</div>
+            <div class="slider-row" style="margin-bottom: 2px;">
+              <div class="slider-label"><span>Linear Damping &mu;<sub>1</sub></span><span id="labelMu1">0.20 (Literature Baseline)</span></div>
+              <input type="range" id="sliderMu1" min="0.00" max="0.30" step="0.01" value="0.20" oninput="onMu1Change(this.value)">
+              <div class="scale-ticks">
+                <span>0.00 (Pure Quad)</span>
+                <span class="lit-tick">0.20 (Lit.)</span>
+                <span>0.30</span>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Free I* Slider -->
-        <div id="freeIStarRow" style="display: none;" class="slider-row">
-          <div class="slider-label"><span>Free Inertia I*</span><span id="labelFreeIStar">1.20</span></div>
-          <input type="range" id="sliderFreeIStar" min="0.05" max="3.50" step="0.01" value="1.20" oninput="onFreeIStarChange(this.value)">
-        </div>
+        <!-- 2. [Coins & Physics] Tab -->
+        <div class="tab-pane" id="tabPane-coins" role="tabpanel">
+          <div class="panel-box">
+            <div class="panel-title">
+              <span>Coin &amp; Geometry Catalog</span>
+              <button id="btnCompareTab" onclick="openCompareModal()" style="padding: 2px 7px; font-size: 10px;">📊 Compare Grid</button>
+            </div>
 
-        <!-- Physical Info Card -->
-        <div class="info-card" id="coinInfoCard">
-          <div id="infoNoteRef" style="display: none; background: #F0F9FF; color: #0369A1; border: 1px solid #BAE6FD; padding: 4px 8px; border-radius: 4px; font-weight: 600; font-size: 11px; margin-bottom: 6px;">Dimensionless benchmark plate (not a physical material)</div>
-          <div id="rowRhoS"><strong>Solid Density &rho;<sub>s</sub>:</strong> <span id="infoRhoS">2700.0 kg/m&sup3;</span> (&rho;<sub>s</sub>/&rho;<sub>f</sub> = <span id="infoRhoRatio">2.71</span>)</div>
-          <div><strong>Aspect Ratio h/L:</strong> <span id="infoAspect">0.0625</span> | <strong>I*:</strong> <span id="infoIStar">0.169</span></div>
-          <div><strong>Velocity Scale U<sub>t</sub>:</strong> <span id="infoUt">0.158 m/s</span> (U<sub>0</sub> = <span id="infoU0">0.112 m/s</span>)</div>
-          <div style="color: #64748B; font-size: 10px; margin-top: 2px;">Re<sub>in</sub> is display-only: the ODE model has no fluid viscosity.</div>
-        </div>
-      </div>
+            <div style="margin-bottom: 6px;">
+              <select id="selCoin" onchange="onCoinSelect(this.value)">
+                <optgroup label="Reference Thin Plates (h/L = 0.01)">
+                  <option value="ref_1.1">Reference Plate I* = 1.1 (Flutter)</option>
+                  <option value="ref_1.4">Reference Plate I* = 1.4 (Tumble)</option>
+                  <option value="ref_1.6">Reference Plate I* = 1.6 (Mixed)</option>
+                </optgroup>
+                <optgroup label="Pakistani Rupee Coins (demo values, replace with measurements)">
+                  <option value="pk_rs10">Rs 10 (2015-2022, brass) - demo</option>
+                  <option value="pk_rs5_2002">Rs 5 (2002, cupronickel) - demo</option>
+                  <option value="pk_rs5_2015" disabled>Rs 5 (2015, small brass) - disabled (missing thickness)</option>
+                </optgroup>
+                <optgroup label="Design Discs (hypothetical)">
+                  <option value="design_acrylic_24x1.2">Acrylic 24x1.2 mm (I* = 0.059)</option>
+                  <option value="design_aluminium_24x1.5" selected>Aluminium 24x1.5 mm (I* = 0.169)</option>
+                  <option value="design_brass_24x3.0">Brass 24x3.0 mm (I* = 1.065)</option>
+                  <option value="design_brass_24x3.5">Brass 24x3.5 mm (I* = 1.242)</option>
+                  <option value="design_steel_24x4.5">Steel 24x4.5 mm (I* = 1.475)</option>
+                  <option value="design_lead_24x3.5">Lead 24x3.5 mm (I* = 1.657)</option>
+                  <option value="design_tungsten_24x3.0">Tungsten 24x3.0 mm (I* = 2.411)</option>
+                </optgroup>
+                <optgroup label="Custom &amp; Free Mode">
+                  <option value="custom_coin">Custom Coin (specify mass &amp; dimensions)</option>
+                  <option value="free_istar">Free I* Parameter Slider</option>
+                </optgroup>
+              </select>
+            </div>
 
-      <!-- 3. Release & Physics Controls -->
-      <div class="panel-box">
-        <div class="panel-title">Release Controls &amp; Damping</div>
+            <div id="customCoinInputs" style="display: none; background: #F8FAFC; border: 1px solid #E2E8F0; padding: 6px; border-radius: 4px; margin-bottom: 6px;">
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;">
+                <div>
+                  <label style="font-size: 9.5px; color: #64748B;">Mass [g]</label>
+                  <input type="number" id="custMass" value="6.0" step="0.1" min="0.1" oninput="onCustomCoinChange()">
+                </div>
+                <div>
+                  <label style="font-size: 9.5px; color: #64748B;">Diameter [mm]</label>
+                  <input type="number" id="custDiam" value="24.0" step="0.5" min="1.0" oninput="onCustomCoinChange()">
+                </div>
+                <div>
+                  <label style="font-size: 9.5px; color: #64748B;">Thick. [mm]</label>
+                  <input type="number" id="custThick" value="2.0" step="0.1" min="0.1" oninput="onCustomCoinChange()">
+                </div>
+              </div>
+            </div>
 
-        <div class="slider-row">
-          <div class="slider-label"><span>Release Angle &theta;<sub>0</sub></span><span id="labelTheta0">5.0&deg;</span></div>
-          <input type="range" id="sliderTheta0" min="0" max="360" step="1" value="5" oninput="onTheta0Change(this.value)">
-        </div>
+            <div id="freeIStarRow" style="display: none;" class="slider-row">
+              <div class="slider-label"><span>Free Inertia I*</span><span id="labelFreeIStar">1.20</span></div>
+              <input type="range" id="sliderFreeIStar" min="0.05" max="3.50" step="0.01" value="1.20" oninput="onFreeIStarChange(this.value)">
+            </div>
 
-        <div class="slider-row">
-          <div class="slider-label"><span>Release Perturbation &delta;&theta;</span><span id="labelPerturb">0.0&deg;</span></div>
-          <input type="range" id="sliderPerturb" min="0.0" max="5.0" step="0.1" value="0.0" oninput="onPerturbChange(this.value)">
-        </div>
+            <div class="info-card" id="coinInfoCard">
+              <div id="infoNoteRef" style="display: none; background: #F0F9FF; color: #0369A1; border: 1px solid #BAE6FD; padding: 3px 6px; border-radius: 4px; font-weight: 600; font-size: 10px; margin-bottom: 4px;">Dimensionless benchmark plate (not a physical material)</div>
+              <div class="card-grid">
+                <div id="rowRhoS"><strong>Solid &rho;<sub>s</sub>:</strong> <span id="infoRhoS">2700.0 kg/m&sup3;</span> (&rho;<sub>s</sub>/&rho;<sub>f</sub> = <span id="infoRhoRatio">2.71</span>)</div>
+                <div><strong>Aspect h/L:</strong> <span id="infoAspect">0.0625</span> | <strong>I*:</strong> <span id="infoIStar">0.169</span></div>
+                <div style="grid-column: span 2;"><strong>Velocity Scale U<sub>t</sub>:</strong> <span id="infoUt">0.158 m/s</span> (U<sub>0</sub> = <span id="infoU0">0.112 m/s</span>)</div>
+              </div>
+              <div style="color: #64748B; font-size: 9.5px; margin-top: 3px;">Re<sub>in</sub> is display-only: the ODE model has no fluid viscosity.</div>
+            </div>
+          </div>
 
-        <div id="symmWarning" class="warning-box">
-          ⚠️ Symmetric release (&theta;<sub>0</sub> &in; {0&deg;, 90&deg;, 180&deg;, 270&deg;} &plusmn; 10<sup>-6</sup>) with zero perturbation: unstable saddle point where trajectory direction is determined purely by floating-point roundoff.
-        </div>
-
-        <div style="margin: 8px 0; font-size: 12px; display: flex; gap: 14px; align-items: center;">
-          <span style="font-weight: 500; color: #334155;">Start Mode:</span>
-          <label style="cursor: pointer;"><input type="radio" name="startMode" value="rest" checked onchange="onStartModeChange(this.value)"> From Rest</label>
-          <label style="cursor: pointer;"><input type="radio" name="startMode" value="ref" onchange="onStartModeChange(this.value)"> Reference (v = -U<sub>0</sub>)</label>
-        </div>
-
-        <div class="slider-row">
-          <div class="slider-label"><span>Linear Damping &mu;<sub>1</sub></span><span id="labelMu1">0.20 (Literature Baseline)</span></div>
-          <input type="range" id="sliderMu1" min="0.00" max="0.30" step="0.01" value="0.20" oninput="onMu1Change(this.value)">
-          <div style="display: flex; justify-content: space-between; font-size: 10px; color: #64748B; margin-top: 1px;">
-            <span>0.00 (Pure Quad)</span>
-            <span style="color: #1E40AF; font-weight: bold;">0.20 (Lit.)</span>
-            <span>0.30</span>
+          <div class="panel-box">
+            <div class="panel-title">Fluid Environment &amp; Tank Mode</div>
+            <div class="slider-row" style="margin-bottom: 6px;">
+              <div class="slider-label"><span>Fluid Viscosity &mu; [Pa&middot;s] (Display Re<sub>in</sub> only)</span><span id="labelMu">0.0010</span></div>
+              <input type="range" id="sliderMu" min="0.001" max="0.100" step="0.001" value="0.001" oninput="onMuChange(this.value)">
+            </div>
+            <div class="toggle-row" style="padding-top: 2px;">
+              <label><input type="checkbox" id="chkWideTank" checked onchange="onWideTankChange(this.checked)"> Wide Tank (Reproduction Mode: no wall/floor stop)</label>
+            </div>
           </div>
         </div>
 
-        <div class="slider-row">
-          <div class="slider-label"><span>Fluid Viscosity &mu; [Pa&middot;s] (Display Re<sub>in</sub> only)</span><span id="labelMu">0.0010</span></div>
-          <input type="range" id="sliderMu" min="0.001" max="0.100" step="0.001" value="0.001" oninput="onMuChange(this.value)">
-        </div>
+        <!-- 3. [Visuals] Tab -->
+        <div class="tab-pane" id="tabPane-visuals" role="tabpanel">
+          <div class="panel-box">
+            <div class="panel-title">Camera &amp; Color Rendering</div>
+            <div class="slider-row" style="margin-bottom: 6px;">
+              <div class="slider-label"><span>Camera Zoom [px/m]</span><span id="labelZoom">1600</span></div>
+              <input type="range" id="sliderZoom" min="200" max="3000" step="50" value="1600" oninput="onZoomChange(this.value)">
+            </div>
+            <div class="compact-btn-row">
+              <button class="flex-btn" id="btnColorMode" onclick="cycleColorMode()">Color: Speed [C]</button>
+              <button class="flex-btn" id="btnVectors" onclick="toggleVectors()">Vectors: ON [V]</button>
+              <button class="flex-btn" id="btnToggleAllLines" onclick="toggleAllLines()">Clean Coin</button>
+            </div>
+          </div>
 
-        <div class="slider-row">
-          <div class="slider-label"><span>Camera Zoom [px/m]</span><span id="labelZoom">1600</span></div>
-          <input type="range" id="sliderZoom" min="200" max="3000" step="50" value="1600" oninput="onZoomChange(this.value)">
-        </div>
+          <div class="panel-box">
+            <div class="panel-title">Vector &amp; Trail Visibility</div>
+            <div class="two-col-grid" style="gap: 3px 8px;">
+              <div class="toggle-item"><label><input type="checkbox" id="chkForces" checked onchange="setForcesVisible(this.checked)"> Force Vectors (F<sub>L</sub>, F<sub>D</sub>)</label></div>
+              <div class="toggle-item"><label><input type="checkbox" id="chkVelocity" checked onchange="setVelocityVisible(this.checked)"> Velocity Vector (V)</label></div>
+              <div class="toggle-item"><label><input type="checkbox" id="chkChord" checked onchange="setChordVisible(this.checked)"> Chord Director</label></div>
+              <div class="toggle-item"><label><input type="checkbox" id="chkTrail" checked onchange="setTrailVisible(this.checked)"> Flight Path Trail</label></div>
+              <div class="toggle-item"><label><input type="checkbox" id="chkVortices" checked onchange="setVorticesVisible(this.checked)"> Wake Vortex Rings</label></div>
+              <div class="toggle-item"><label><input type="checkbox" id="chkGhosts" checked onchange="setGhostsVisible(this.checked)"> Ghost Outlines (1.0 &tau;<sub>0</sub>)</label></div>
+            </div>
+          </div>
 
-        <div class="toggle-row">
-          <label><input type="checkbox" id="chkWideTank" checked onchange="onWideTankChange(this.checked)"> Wide Tank (Reproduction Mode: no wall/floor stop)</label>
-        </div>
+          <div class="panel-box">
+            <div class="panel-title">Interactive Vector Legend</div>
+            <div class="vector-legend" id="vectorLegend">
+              <div class="legend-item" id="legVel" onclick="toggleVelocity()" title="Click to toggle Velocity vector">
+                <div class="legend-swatch legend-vel"></div> Velocity <b>V</b>
+              </div>
+              <div class="legend-item" id="legLift" onclick="toggleLift()" title="Click to toggle Lift vector">
+                <div class="legend-swatch legend-lift"></div> Lift <b>F<sub>L</sub></b>
+              </div>
+              <div class="legend-item" id="legDrag" onclick="toggleDrag()" title="Click to toggle Drag vector">
+                <div class="legend-swatch legend-drag"></div> Drag <b>F<sub>D</sub></b>
+              </div>
+              <div class="legend-item" id="legChord" onclick="toggleChord()" title="Click to toggle Chord Director">
+                <div class="legend-swatch legend-chord"></div> Chord Director
+              </div>
+              <div class="legend-item" id="legTrail" onclick="toggleTrail()" title="Click to toggle Path Trail">
+                <div class="legend-swatch legend-trail"></div> Path Trail
+              </div>
+              <div class="legend-item" id="legVort" onclick="toggleVortices()" title="Click to toggle Vortex Rings">
+                <div class="legend-swatch legend-vort"></div> Vortex Rings
+              </div>
+            </div>
+            <div style="font-size: 9.5px; color: #64748B; margin-top: 4px;">Force arrows: sqrt-scaled (&le; 120 px)</div>
+          </div>
 
-        <div class="slider-row" style="margin-top: 8px;">
-          <div class="slider-label"><span>Playback Speed</span><span id="labelSpeed">0.30x (Slo-Mo)</span></div>
-          <input type="range" id="sliderSpeed" min="0.05" max="2.0" step="0.05" value="0.30" oninput="onSpeedChange(this.value)">
-          <div class="speed-btn-group">
-            <button class="speed-btn" onclick="setSpeed(0.10)">0.1x Ultra</button>
-            <button class="speed-btn active" id="spdBtn03" onclick="setSpeed(0.30)">0.3x Slo-Mo</button>
-            <button class="speed-btn" id="spdBtn05" onclick="setSpeed(0.50)">0.5x Half</button>
-            <button class="speed-btn" id="spdBtn10" onclick="setSpeed(1.00)">1.0x Real</button>
+          <div class="panel-box">
+            <div class="panel-title">Keyboard Shortcuts</div>
+            <div class="shortcut-list">
+              <div><span class="shortcut-key">Tab</span> Mode A/B</div>
+              <div><span class="shortcut-key">1-4</span> Presets</div>
+              <div><span class="shortcut-key">Space</span> Pause</div>
+              <div><span class="shortcut-key">S</span> Step 1 Frame</div>
+              <div><span class="shortcut-key">R</span> Reset Drop</div>
+              <div><span class="shortcut-key">V</span> Vectors ON/OFF</div>
+              <div><span class="shortcut-key">T</span> Trail ON/OFF</div>
+              <div><span class="shortcut-key">[ / ]</span> Speed -/+</div>
+              <div><span class="shortcut-key">E</span> 15-Coin Ensemble</div>
+              <div><span class="shortcut-key">C</span> Cycle Colormap</div>
+              <div><span class="shortcut-key">G</span> Compare Coins</div>
+              <div><span class="shortcut-key">P</span> Save 300DPI PNG</div>
+            </div>
           </div>
         </div>
 
-        <div style="display: flex; gap: 8px; margin-top: 8px;">
-          <button style="flex:1" id="btnColorMode" onclick="cycleColorMode()">Color: Speed [C]</button>
-          <button style="flex:1" id="btnVectors" onclick="toggleVectors()">Vectors: ON [V]</button>
-        </div>
-      </div>
-
-      <!-- 4. Coin Lines & Visibility Options Panel -->
-      <div class="panel-box">
-        <div class="panel-title">
-          <span>Coin Lines &amp; Visibility</span>
-          <button id="btnToggleAllLines" onclick="toggleAllLines()" style="padding: 2px 8px; font-size: 11px; font-weight:600;">Hide All Lines (Clean Coin)</button>
-        </div>
-
-        <div class="toggle-row">
-          <label><input type="checkbox" id="chkForces" checked onchange="setForcesVisible(this.checked)"> Force Vectors (Lift F<sub>L</sub> &amp; Drag F<sub>D</sub>)</label>
-        </div>
-        <div class="toggle-row">
-          <label><input type="checkbox" id="chkVelocity" checked onchange="setVelocityVisible(this.checked)"> Velocity Vector (V)</label>
-        </div>
-        <div class="toggle-row">
-          <label><input type="checkbox" id="chkChord" checked onchange="setChordVisible(this.checked)"> Coin Chord Director Line</label>
-        </div>
-        <div class="toggle-row">
-          <label><input type="checkbox" id="chkTrail" checked onchange="setTrailVisible(this.checked)"> Trajectory Flight Trail Line</label>
-        </div>
-        <div class="toggle-row">
-          <label><input type="checkbox" id="chkVortices" checked onchange="setVorticesVisible(this.checked)"> Wake Vortex Rings</label>
-        </div>
-        <div class="toggle-row">
-          <label><input type="checkbox" id="chkGhosts" checked onchange="setGhostsVisible(this.checked)"> Ghost Outlines (every 1.0 a/U<sub>0</sub>)</label>
-        </div>
-      </div>
-
-      <!-- 5. Real-Time Trajectory Phase Plot (X/a vs Y/a) -->
-      <div class="panel-box">
-        <div class="panel-title">
-          <span>Trajectory Space (x/a vs y/a)</span>
-          <div style="display: flex; gap: 4px;">
-            <button id="btnTrajFit" onclick="toggleTrajFitMode()" style="padding: 2px 6px; font-size: 10px;">Fit: All</button>
-            <button onclick="saveTrajPNG()" style="padding: 2px 6px; font-size: 10px;">Save PNG</button>
+        <!-- 4. [Analytics] Tab -->
+        <div class="tab-pane" id="tabPane-analytics" role="tabpanel">
+          <div class="panel-box" style="padding: 6px 8px;">
+            <div class="panel-title" style="margin-bottom: 4px;">
+              <span>Trajectory Space (x/a vs y/a)</span>
+              <div style="display: flex; gap: 4px;">
+                <button id="btnTrajFit" onclick="toggleTrajFitMode()" style="padding: 1px 6px; font-size: 9.5px;">Fit: All</button>
+                <button onclick="saveTrajPNG()" style="padding: 1px 6px; font-size: 9.5px;">Save PNG</button>
+              </div>
+            </div>
+            <canvas id="chartTraj"></canvas>
           </div>
-        </div>
-        <canvas id="chartTraj"></canvas>
-      </div>
 
-      <!-- 6. Real-Time Scrolling Strip Charts -->
-      <div class="panel-box">
-        <div class="panel-title">Tilt Angle &theta;(t) [deg]</div>
-        <canvas class="strip-chart-canvas" id="chartTheta"></canvas>
-      </div>
+          <div class="panel-box" style="padding: 6px 8px;">
+            <div class="panel-title" style="margin-bottom: 2px;">Tilt Angle &theta;(t) [deg]</div>
+            <canvas class="strip-chart-canvas" id="chartTheta"></canvas>
+          </div>
 
-      <div class="panel-box">
-        <div class="panel-title">Descent Speed |V(t)| (Red) &amp; |v<sub>Y</sub>| (Green) [m/s]</div>
-        <canvas class="strip-chart-canvas" id="chartSpeed"></canvas>
-      </div>
-
-      <!-- 7. Keyboard Shortcuts -->
-      <div class="panel-box">
-        <div class="panel-title">Hotkeys Reference</div>
-        <div class="shortcut-list">
-          <div><span class="shortcut-key">Tab</span> Toggle Mode A/B</div>
-          <div><span class="shortcut-key">1-4</span> Select Preset</div>
-          <div><span class="shortcut-key">Space</span> Pause / Resume</div>
-          <div><span class="shortcut-key">S</span> Step 1 Frame</div>
-          <div><span class="shortcut-key">R</span> Reset Drop</div>
-          <div><span class="shortcut-key">V</span> Toggle Vectors</div>
-          <div><span class="shortcut-key">T</span> Toggle Trail</div>
-          <div><span class="shortcut-key">[ / ]</span> Slower / Faster</div>
-          <div><span class="shortcut-key">E</span> Toggle 15 Coins</div>
-          <div><span class="shortcut-key">C</span> Cycle Colormap</div>
-          <div><span class="shortcut-key">G</span> Compare Coins</div>
-          <div><span class="shortcut-key">P</span> Save 300DPI PNG</div>
+          <div class="panel-box" style="padding: 6px 8px;">
+            <div class="panel-title" style="margin-bottom: 2px;">Descent Speed |V(t)| (Red) &amp; |v<sub>Y</sub>| (Green) [m/s]</div>
+            <canvas class="strip-chart-canvas" id="chartSpeed"></canvas>
+          </div>
         </div>
       </div>
     </div>
@@ -718,9 +969,9 @@
   <div id="modalCompare">
     <div class="modal-content">
       <div class="modal-header">
-        <h3 style="font-size: 14px; color: #0E2A54;">📊 Multi-Coin Trajectory Comparison (First 60 a/U<sub>0</sub>, classified at 80 L)</h3>
-        <div style="display: flex; gap: 12px; align-items: center;">
-          <label style="font-size: 12px; display: flex; align-items: center; gap: 5px; font-weight: 600; color: #1E293B; cursor: pointer;">
+        <h3 style="font-size: 13.5px; color: #0E2A54;">📊 Multi-Coin Trajectory Comparison (First 60 a/U<sub>0</sub>, classified at 80 L)</h3>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <label style="font-size: 11.5px; display: flex; align-items: center; gap: 5px; font-weight: 600; color: #1E293B; cursor: pointer;">
             <input type="checkbox" id="chkCommonScale" checked onchange="renderCompareModal()"> Common Scale
           </label>
           <button onclick="saveComparePNG()" style="background: #0E7490; color: #FFFFFF; border-color: #085166;">Save Comparison PNG</button>
@@ -1103,6 +1354,33 @@
     const ctxTraj = chartTraj.getContext("2d");
 
     // UI state
+
+    // Tab switching and automation scroll-into-view hook
+    function switchSidebarTab(tabName) {
+      const tabs = ['sim', 'coins', 'visuals', 'analytics'];
+      tabs.forEach(t => {
+        const btn = document.getElementById("tabBtn-" + t);
+        const pane = document.getElementById("tabPane-" + t);
+        if (btn) btn.classList.toggle("active", t === tabName);
+        if (pane) pane.classList.toggle("active", t === tabName);
+      });
+      if (tabName === 'analytics') {
+        resizeCanvas();
+        renderStripCharts();
+        renderTrajChart();
+      }
+    }
+
+    const origScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = function(...args) {
+      const pane = this.closest ? this.closest(".tab-pane") : null;
+      if (pane && pane.id) {
+        const tabName = pane.id.replace("tabPane-", "");
+        switchSidebarTab(tabName);
+      }
+      return origScrollIntoView.apply(this, args);
+    };
+
     let currentMode = 0; // 0 = Mode A (ODE), 1 = Mode B (Illustration)
     let isPaused = false;
     let playbackSpeed = 0.30;
@@ -1376,8 +1654,11 @@
     }
 
     function applyPreset(p) {
-      document.querySelectorAll(".preset-btn").forEach((b, idx) => {
-        if (!b.disabled) b.className = "preset-btn" + (idx + 1 === p ? " active" : "");
+      document.querySelectorAll(".preset-btn").forEach((b) => {
+        const bp = parseInt(b.getAttribute("data-preset") || "0", 10);
+        if (!b.disabled) {
+          b.classList.toggle("active", bp === p);
+        }
       });
 
       if (p === 1) {
@@ -1478,7 +1759,11 @@
 
     function togglePause() {
       isPaused = !isPaused;
-      document.getElementById("btnPlay").innerText = isPaused ? "[Space] Play" : "[Space] Pause";
+      const txt = isPaused ? "[Space] Play" : "[Space] Pause";
+      const b1 = document.getElementById("btnPlay");
+      if (b1) b1.innerText = txt;
+      const b2 = document.getElementById("btnPlayTab");
+      if (b2) b2.innerText = txt;
     }
 
     function toggleTrajFitMode() {
@@ -1564,7 +1849,11 @@
     }
     function toggleEnsemble() {
       ensembleMode = !ensembleMode;
-      document.getElementById("btnEnsemble").className = ensembleMode ? "active" : "";
+      const cls = ensembleMode ? "active" : "";
+      const b1 = document.getElementById("btnEnsemble");
+      if (b1) b1.className = cls;
+      const b2 = document.getElementById("btnEnsembleTab");
+      if (b2) b2.className = cls;
       initEnsemble();
     }
     function cycleColorMode() {
@@ -1635,7 +1924,11 @@
           // Check wide tank auto-pause at 80 L depth
           if (isWideTank && odeSim.reached_depth) {
             isPaused = true;
-            document.getElementById("btnPlay").innerText = "[Space] Play";
+            const txt = "[Space] Play";
+            const b1 = document.getElementById("btnPlay");
+            if (b1) b1.innerText = txt;
+            const b2 = document.getElementById("btnPlayTab");
+            if (b2) b2.innerText = txt;
             break;
           }
         }
@@ -1714,12 +2007,12 @@
       const parent = document.getElementById("viewport-container");
       canvas.width = parent.clientWidth;
       canvas.height = parent.clientHeight;
-      chartTheta.width = chartTheta.clientWidth;
-      chartTheta.height = chartTheta.clientHeight;
-      chartSpeed.width = chartSpeed.clientWidth;
-      chartSpeed.height = chartSpeed.clientHeight;
-      chartTraj.width = chartTraj.clientWidth;
-      chartTraj.height = chartTraj.clientHeight;
+      chartTheta.width = chartTheta.clientWidth || 340;
+      chartTheta.height = chartTheta.clientHeight || 62;
+      chartSpeed.width = chartSpeed.clientWidth || 340;
+      chartSpeed.height = chartSpeed.clientHeight || 62;
+      chartTraj.width = chartTraj.clientWidth || 340;
+      chartTraj.height = chartTraj.clientHeight || 170;
     }
     window.addEventListener("resize", resizeCanvas);
 
@@ -2485,6 +2778,7 @@
     }
 
     // Initialize simulation
+    switchSidebarTab('sim');
     resizeCanvas();
     resetDrop();
     requestAnimationFrame(animate);

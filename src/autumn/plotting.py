@@ -3,7 +3,6 @@
 Strict specifications:
 - Pure white background, high-contrast dark text and axes.
 - 300 DPI PNG plus vector PDF output.
-- Every figure title/caption explicitly includes: '2D quasi-steady model simulation'.
 - Accompanying CSV data saved alongside figures.
 """
 
@@ -70,7 +69,7 @@ def plot_single_drop(
     Includes orientation directors every N points.
     """
     fig, axs = plt.subplots(1, 3, figsize=(15, 5))
-    fig.suptitle(f"Single Drop Dynamics: {res.plate.name} (2D quasi-steady model simulation)", fontsize=13)
+    fig.suptitle(f"Single Drop Dynamics: {res.plate.name}", fontsize=13)
 
     # 1. Trajectory in X-Y plane
     ax0 = axs[0]
@@ -135,7 +134,7 @@ def plot_energy_budget(
 ) -> None:
     r"""Plot energy components and budget closure."""
     fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(12, 4.5))
-    fig.suptitle("Energy Budget Reconciliation (2D quasi-steady model simulation)", fontsize=12)
+    fig.suptitle("Energy Budget Reconciliation", fontsize=12)
 
     ax0.plot(t, E_kin, label=r"Kinetic $T = T_{\mathrm{body}} + T_{\mathrm{fluid}}$", color="#1f77b4")
     ax0.plot(t, E_pot - E_pot[0], label=r"Potential $\Delta V_{\mathrm{pot}}$", color="#ff7f0e")
@@ -178,7 +177,7 @@ def plot_fft_frequency(
     ax.axvline(f_dom, color="#d62728", ls="--", label=f"Dominant freq: {f_dom:.2f} Hz (St = {St:.3f})")
     ax.set_xlabel("Frequency f [Hz]")
     ax.set_ylabel(r"Power Spectral Density of $\theta(t)$ [$\mathrm{rad}^2/\mathrm{Hz}$]")
-    ax.set_title(f"Fluttering Frequency Analysis (2D quasi-steady model simulation: St={St:.3f})")
+    ax.set_title(f"Fluttering Frequency Analysis (St={St:.3f})")
     ax.grid(True)
     ax.legend(loc="upper right")
     plt.tight_layout()
@@ -198,7 +197,7 @@ def plot_i_star_sweep(
 ) -> None:
     r"""Plot I* sweep metrics: regime classification, mean descent speed, lateral drift."""
     fig, axs = plt.subplots(1, 3, figsize=(15, 4.5))
-    fig.suptitle(r"$I^*$ Sweep Analysis (2D quasi-steady model simulation)", fontsize=13)
+    fig.suptitle(r"$I^*$ Sweep Analysis", fontsize=13)
 
     # 1. Regime vs I*
     ax0 = axs[0]
@@ -254,7 +253,7 @@ def plot_release_angle_sweep(
 ) -> None:
     r"""Plot lateral drift and descent speed vs release angle for flutter, transition, tumble."""
     fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(12, 4.8))
-    fig.suptitle(r"Release Angle Sweep Dynamics (2D quasi-steady model simulation)", fontsize=13)
+    fig.suptitle(r"Release Angle Sweep Dynamics", fontsize=13)
 
     colors = {"flutter": "#2ca02c", "transition": "#ff7f0e", "tumble": "#d62728"}
 
@@ -307,7 +306,7 @@ def plot_chaos_ensemble(
 ) -> None:
     r"""Plot ensemble mean trajectory with 1-sigma band, landing scatter and histogram."""
     fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(12, 5))
-    fig.suptitle(f"Chaos & Dispersion Ensemble: {case_name} ($I^*={i_star:.2f}$) (2D quasi-steady model simulation)", fontsize=12)
+    fig.suptitle(f"Chaos & Dispersion Ensemble: {case_name} ($I^*={i_star:.2f}$)", fontsize=12)
 
     # 1. Trajectory bundle & 1-sigma band
     ax0.plot(mean_X * 1000.0, mean_Y * 1000.0, color="#1f77b4", lw=2, label="Mean trajectory")
@@ -357,7 +356,7 @@ def plot_regime_map(
 ) -> None:
     r"""Plot phase diagram of I* vs Re with regime colors, Re=5000 fitted threshold, and single clean legend."""
     fig, ax = plt.subplots(figsize=(8.5, 6.2))
-    fig.suptitle(r"Phase Diagram: Falling Regime Map ($I^*$ vs $\mathrm{Re}$) (2D quasi-steady model simulation)", fontsize=13)
+    fig.suptitle(r"Phase Diagram: Falling Regime Map ($I^*$ vs $\mathrm{Re}$)", fontsize=13)
 
     color_map = {
         "steady": "#1f77b4",
